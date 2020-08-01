@@ -1,0 +1,32 @@
+{
+    "compilerOptions": {
+        "module": "ESNext",
+        "target": "ES6",
+        "outDir": "out",
+        "sourceMap": true,
+        "declaration": true,
+        "declarationMap": true,
+        "composite": true,
+        "strict": true,
+        "moduleResolution": "node",
+        "rootDir": "src",
+        "lib": [
+            "DOM",
+            "ESNext"
+        ],
+        "jsx": "react",
+        "baseUrl": "."
+    },
+    "include": [
+        "./src/**/*.ts",
+        "./src/**/*.tsx",
+    ],
+    "exclude": [
+        "node_modules"
+    ],
+    "references": [
+        {
+            "path": "../shared"
+        }
+    ]
+}

@@ -1,0 +1,29 @@
+doctype html
+html(lang="en")
+    head
+        meta(charset="UTF-8")
+        meta(name="viewport", content="width=device-width, initial-scale=1.0")
+        title Cheers Bot Login
+        link(rel="stylesheet", href="/common.css")
+        link(rel="stylesheet", href="/index.css")
+    body
+        main
+            h1
+                img(src="https://static-cdn.jtvnw.net/emoticons/v1/302175577/1.0")
+                | &nbsp;Cheers Bot Login
+            .PanelGroup
+                .legend Login
+                .PanelField
+                    | Cheers Bot needs permission to access your Twitch account!
+                .PanelField
+                    if accountType === 'bot'
+                        | These permissions will allow your account to be used as a chat bot in other Twitch channels!
+                    if accountType === 'channel'
+                        | These permissions will allow authorized bots to send messages in your chat, react to moderation events, track channel point redemptions, and more!
+                    if accountType === 'user'
+                        | These permissions will allow you to access the control panel for your channels!
+                .PanelField
+                    a.button.primary(href="redirect/") Connect Twitch Account
+                if accountType === 'user'
+                    .PanelField
+                        | By connecting your Twitch account, you also agree to allow Cheers Bot to save cookies in your browser which will be used to keep you logged in! If you keep getting logged out, make sure you have cookies enabled!

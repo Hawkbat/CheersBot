@@ -1,0 +1,14 @@
+{
+  "name": "cheers-bot",
+  "version": "1.0.0",
+  "description": "Heccin cheers bot!",
+  "main": "index.js",
+  "dependencies": {},
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc --build client server && cd client && npx webpack"
+  },
+  "author": "Hawkbat",
+  "license": "UNLICENSED"
+}

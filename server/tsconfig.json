@@ -1,0 +1,27 @@
+{
+    "compilerOptions": {
+        "module": "commonjs",
+        "target": "ES6",
+        "outDir": "out",
+        "sourceMap": true,
+        "declaration": true,
+        "declarationMap": true,
+        "composite": true,
+        "strict": true,
+        "moduleResolution": "node",
+        "rootDir": "src",
+        "baseUrl": "."
+    },
+    "include": [
+        "./src/*.ts",
+        "./src/*.tsx",
+    ],
+    "exclude": [
+        "node_modules"
+    ],
+    "references": [
+        {
+            "path": "../shared"
+        }
+    ]
+}

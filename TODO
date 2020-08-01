@@ -1,0 +1,54 @@
+
+Architecture
+    Change to an event-stream model piped over server-side events
+    Use React/Vue/etc. for persistent client-side rendering
+    Continue refactoring for multi-channel support
+    Persist channel state (counters, active notifications, etc.)
+
+Channel Features
+    Non-channel-point notifications
+        Follow
+        Sub
+        Gifted Sub
+        Bit
+        Donation
+        Raid
+        Host
+    
+    Stream goals
+        Follows/Subs/Bits/Donations
+        Optional start/end dates
+        Fun animations or sounds when goals are reached
+
+    Configure Bots
+        Allow multiple bots to be registered to the channel (for debugging purposes mostly)
+        Configure which bot is primary via dropdown
+        Configure which bots have access via UI
+
+    Configure Users
+        Allow multiple users to be given access to the channel control panel (e.g. moderators, trusted users, alt accounts)
+        Configure which users have access via UI
+
+    Notification settings
+        Trigger-via-timeout (mostly done)
+            Still need configurable timer
+        Grouping/merging options (add, replace, maximum, total)
+        Auto-expire timer
+        Custom notification messages
+        Custom emote icon (chosen from streamer icons via twitchemotes API)
+
+    Channel Point rewards
+        Configure rewards in UI
+        Enable/disable notifications
+        Out-of-stock bot messages and/or notifications
+
+Other Features (Long-Term)
+    Viewer game drafting system
+    VOD review queue (Overwatch)
+    Twitch-integrated VRM-compatible games
+
+
+Girl DM Ideas
+    Evil counter
+        When a say redeem happens, look for the keywords "evil" or "war crimes"
+        If you find it, add to the "evil_dm_" counter

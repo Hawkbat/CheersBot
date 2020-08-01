@@ -1,0 +1,15 @@
+doctype html
+html(lang="en")
+    head
+        meta(charset="UTF-8")
+        meta(name="viewport", content="width=device-width, initial-scale=1.0")
+        title Cheers Bot Overlay - #{channel}
+        link(rel="stylesheet", href="/common.css")
+        link(rel="stylesheet", href="/overlay.css")
+        script(src="/react.development.js")
+        script(src="/react-dom.development.js")
+        script.
+            let REFRESH_ID = #{refreshID}
+        script(src=`/overlay.js?refresh=${refreshID}`)
+    body
+        main

@@ -1,0 +1,17 @@
+doctype html
+html(lang="en")
+    head
+        meta(charset="UTF-8")
+        meta(name="viewport", content="width=device-width, initial-scale=1.0")
+        title Cheers Bot
+        link(rel="stylesheet", href="/common.css")
+        link(rel="stylesheet", href="/index.css")
+    body
+        main
+            h1
+                img(src="https://static-cdn.jtvnw.net/emoticons/v1/302175577/1.0")
+                | &nbsp;Cheers Bot
+            p= message
+            if redirect
+                script.
+                    setTimeout(() => location.href = '#{redirect}', 1000)
