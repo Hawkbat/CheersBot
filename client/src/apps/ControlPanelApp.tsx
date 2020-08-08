@@ -77,7 +77,7 @@ export function ControlPanelApp(props: ControlPanelViewData) {
 
     return <div>
         <PanelHeader>
-            <TwitchIcon icon={{ type: 'emote', id: "302175577", name: 'girldmCheer' }} size={1} /> Cheers Bot Control Panel
+            <a href="/"><TwitchIcon icon={{ type: 'emote', id: "302175577", name: 'girldmCheer' }} size={1} /></a> Cheers Bot Control Panel
         </PanelHeader>
         <DragDropContext onDragEnd={(result, provided) => {
             if (result.destination) movePanels(result.source.index, result.destination.index)

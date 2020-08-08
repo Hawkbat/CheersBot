@@ -1,9 +1,11 @@
 
 Architecture
     Change to an event-stream model piped over server-side events
-    Use React/Vue/etc. for persistent client-side rendering
-    Continue refactoring for multi-channel support
-    Persist channel state (counters, active notifications, etc.)
+    Hydrate channels and users on-demand to reduce memory costs
+    Split into plugins and separate data by plugin
+        Enable/disable plugins using shared interface
+        Each plugin gets one control panel section
+    Create an actual homepage with links to register bots/channels/users
 
 Channel Features
     Non-channel-point notifications
@@ -43,12 +45,24 @@ Channel Features
         Out-of-stock bot messages and/or notifications
 
 Other Features (Long-Term)
-    Viewer game drafting system
+    Viewer game drafting/raffle system
+        Opt in via chat command, optionally giving context (competitive rank, etc.)
+        Rules for randomly selecting participants
+            Randomly from first X viewers in queue
+            Chance multipliers for followers/subs
+        Choose to move to back of queue or remove from queue
+        Make sure viewers aren't counted multiple times
+    Chat vote system (not really necessary, but could be fun to do for a "complete package" overlay)
     VOD review queue (Overwatch)
+        Maybe work for generic queues of items (although Overwatch-specific functionality can be a submode)
     Twitch-integrated VRM-compatible games
 
 
 Girl DM Ideas
-    Evil counter
+    Evil counter - Done!
         When a say redeem happens, look for the keywords "evil" or "war crimes"
         If you find it, add to the "evil_dm_" counter
+
+Bugs
+    Hitting "Complete" and then "Thoroughly patted" in short succession causes the counter to go negative
+    Users need access to the default channel ('hawkbar') to be able to use their own control panels

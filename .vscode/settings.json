@@ -2,6 +2,8 @@
     "files.exclude": {
         "**/*.tsbuildinfo": true,
         "**/node_modules/": true,
-        "**/out/": true
+        "**/out/": true,
+        "secrets.json": true,
+        "**/package-lock.json": true,
     }
 }

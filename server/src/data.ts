@@ -1,6 +1,7 @@
 import TwitchClient from 'twitch'
 import ChatClient from 'twitch-chat-client'
 import PubSubClient from 'twitch-pubsub-client'
+import WebHookClient from 'twitch-webhooks'
 import { RedeemMode, Store } from 'shared'
 
 export enum AccountType {
@@ -46,6 +47,7 @@ export interface ChannelData extends AccountData {
 
 export interface Channel extends Account<ChannelData> {
     pubSubClient: PubSubClient
+    webHookClient: WebHookClient
 }
 
 export interface UserData extends AccountData {

@@ -1,7 +1,8 @@
 import { RedeemMode, RedeemType, Icon, generateID, ControlPanelViewData, OverlayViewData, PanelType, Store } from 'shared'
-import TwitchClient, { HelixPrivilegedUser } from 'twitch'
+import TwitchClient from 'twitch'
 import ChatClient, { PrivateMessage } from 'twitch-chat-client'
 import PubSubClient from 'twitch-pubsub-client'
+import WebHookClient, { SimpleAdapter, ReverseProxyAdapter } from 'twitch-webhooks'
 import * as express from 'express'
 import * as session from 'express-session'
 import * as stylus from 'stylus'
@@ -19,10 +20,12 @@ const workingDir = process.cwd()
 async function run() {
     const secrets = await readJSON<any>(workingDir + '/secrets.json')
 
-    const GLOBAL_DEFAULT_CHANNEL_NAME = 'girl_dm_'
-
     const CLIENT_ID = secrets.twitch.clientID
     const CLIENT_SECRET = secrets.twitch.clientSecret
+
+    const BOT_SCOPES = ['chat:read', 'chat:edit']
+    const CHANNEL_SCOPES = ['moderation:read', 'channel:moderate', 'channel:read:redemptions', 'channel:read:subscriptions']
+    const USER_SCOPES = ['user:read:email']
 
     const BAN_TIMEOUT = 10 * 60 * 1000
 
@@ -93,7 +96,7 @@ async function run() {
                     scope: data.scope,
                 }
 
-                const { client } = await generateClient(accountType, '', token)
+                const { client } = await generateClient(accountType, token)
                 if (client) {
                     const twitchUser = await client.helix.users.getMe()
                     switch (accountType) {
@@ -137,17 +140,28 @@ async function run() {
     async function generateClient(accountType: AccountType.bot, userName: string): Promise<{ data: Store<BotData> | null, client: TwitchClient | null }>
     async function generateClient(accountType: AccountType.channel, userName: string): Promise<{ data: Store<ChannelData> | null, client: TwitchClient | null }>
     async function generateClient(accountType: AccountType.user, userName: string): Promise<{ data: Store<UserData> | null, client: TwitchClient | null }>
-    async function generateClient(accountType: AccountType, userName: string, token?: Token): Promise<{ data: Store<AccountData> | null, client: TwitchClient | null }>
-    async function generateClient<T extends AccountData>(accountType: AccountType, userName: string, token?: Token): Promise<{ data: Store<T> | null, client: TwitchClient | null }> {
+    async function generateClient(accountType: AccountType, token: Token): Promise<{ data: Store<AccountData> | null, client: TwitchClient | null }>
+    async function generateClient<T extends AccountData>(accountType: AccountType, userNameOrToken: string | Token): Promise<{ data: Store<T> | null, client: TwitchClient | null }> {
+        let userName: string = ''
+        let tokenPath: string = ''
+        let token: Token
         try {
-            let tokenPath = userName ? getTokenPath(accountType, userName) : ''
-            const existingData = await readJSON<T>(tokenPath)
-            const defaultData = getDefaultData(accountType, token) as T
-            const accountData = existingData ? { ...defaultData, ...existingData } : defaultData
+            if (typeof userNameOrToken === 'string') {
+                userName = userNameOrToken
+                tokenPath = getTokenPath(accountType, userName)
+                const existingData = await readJSON<T>(tokenPath)
+                if (existingData) {
+                    token = existingData.token
+                } else {
+                    throw new Error(`Could not load existing data for ${accountType} ${userName}`)
+                }
+            } else {
+                token = userNameOrToken
+            }
 
-            const client = TwitchClient.withCredentials(CLIENT_ID, accountData.token.accessToken, accountData.token.scope, {
+            const client = TwitchClient.withCredentials(CLIENT_ID, token.accessToken, token.scope, {
                 clientSecret: CLIENT_SECRET,
-                refreshToken: accountData.token.refreshToken,
+                refreshToken: token.refreshToken,
                 onRefresh: async token => {
                     try {
                         if (!userName || !tokenPath) {
@@ -171,6 +185,10 @@ async function run() {
             const user = await client.helix.users.getMe()
             userName = user.name
             tokenPath = getTokenPath(accountType, userName)
+
+            const existingData = await readJSON<T>(tokenPath)
+            const defaultData = getDefaultData(accountType, token) as T
+            const accountData = existingData ? { ...defaultData, ...existingData, ...{ token } } : defaultData
 
             await writeJSON(tokenPath, accountData)
 
@@ -318,29 +336,51 @@ async function run() {
                     }
                 })
 
-                pubSubClient.onModAction(id, id, msg => {
-                    if (msg.action === 'timeout') {
-                        const username = msg.args[0]
-                        const duration = parseFloat(msg.args[1])
-                        const ban = data.get(d => d.modes).find(b => b.type === 'girldm heccin ban me' && b.userName.toLowerCase() === username.toLowerCase())
-                        if (ban) {
-                            ban.startTime = Date.now()
-                            ban.duration = BAN_TIMEOUT
-                            for (const bot of getBotsForChannel(name)) {
-                                bot.chatClient.say(name, `Goodbye, @${username}! Have a nice heccin time while being banned girldmCheer`)
+
+                if (data.get(d => d.token.scope.includes('channel:moderate'))) {
+                    pubSubClient.onModAction(id, id, msg => {
+                        if (msg.action === 'timeout') {
+                            const username = msg.args[0]
+                            const duration = parseFloat(msg.args[1])
+                            const ban = data.get(d => d.modes).find(b => b.type === 'girldm heccin ban me' && b.userName.toLowerCase() === username.toLowerCase())
+                            if (ban) {
+                                ban.startTime = Date.now()
+                                ban.duration = BAN_TIMEOUT
+                                for (const bot of getBotsForChannel(name)) {
+                                    bot.chatClient.say(name, `Goodbye, @${username}! Have a nice heccin time while being banned girldmCheer`)
+                                }
+                            }
+                        } else if (msg.action === 'untimeout') {
+                            const username = msg.args[0]
+                            const ban = data.get(d => d.modes).find(b => b.type === 'girldm heccin ban me' && b.userName.toLowerCase() === username.toLowerCase())
+                            if (ban) {
+                                for (const bot of getBotsForChannel(name)) {
+                                    bot.chatClient.say(name, `Welcome back, @${username}! girldmCheer`)
+                                }
+                                removeModeDelayed(data, ban)
                             }
                         }
-                    } else if (msg.action === 'untimeout') {
-                        const username = msg.args[0]
-                        const ban = data.get(d => d.modes).find(b => b.type === 'girldm heccin ban me' && b.userName.toLowerCase() === username.toLowerCase())
-                        if (ban) {
-                            for (const bot of getBotsForChannel(name)) {
-                                bot.chatClient.say(name, `Welcome back, @${username}! girldmCheer`)
-                            }
-                            removeModeDelayed(data, ban)
-                        }
-                    }
+                    })
+                }
+
+                const webHookClient = new WebHookClient(client, new ReverseProxyAdapter({
+                    hostName: 'girldm.hawk.bar',
+                    pathPrefix: `/${name}/hooks`,
+                    listenerPort: 60004,
+                    ssl: true,
+                }))
+
+                await webHookClient.subscribeToFollowsToUser('71092938', follow => {
+                    console.log(`${follow.userDisplayName} is following ${name}`)
                 })
+
+                if (data.get(d => d.token.scope.includes('channel:read:subscriptions'))) {
+                    await webHookClient.subscribeToSubscriptionEvents(id, sub => {
+                        console.log(`${sub.userDisplayName} subscribed to ${name}`)
+                    })
+                }
+
+                webHookClient.applyMiddleware(app)
 
                 const getControlPanelData = (username: string): ControlPanelViewData => {
                     const channelList = getChannelsForUser(username).map(c => c.name)
@@ -378,7 +418,7 @@ async function run() {
 
                 app.get(`/${name}/`, (req, res) => {
                     if (!hasTwitchAuth(req)) return respondTwitchAuthRedirect(res)
-                    if (!hasChannelAuth(req, GLOBAL_DEFAULT_CHANNEL_NAME)) return respondChannelAuthMessage(res)
+                    if (!hasChannelAuth(req, name)) return respondChannelAuthMessage(res)
                     res.render('index', getControlPanelData(req.session!.twitchUserName ?? ''))
                 })
 
@@ -388,7 +428,7 @@ async function run() {
 
                 app.post(`/${name}/actions/adjust-headpats/`, async (req, res) => {
                     if (!hasTwitchAuth(req)) return respondTwitchAuthJSON(res)
-                    if (!hasChannelAuth(req, GLOBAL_DEFAULT_CHANNEL_NAME)) return respondChannelAuthJSON(res)
+                    if (!hasChannelAuth(req, name)) return respondChannelAuthJSON(res)
                     const delta = req.body.delta as number
                     data.set(d => ({
                         ...d,
@@ -406,7 +446,7 @@ async function run() {
 
                 app.post(`/${name}/actions/adjust-evil/`, (req, res) => {
                     if (!hasTwitchAuth(req)) return respondTwitchAuthJSON(res)
-                    if (!hasChannelAuth(req, GLOBAL_DEFAULT_CHANNEL_NAME)) return respondChannelAuthJSON(res)
+                    if (!hasChannelAuth(req, name)) return respondChannelAuthJSON(res)
                     const delta = req.body.delta as number
                     data.set(d => ({
                         ...d,
@@ -418,7 +458,7 @@ async function run() {
 
                 app.post(`/${name}/actions/start-event/`, (req, res) => {
                     if (!hasTwitchAuth(req)) return respondTwitchAuthJSON(res)
-                    if (!hasChannelAuth(req, GLOBAL_DEFAULT_CHANNEL_NAME)) return respondChannelAuthJSON(res)
+                    if (!hasChannelAuth(req, name)) return respondChannelAuthJSON(res)
                     const mode = data.get(d => d.modes.find(m => m.id === req.body.id))
                     if (mode) {
                         data.set(d => ({
@@ -435,7 +475,7 @@ async function run() {
 
                 app.post(`/${name}/actions/clear-event/`, (req, res) => {
                     if (!hasTwitchAuth(req)) return respondTwitchAuthJSON(res)
-                    if (!hasChannelAuth(req, GLOBAL_DEFAULT_CHANNEL_NAME)) return respondChannelAuthJSON(res)
+                    if (!hasChannelAuth(req, name)) return respondChannelAuthJSON(res)
                     const mode = data.get(d => d.modes.find(m => m.id === req.body.id))
                     if (mode) {
                         removeModeDelayed(data, mode)
@@ -445,7 +485,7 @@ async function run() {
 
                 app.post(`/${name}/actions/mock-event/`, (req, res) => {
                     if (!hasTwitchAuth(req)) return respondTwitchAuthJSON(res)
-                    if (!hasChannelAuth(req, GLOBAL_DEFAULT_CHANNEL_NAME)) return respondChannelAuthJSON(res)
+                    if (!hasChannelAuth(req, name)) return respondChannelAuthJSON(res)
                     const type = req.body.type as RedeemType
                     const username = req.body.username as string
                     const message = req.body.message as string
@@ -477,7 +517,7 @@ async function run() {
 
                 app.post(`/${name}/actions/reload/`, (req, res) => {
                     if (!hasTwitchAuth(req)) return respondTwitchAuthJSON(res)
-                    if (!hasChannelAuth(req, GLOBAL_DEFAULT_CHANNEL_NAME)) return respondChannelAuthJSON(res)
+                    if (!hasChannelAuth(req, name)) return respondChannelAuthJSON(res)
                     refreshID++
                     res.type('json').send('true')
                 })
@@ -497,6 +537,7 @@ async function run() {
                     data,
                     client,
                     pubSubClient,
+                    webHookClient,
                 }
             }
         } catch (e) {
@@ -558,16 +599,16 @@ async function run() {
     }))
 
     app.get('/', (req, res) => {
-        res.redirect(`/${GLOBAL_DEFAULT_CHANNEL_NAME}/`)
+        res.render('landing', { channels: getChannelsForUser(req.session?.twitchUserName ?? '') })
     })
 
     app.get('/overlay/', (req, res) => {
-        res.redirect(`/${GLOBAL_DEFAULT_CHANNEL_NAME}/overlay/`)
+        res.render('message', { message: 'This is the wrong URL for the Cheers Bot overlay! Copy the URL from your channel\'s Cheers Bot control panel!' })
     })
 
-    setupAuthWorkflow(AccountType.bot, ['chat:read', 'chat:edit'])
-    setupAuthWorkflow(AccountType.channel, ['channel:read:redemptions', 'moderation:read'])
-    setupAuthWorkflow(AccountType.user, ['user:read:email'])
+    setupAuthWorkflow(AccountType.bot, BOT_SCOPES)
+    setupAuthWorkflow(AccountType.channel, CHANNEL_SCOPES)
+    setupAuthWorkflow(AccountType.user, USER_SCOPES)
 
     const promises: Promise<void>[] = []
 

@@ -1,0 +1,41 @@
+doctype html
+html(lang="en")
+    head
+        meta(charset="UTF-8")
+        meta(name="viewport", content="width=device-width, initial-scale=1.0")
+        title Welcome to Cheers Bot!
+        link(rel="stylesheet", href="/common.css")
+        link(rel="stylesheet", href="/index.css")
+    body
+        main
+            h1
+                a(href="/")
+                    img(src="https://static-cdn.jtvnw.net/emoticons/v1/302175577/1.0")
+                | &nbsp;Welcome to Cheers Bot!
+            if channels && channels.length
+                .draggable
+                    .PanelGroup
+                        .legend Your Control Panels
+                        .PanelField
+                            | Select a channel from the list below to access the corresponding control panel!
+                        .PanelField
+                            each channel in channels
+                                a.button(href=`/${channel.name}/`)= channel.name
+                                | &nbsp;
+                        .PanelField
+                            | If you don't see your channel in the list, you may need to be given access! The Cheers Bot works on a two-way approval system, where both the channel account and user account need to grant access to each other. Message Hawkbar for help!
+            .draggable
+                .PanelGroup
+                    .legend Register Your Account
+                    .PanelField
+                        | To register a user account in order to access the control panel of your channel, or channels you moderate:
+                    .PanelField
+                        a.button(href="/authorize/user/") Register User Account
+                    .PanelField
+                        | To register your channel and get a custom overlay and control panel:
+                    .PanelField
+                        a.button(href="/authorize/channel/") Register Channel Account
+                    .PanelField
+                        | To register your account as a "bot" user that can send chat messages to other channels:
+                    .PanelField
+                        a.button(href="/authorize/bot/") Register Bot Account
