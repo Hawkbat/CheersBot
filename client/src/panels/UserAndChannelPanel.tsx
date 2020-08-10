@@ -2,6 +2,7 @@ import * as React from 'react'
 import { ControlPanelViewData } from 'shared'
 import { PanelField } from '../controls/PanelField'
 import { getStringValue } from '../utils'
+import { Button } from '../controls/Button'
 
 function changeChannel() {
     try {
@@ -29,7 +30,7 @@ export function UserAndChannelPanel(props: ControlPanelViewData) {
             </PanelField>
         <hr />
         <PanelField label="Overlay URL">
-            <input id="overlay-url" type="text" readOnly value={`girldm.hawk.bar/${props.channel}/overlay/`} />&nbsp;<button className="primary" onClick={e => copyOverlayURL()}>Copy</button>
+            <input id="overlay-url" type="text" readOnly value={`girldm.hawk.bar/${props.channel}/overlay/`} />&nbsp;<Button primary onClick={e => copyOverlayURL()}>Copy</Button>
         </PanelField>
     </>
 }

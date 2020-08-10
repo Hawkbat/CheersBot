@@ -32,7 +32,7 @@ module.exports = {
         'react-dom': 'ReactDOM',
     },
     entry: {
-        index: './src/index.ts',
+        channel: './src/channel.ts',
         overlay: './src/overlay.ts',
     },
     output: {

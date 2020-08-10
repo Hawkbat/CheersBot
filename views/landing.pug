@@ -8,7 +8,7 @@ html(lang="en")
         link(rel="stylesheet", href="/index.css")
     body
         main
-            h1
+            h1.PanelHeader
                 a(href="/")
                     img(src="https://static-cdn.jtvnw.net/emoticons/v1/302175577/1.0")
                 | &nbsp;Welcome to Cheers Bot!
@@ -22,20 +22,23 @@ html(lang="en")
                             each channel in channels
                                 a.button(href=`/${channel.name}/`)= channel.name
                                 | &nbsp;
+                        hr
                         .PanelField
                             | If you don't see your channel in the list, you may need to be given access! The Cheers Bot works on a two-way approval system, where both the channel account and user account need to grant access to each other. Message Hawkbar for help!
             .draggable
                 .PanelGroup
-                    .legend Register Your Account
+                    .legend Log In or Register
                     .PanelField
-                        | To register a user account in order to access the control panel of your channel, or channels you moderate:
+                        | To connect as a user account in order to access the control panel of your channel, or channels you moderate:
                     .PanelField
-                        a.button(href="/authorize/user/") Register User Account
+                        a.button.primary(href="/authorize/user/") Connect User Account
+                    hr
                     .PanelField
-                        | To register your channel and get a custom overlay and control panel:
+                        | To connect your account as a channel and get a custom overlay and control panel:
                     .PanelField
-                        a.button(href="/authorize/channel/") Register Channel Account
+                        a.button(href="/authorize/channel/") Connect Channel Account
+                    hr
                     .PanelField
-                        | To register your account as a "bot" user that can send chat messages to other channels:
+                        | To connect your account as a "bot" user that can send chat messages to other channels:
                     .PanelField
-                        a.button(href="/authorize/bot/") Register Bot Account
+                        a.button(href="/authorize/bot/") Connect Bot Account

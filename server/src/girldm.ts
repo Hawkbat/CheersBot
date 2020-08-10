@@ -1,5 +1,4 @@
-import { RedeemModeDisplay, RedeemMode, RedeemType, Icon, Store } from 'shared'
-import { ChannelData } from './data'
+import { RedeemModeDisplay, RedeemMode, RedeemType, Icon, Store, ChannelData } from 'shared'
 
 export const REDEEM_TYPES: { [key: string]: RedeemType } = {
     ban: 'girldm heccin ban me',
@@ -11,28 +10,28 @@ export const REDEEM_TYPES: { [key: string]: RedeemType } = {
 export const EVIL_PATTERN = /\b(evil|crimes|crime|puppy|puppies)[!.,]?\b/i
 
 export function addModeDelayed(store: Store<ChannelData>, mode: RedeemMode): void {
-    mode.visible = true
-    store.set(d => ({
-        ...d,
-        modes: [...d.modes, mode]
-    }))
-    /*setTimeout(() => {
-        mode.visible = true
-        store.touch()
-    }, 1000)*/
+    store.update(d => {
+        mode.visible = false
+        d.modules.modeQueue.modes.push(mode)
+    })
+    setTimeout(() => {
+        store.update(d => {
+            const m = d.modules.modeQueue.modes.find(m => m.id === mode.id)
+            if (m) m.visible = true
+        })
+    }, 1000)
 }
 
 export function removeModeDelayed(store: Store<ChannelData>, mode: RedeemMode): void {
-    store.set(d => ({
-        ...d,
-        modes: d.modes.filter(m => m.id !== mode.id)
-    }))
-    /*setTimeout(() => {
-        store.set(d => ({
-            ...d,
-            modes: d.modes.filter(m => m.id !== mode.id)
-        }))
-    }, 1000)*/
+    store.update(d => {
+        const m = d.modules.modeQueue.modes.find(m => m.id === mode.id)
+        if (m) m.visible = false
+    })
+    setTimeout(() => {
+        store.update(d => {
+            d.modules.modeQueue.modes = d.modules.modeQueue.modes.filter(m => m.id !== mode.id)
+        })
+    }, 1000)
 }
 
 export function getDisplayModes(modes: RedeemMode[]): RedeemModeDisplay[] {

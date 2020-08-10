@@ -1,0 +1,21 @@
+doctype html
+html(lang="en")
+    head
+        meta(charset="UTF-8")
+        meta(name="viewport", content="width=device-width, initial-scale=1.0")
+        title Cheers Bot - #{channel}
+        link(rel="stylesheet", href=`/common.css?refresh=${refreshTime}`)
+        link(rel="stylesheet", href=`/index.css?refresh=${refreshTime}`)
+        script(src="/react.development.js")
+        script(src="/react-dom.development.js")
+        script.
+            let REFRESH_TIME = #{refreshTime}
+        script(src=`/channel.js?refresh=${refreshTime}`)
+    body
+        main
+            h1.PanelHeader
+                a(href="/")
+                    img(src="https://static-cdn.jtvnw.net/emoticons/v1/302175577/1.0")
+                | &nbsp;Cheers Bot Control Panel
+            #app
+                span Loading...

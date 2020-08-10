@@ -1,11 +1,10 @@
 
 Architecture
     Change to an event-stream model piped over server-side events
-    Hydrate channels and users on-demand to reduce memory costs
+    Hydrate users on-demand to reduce memory overhead (bots and channels need to always be running to listen for events)
     Split into plugins and separate data by plugin
         Enable/disable plugins using shared interface
         Each plugin gets one control panel section
-    Create an actual homepage with links to register bots/channels/users
 
 Channel Features
     Non-channel-point notifications
@@ -65,4 +64,5 @@ Girl DM Ideas
 
 Bugs
     Hitting "Complete" and then "Thoroughly patted" in short succession causes the counter to go negative
-    Users need access to the default channel ('hawkbar') to be able to use their own control panels
+    Users need access to the default channel ('hawkbar') to be able to use their own control panels - Might be fixed, needs testing
+    Evil counter not triggering on say redeems, needs investigation

@@ -1,8 +1,9 @@
 import * as React from 'react'
-import { ControlPanelViewData } from 'shared'
+import { HeadpatData, ControlPanelViewData } from 'shared'
 import { PanelField } from '../controls/PanelField'
 import { post } from '../apps/ControlPanelApp'
 import { getNumberValue, setNumberValue } from '../utils'
+import { Button } from '../controls/Button'
 
 async function clearHeadpats() {
     try {
@@ -25,16 +26,16 @@ async function completeHeadpats() {
     }
 }
 
-export function HeadpatsPanel(props: ControlPanelViewData) {
+export function HeadpatsPanel(props: ControlPanelViewData & HeadpatData) {
     return <>
         <PanelField>
-            <span id="headpat-count">{props.headpats}</span>&nbsp;headpats redeemed!
+            <span id="headpat-count">{props.count}</span>&nbsp;headpats redeemed!
         </PanelField>
         <PanelField>
-            <button className="primary" onClick={e => completeHeadpats()}>Complete</button>&nbsp;<input id="headpat-input" type="number" defaultValue="1" />&nbsp;headpats
+            <Button primary onClick={e => completeHeadpats()}>Complete</Button>&nbsp;<input id="headpat-input" type="number" defaultValue="1" />&nbsp;headpats
         </PanelField>
         <PanelField>
-            <button onClick={e => clearHeadpats()}>Head has been thoroughly patted</button>
+            <Button onClick={e => clearHeadpats()}>Head has been thoroughly patted</Button>
         </PanelField>
     </>
 }

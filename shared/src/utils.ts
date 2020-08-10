@@ -41,6 +41,33 @@ export function debounce(ms: number, token: WaitToken): Promise<void> {
     })
 }
 
+export function mergePartials<T extends { [key: string]: any }>(base: T, ...targets: DeepPartial<T>[]) {
+    let data: any = { ...base }
+    for (const target of targets) {
+        for (const key of Object.keys(target)) {
+            const dstObj = data[key]
+            const srcObj = target[key]
+            if (isObject(dstObj) && isObject(srcObj)) {
+                data[key] = mergePartials(dstObj, srcObj)
+            } else {
+                data[key] = target[key]
+            }
+        }
+    }
+    return data
+}
+
+function isObject(item: any): item is { [key: string]: any } {
+    return item !== null && typeof item === 'object' && !Array.isArray(item)
+}
+
+export type DeepPartial<T> =
+    T extends Function | boolean | number | string | null | undefined ? T :
+    T extends Array<infer U> ? T :
+    T extends Map<infer K, infer V> ? T :
+    T extends Set<infer S> ? T :
+    { [P in keyof T]?: DeepPartial<T[P]> }
+
 export type Immutable<T> =
     T extends Function | boolean | number | string | null | undefined ? T :
     T extends Array<infer U> ? ReadonlyArray<Immutable<U>> :
@@ -74,6 +101,11 @@ export class Store<T> {
 
     set(setter: (data: T) => T): void {
         this.data = setter(this.data)
+        this.doWrite()
+    }
+
+    update(updater: (data: T) => void): void {
+        updater(this.data)
         this.doWrite()
     }
 

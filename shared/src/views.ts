@@ -1,4 +1,4 @@
-import { RedeemMode, UserEvent, UserEventConfig, RedeemType, Icon, RedeemModeDisplay, PanelType } from './data'
+import { RedeemType, Icon, RedeemModeDisplay, PanelType, ChannelData } from './data'
 
 export interface PanelViewData {
     type: PanelType
@@ -7,27 +7,19 @@ export interface PanelViewData {
 
 export interface ControlPanelViewData {
     username: string
-    headpats: number
-    evilCount: number
-    evilTime: number
-    modes: RedeemMode[]
-    events: UserEvent[]
-    eventConfigs: UserEventConfig[]
     channel: string
+    data: ChannelData
     channels: string[]
     redeemTypes: { [key: string]: RedeemType }
     icons: Icon[]
     panels: PanelViewData[]
     updateTime: Date
-    refreshID: number
+    refreshTime: number
 }
 
 export interface OverlayViewData {
     channel: string
-    headpats: number
-    evilCount: number
-    evilTime: number
+    data: ChannelData
     modes: RedeemModeDisplay[]
-    notifications: Notification[]
-    refreshID: number
+    refreshTime: number
 }

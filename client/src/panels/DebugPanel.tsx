@@ -1,34 +1,37 @@
 import * as React from 'react'
-import { ControlPanelViewData, Icon, UserEventCondition } from 'shared'
+import { ControlPanelViewData, Icon, UserEventCondition, DebugData, RedeemType } from 'shared'
 import { PanelField } from '../controls/PanelField'
 import { TwitchIcon } from '../controls/TwitchIcon'
 import { TagList } from '../controls/TagList'
-import { getStringValue } from '../utils'
 import { post } from '../apps/ControlPanelApp'
+import { Button } from '../controls/Button'
 
-async function mockEvent() {
-    try {
-        const type = getStringValue('event-type')
-        const username = getStringValue('event-username')
-        const message = getStringValue('event-message')
-        const amount = getStringValue('event-amount')
-        await post('actions/mock-event/', { type, username, message, amount })
-    } catch (e) {
-        console.error(e)
-    }
-}
+export function DebugPanel(props: ControlPanelViewData & DebugData) {
 
-async function reload() {
-    try {
-        await post('actions/reload/', {})
-    } catch (e) {
-        console.error(e)
-    }
-}
+    const [type, setType] = React.useState('' as RedeemType)
+    const [username, setUsername] = React.useState('Anonymous')
+    const [message, setMessage] = React.useState('')
+    const [amount, setAmount] = React.useState(1)
 
-export function DebugPanel(props: ControlPanelViewData) {
     const [emote, setEmote] = React.useState<Icon | undefined>(undefined)
     const [conditions, setConditions] = React.useState<UserEventCondition[]>([])
+
+    const mockEvent = async () => {
+        try {
+            await post('actions/mock-event/', { type, username, message, amount })
+        } catch (e) {
+            console.error(e)
+        }
+    }
+
+    const reload = async () => {
+        try {
+            await post('actions/reload/', {})
+        } catch (e) {
+            console.error(e)
+        }
+    }
+
     return <>
         <PanelField label="Last Updated">
             {props.updateTime.toLocaleTimeString()}
@@ -39,19 +42,22 @@ export function DebugPanel(props: ControlPanelViewData) {
         </PanelField>
         <hr />
         <PanelField label="Event Type">
-            <select id="event-type">{Object.keys(props.redeemTypes).map((t, i) => <option key={i} value={props.redeemTypes[t]}>{t}</option>)}</select>
+            <select id="event-type" value={type} onChange={e => setType(e.target.value as RedeemType)}>
+                <option></option>
+                {Object.keys(props.redeemTypes).map((t, i) => <option key={i} value={props.redeemTypes[t]}>{t}</option>)}
+            </select>
         </PanelField>
         <PanelField label="Event User">
-            <input id="event-username" type="text" defaultValue="Anonymous" />
+            <input id="event-username" type="text" value={username} onChange={e => setUsername(e.target.value)} />
         </PanelField>
         <PanelField label="Event Message">
-            <input id="event-message" type="text"></input>
+            <input id="event-message" type="text" value={message} onChange={e => setMessage(e.target.value)} />
         </PanelField>
         <PanelField label="Event Amount">
-            <input id="event-amount" type="number" defaultValue="1" />
+            <input id="event-amount" type="number" value={amount} onChange={e => setAmount(e.target.valueAsNumber)} />
         </PanelField>
         <PanelField>
-            <button className="primary" onClick={e => mockEvent()}>Generate fake event</button>
+            <Button primary onClick={e => mockEvent()}>Generate fake event</Button>
         </PanelField>
         <hr />
         <PanelField label="Emote">
@@ -66,7 +72,7 @@ export function DebugPanel(props: ControlPanelViewData) {
         </PanelField>
         <hr />
         <PanelField>
-            <button onClick={e => reload()}>Force reload</button>&nbsp;all control panels and overlays
-            </PanelField>
+            <Button onClick={e => reload()}>Force reload</Button>&nbsp;all control panels and overlays
+        </PanelField>
     </>
 }
