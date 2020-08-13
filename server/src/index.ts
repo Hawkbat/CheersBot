@@ -339,10 +339,10 @@ async function run() {
                                     visible: true,
                                 })
                                 break
-                            case 'nyan nyan dm~':
+                            case '10 minutes nyan nyan dm~':
                                 addModeDelayed(data, {
                                     id: generateID(),
-                                    type: 'nyan nyan dm~',
+                                    type: '10 minutes nyan nyan dm~',
                                     userID: msg.userId,
                                     userName: msg.userDisplayName,
                                     message: '',

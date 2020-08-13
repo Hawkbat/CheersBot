@@ -39,7 +39,7 @@ export enum Access {
 export type RedeemType =
     | 'girldm headpats'
     | 'girldm heccin ban me'
-    | 'nyan nyan dm~'
+    | '10 minutes nyan nyan dm~'
     | 'GIRLDM JAPANESE MODE ACTIVATE'
     | 'girldm say something!!'
 

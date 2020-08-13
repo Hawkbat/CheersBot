@@ -2,7 +2,7 @@ import { RedeemModeDisplay, RedeemMode, RedeemType, Icon, Store, ChannelData } f
 
 export const REDEEM_TYPES: { [key: string]: RedeemType } = {
     ban: 'girldm heccin ban me',
-    nyan: 'nyan nyan dm~',
+    nyan: '10 minutes nyan nyan dm~',
     japanese: 'GIRLDM JAPANESE MODE ACTIVATE',
     saySomething: 'girldm say something!!',
 }
