@@ -64,13 +64,10 @@ Bugs
     Users need access to the default channel ('hawkbar') to be able to use their own control panels - Might be fixed, needs testing
     Evil counter not triggering on say redeems, needs investigation
 
-
-Add prompt to request access on access-denied page
-Add text input + button to request access on homepage (if logged in as user)
-Bypass check and grant access if username and channel name match
-Add grid of approved users and user requests on user access tab
-Same for bot accounts
-Add page for users to manage their linked channels too
-Add approved/denied states instead of just in-list or not-in-list states
-
 Add timer combination modes (replace, extend)
+
+
+Log client-side errors by building a buffer of log messages and sending them on an interval, silently requeuing them if the server was not accessible
+Filter out server unavailable errors from CloudFlare since those are frequent
+
+Temporarily disable action buttons when firing off an async process, showing a spinner while the async function runs and then reenabling when the function returns. If an error occurs, show an error icon in the button which shows the error message on mouse over.

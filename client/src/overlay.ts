@@ -9,3 +9,4 @@ function tryRefresh() {
 }
 
 setInterval(tryRefresh, 1000)
+tryRefresh()
