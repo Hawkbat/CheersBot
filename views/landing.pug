@@ -1,44 +1,15 @@
-doctype html
-html(lang="en")
-    head
-        meta(charset="UTF-8")
-        meta(name="viewport", content="width=device-width, initial-scale=1.0")
-        title Welcome to Cheers Bot!
-        link(rel="stylesheet", href="/common.css")
-        link(rel="stylesheet", href="/index.css")
-    body
-        main
-            h1.PanelHeader
-                a(href="/")
-                    img(src="https://static-cdn.jtvnw.net/emoticons/v1/302175577/1.0")
-                | &nbsp;Welcome to Cheers Bot!
-            if channels && channels.length
-                .draggable
-                    .PanelGroup
-                        .legend Your Control Panels
-                        .PanelField
-                            | Select a channel from the list below to access the corresponding control panel!
-                        .PanelField
-                            each channel in channels
-                                a.button(href=`/${channel.name}/`)= channel.name
-                                | &nbsp;
-                        hr
-                        .PanelField
-                            | If you don't see your channel in the list, you may need to be given access! The Cheers Bot works on a two-way approval system, where both the channel account and user account need to grant access to each other. Message Hawkbar for help!
-            .draggable
-                .PanelGroup
-                    .legend Log In or Register
-                    .PanelField
-                        | To connect as a user account in order to access the control panel of your channel, or channels you moderate:
-                    .PanelField
-                        a.button.primary(href="/authorize/user/") Connect User Account
-                    hr
-                    .PanelField
-                        | To connect your account as a channel and get a custom overlay and control panel:
-                    .PanelField
-                        a.button(href="/authorize/channel/") Connect Channel Account
-                    hr
-                    .PanelField
-                        | To connect your account as a "bot" user that can send chat messages to other channels:
-                    .PanelField
-                        a.button(href="/authorize/bot/") Connect Bot Account
+extends layout
+
+block vars
+    - title = 'Welcome to Cheers Bot!'
+
+append head
+    script(src="/react.development.js")
+    script(src="/react-dom.development.js")
+    script.
+        let REFRESH_TIME = #{refreshTime}
+    script(src=`/landing.js?refresh=${refreshTime}`)
+
+block body
+    #app
+        span Loading...

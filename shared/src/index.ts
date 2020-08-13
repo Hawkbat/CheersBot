@@ -1,3 +1,4 @@
 export * from './data'
-export * from './utils'
+export * from './modules'
 export * from './views'
+export * from './utils'

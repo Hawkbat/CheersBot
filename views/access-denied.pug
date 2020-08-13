@@ -1,0 +1,14 @@
+extends layout
+
+block vars
+    - title = 'Cheers Bot - Access Denied'
+    - heading = 'Access Denied!'
+
+append head
+    script(src=`/index.js?refresh=${refreshTime}`)
+
+block body
+    p You don't have access to
+        b= channel
+        | .
+    button.Button.primary Request Access

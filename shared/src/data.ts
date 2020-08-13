@@ -1,3 +1,4 @@
+import { HeadpatData, EvilDmData, ModeQueueData, UserQueueData, DebugData, ModuleType, ModuleDataType } from './modules'
 
 export enum AccountType {
     bot = 'bot',
@@ -16,23 +17,23 @@ export interface AccountData {
 }
 
 export interface BotData extends AccountData {
-    channels: string[]
+    channels: { [key: string]: Access }
 }
 
 export interface ChannelData extends AccountData {
-    bots: string[]
-    users: string[]
-    modules: {
-        headpats: HeadpatData
-        evilDm: EvilDmData
-        modeQueue: ModeQueueData
-        userQueue: UserQueueData
-        debug: DebugData
-    }
+    bots: { [key: string]: Access }
+    users: { [key: string]: Access }
+    modules: { [key in ModuleType]: ModuleDataType<key> }
 }
 
 export interface UserData extends AccountData {
-    channels: string[]
+    channels: { [key: string]: Access }
+}
+
+export enum Access {
+    pending = 'pending',
+    denied = 'denied',
+    approved = 'approved',
 }
 
 export type RedeemType =
@@ -61,47 +62,10 @@ export interface RedeemModeDisplay extends RedeemMode {
     msg: string
 }
 
-export enum PanelType {
-    headpats = 'Headpats',
-    evilDM = 'Evil DM',
-    modeQueue = 'Mode Queue',
-    userQueue = 'User Queue',
-    userAndChannel = 'User and Channel',
-    debug = 'Debug',
-}
-
 export interface Icon {
     type: 'emote' | 'badge'
     id: string
     name: string
-}
-
-export interface ModuleData {
-    enabled: boolean
-}
-
-export interface HeadpatData extends ModuleData {
-    count: number
-    streak: number
-}
-
-export interface EvilDmData extends ModuleData {
-    count: number
-    time: number
-}
-
-export interface ModeQueueData extends ModuleData {
-    modes: RedeemMode[]
-}
-
-export interface UserQueueData extends ModuleData {
-    acceptEntries: boolean
-    entries: UserQueueEntry[]
-    rounds: UserQueueRound[]
-}
-
-export interface DebugData extends ModuleData {
-
 }
 
 export interface UserQueueEntry {

@@ -1,14 +1,13 @@
 import { UserEvent, RedeemMode } from 'shared'
 import * as React from 'react'
-import { post } from '../apps/ControlPanelApp'
 import { PanelField } from './PanelField'
-import { getNumberValue } from '../utils'
+import { getNumberValue, channelAction } from '../utils'
 import { Button } from './Button'
 
 async function startMode(id: string) {
     try {
         const minutes = getNumberValue('timer-input')
-        await post('actions/start-event/', { id, duration: minutes * 60 * 1000 })
+        await channelAction('start-event', { id, duration: minutes * 60 * 1000 })
     } catch (e) {
         console.error(e)
     }
@@ -29,7 +28,7 @@ async function clearMode(id: string) {
         const alarm = document.getElementById('alarm') as HTMLAudioElement
         alarm.pause()
         alarm.currentTime = 0
-        await post('actions/clear-event/', { id })
+        await channelAction('clear-event', { id })
     } catch (e) {
         console.error(e)
     }

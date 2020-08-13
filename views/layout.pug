@@ -1,0 +1,23 @@
+doctype html
+html(lang="en")
+    block vars
+        - var title = 'Cheers Bot'
+        - var heading = null
+    head
+        block head
+            meta(charset="UTF-8")
+            meta(name="viewport", content="width=340")
+            title #{title ? title : 'Cheers Bot'}
+            link(rel="stylesheet", href="/common.css")
+            link(rel="stylesheet", href="/index.css")
+            script(src="https://kit.fontawesome.com/274907872e.js" crossorigin="anonymous")
+    body
+        main
+            block header
+                h1.PanelHeader
+                    a(href="/")
+                        img(src="https://static-cdn.jtvnw.net/emoticons/v1/302175577/1.0")
+                    | &nbsp;#{heading ? heading : title ? title : 'Cheers Bot'}
+            block body
+            block footer
+                footer &copy; 2020 <a href="http://hawk.bar/">Hawkbar</a>. "girldmCheer", "girldmHeadpat", and "girldmWut" emotes used with permission from <a href="https://twitter.com/Girl_Dm_">Girl_Dm_</a> for use with her channel. Twitch Emote APIs provided by <a href="http://twitchemotes.com/">twitchemotes.com</a>.

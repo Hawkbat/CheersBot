@@ -1,8 +1,8 @@
-import { RedeemMode, RedeemType, Icon, generateID, ControlPanelViewData, OverlayViewData, PanelType, Store, mergePartials, AccountType, BotData, ChannelData, UserData, Token, AccountData } from 'shared'
+import { RedeemMode, Icon, generateID, Store, mergePartials, AccountType, BotData, ChannelData, UserData, Token, AccountData, ChannelActions, ChannelViews, MODULE_TYPES, Access, GlobalActions, GlobalViews } from 'shared'
 import TwitchClient from 'twitch'
 import ChatClient, { PrivateMessage } from 'twitch-chat-client'
 import PubSubClient from 'twitch-pubsub-client'
-import WebHookClient, { SimpleAdapter, ReverseProxyAdapter } from 'twitch-webhooks'
+import WebHookClient, { ReverseProxyAdapter } from 'twitch-webhooks'
 import * as express from 'express'
 import * as session from 'express-session'
 import * as stylus from 'stylus'
@@ -29,6 +29,8 @@ async function run() {
     const USER_SCOPES = ['user:read:email']
 
     const BAN_TIMEOUT = 10 * 60 * 1000
+
+    const refreshTime = Date.now()
 
     let bots: { [key: string]: Bot } = {}
     let channels: { [key: string]: Channel } = {}
@@ -72,8 +74,8 @@ async function run() {
         if (!token) token = { accessToken: '', refreshToken: '', scope: [] }
         const DEFAULT_DATA_CHANNEL: ChannelData = {
             token,
-            bots: [],
-            users: [],
+            bots: {},
+            users: {},
             modules: {
                 headpats: {
                     enabled: false,
@@ -95,13 +97,16 @@ async function run() {
                     entries: [],
                     rounds: [],
                 },
+                channelInfo: {
+                    enabled: true,
+                },
                 debug: {
                     enabled: false,
                 },
             },
         }
-        const DEFAULT_DATA_BOT: BotData = { token, channels: [] }
-        const DEFAULT_DATA_USER: UserData = { token, channels: [] }
+        const DEFAULT_DATA_BOT: BotData = { token, channels: {} }
+        const DEFAULT_DATA_USER: UserData = { token, channels: {} }
 
         switch (accountType) {
             case AccountType.bot: return { ...DEFAULT_DATA_BOT }
@@ -235,22 +240,22 @@ async function run() {
 
     function getBotsForChannel(channel: string): Bot[] {
         const c = channels[channel]
-        return c ? Object.values(bots).filter(b => b.data.get(d => d.channels).includes(c.name) && c.data.get(d => d.bots).includes(b.name)) : []
+        return c ? Object.values(bots).filter(b => b.data.get(d => d.channels[c.name] === Access.approved) && c.data.get(d => d.bots[b.name] === Access.approved)) : []
     }
 
     function getChannelsForBot(bot: string): Channel[] {
         const b = bots[bot]
-        return b ? Object.values(channels).filter(c => c.data.get(d => d.users).includes(b.name) && b.data.get(d => d.channels).includes(c.name)) : []
+        return b ? Object.values(channels).filter(c => c.data.get(d => d.users[b.name] === Access.approved) && b.data.get(d => d.channels[c.name] === Access.approved)) : []
     }
 
     function getUsersForChannel(channel: string): User[] {
         const c = channels[channel]
-        return c ? Object.values(users).filter(u => u.data.get(d => d.channels).includes(c.name) && c.data.get(d => d.users).includes(u.name)) : []
+        return c ? Object.values(users).filter(u => u.data.get(d => d.channels[c.name] === Access.approved) && c.data.get(d => d.users[u.name] === Access.approved)) : []
     }
 
     function getChannelsForUser(user: string): Channel[] {
         const u = users[user]
-        return u ? Object.values(channels).filter(c => c.data.get(d => d.users).includes(u.name) && u.data.get(d => d.channels).includes(c.name)) : []
+        return u ? Object.values(channels).filter(c => c.data.get(d => d.users[u.name] === Access.approved) && u.data.get(d => d.channels[c.name] === Access.approved)) : []
     }
 
     async function setupBot(name: string): Promise<Bot | null> {
@@ -259,7 +264,7 @@ async function run() {
             if (data && client) {
                 const id = (await client.helix.users.getMe()).id
 
-                const chatClient = new ChatClient(client, { channels: data.get(d => [...d.channels]) })
+                const chatClient = new ChatClient(client, { channels: data.get(d => [...Object.keys(d.channels).filter(c => d.channels[c] === Access.approved)]) })
                 await chatClient.connect()
 
                 chatClient.onPrivmsg(async (channel: string, user: string, message: string, msg: PrivateMessage) => {
@@ -283,7 +288,6 @@ async function run() {
                     client,
                     chatClient
                 }
-                return bots[name]
             }
         } catch (e) {
             console.error(`Error setting up bot ${name}:`, e)
@@ -310,61 +314,68 @@ async function run() {
 
                 if (data.get(d => d.token.scope.includes('channel:read:redemptions'))) {
                     pubSubClient.onRedemption(id, msg => {
-                        if (msg.rewardName === 'girldm headpats') {
-                            data.update(d => {
-                                d.modules.headpats.count++
-                                d.modules.headpats.streak++
-                            })
-
-                            if (!msg['_data'].data.redemption.reward.is_in_stock) {
-                                for (const bot of getBotsForChannel(name)) {
-                                    bot.chatClient.action(name, 'Out of headpats because dm is dented! girldmHeadpat girldmHeadpat girldmHeadpat girldmHeadpat')
-                                }
-                            }
-                        }
-                        if (msg.rewardName === 'girldm heccin ban me') {
-                            addModeDelayed(data, {
-                                id: generateID(),
-                                type: 'girldm heccin ban me',
-                                userID: msg.userId,
-                                userName: msg.userDisplayName,
-                                message: '',
-                                amount: 1,
-                                redeemTime: Date.now(),
-                                visible: true,
-                            })
-                        }
-                        if (msg.rewardName === 'nyan nyan dm~') {
-                            addModeDelayed(data, {
-                                id: generateID(),
-                                type: 'nyan nyan dm~',
-                                userID: msg.userId,
-                                userName: msg.userDisplayName,
-                                message: '',
-                                amount: 1,
-                                redeemTime: Date.now(),
-                                visible: true,
-                            })
-                        }
-                        if (msg.rewardName === 'GIRLDM JAPANESE MODE ACTIVATE') {
-                            addModeDelayed(data, {
-                                id: generateID(),
-                                type: 'GIRLDM JAPANESE MODE ACTIVATE',
-                                userID: msg.userId,
-                                userName: msg.userDisplayName,
-                                message: '',
-                                amount: 1,
-                                redeemTime: Date.now(),
-                                visible: true,
-                            })
-                        }
-                        if (msg.rewardName === 'girldm say something!!') {
-                            if (EVIL_PATTERN.test(msg.message)) {
+                        switch (msg.rewardName.trim()) {
+                            case 'girldm headpats':
                                 data.update(d => {
-                                    d.modules.evilDm.count++
-                                    d.modules.evilDm.time = Date.now()
+                                    d.modules.headpats.count++
+                                    d.modules.headpats.streak++
                                 })
-                            }
+
+                                if (!msg['_data'].data.redemption.reward.is_in_stock) {
+                                    for (const bot of getBotsForChannel(name)) {
+                                        bot.chatClient.action(name, 'Out of headpats because dm is dented! girldmHeadpat girldmHeadpat girldmHeadpat girldmHeadpat')
+                                    }
+                                }
+                                break
+                            case 'girldm heccin ban me':
+                                addModeDelayed(data, {
+                                    id: generateID(),
+                                    type: 'girldm heccin ban me',
+                                    userID: msg.userId,
+                                    userName: msg.userDisplayName,
+                                    message: '',
+                                    amount: 1,
+                                    redeemTime: Date.now(),
+                                    visible: true,
+                                })
+                                break
+                            case 'nyan nyan dm~':
+                                addModeDelayed(data, {
+                                    id: generateID(),
+                                    type: 'nyan nyan dm~',
+                                    userID: msg.userId,
+                                    userName: msg.userDisplayName,
+                                    message: '',
+                                    amount: 1,
+                                    redeemTime: Date.now(),
+                                    visible: true,
+                                })
+                                break
+                            case 'GIRLDM JAPANESE MODE ACTIVATE':
+                                addModeDelayed(data, {
+                                    id: generateID(),
+                                    type: 'GIRLDM JAPANESE MODE ACTIVATE',
+                                    userID: msg.userId,
+                                    userName: msg.userDisplayName,
+                                    message: '',
+                                    amount: 1,
+                                    redeemTime: Date.now(),
+                                    visible: true,
+                                })
+                                break
+                            case 'girldm say something!!':
+                                if (EVIL_PATTERN.test(msg.message)) {
+                                    data.update(d => {
+                                        d.modules.evilDm.count++
+                                        d.modules.evilDm.time = Date.now()
+                                    })
+                                } else {
+                                    console.log(msg)
+                                }
+                                break
+                            default:
+                                console.log(msg)
+                                break
                         }
                     })
                 }
@@ -414,145 +425,147 @@ async function run() {
 
                 webHookClient.applyMiddleware(app)
 
-                const getControlPanelData = (username: string): ControlPanelViewData => {
-                    const channelList = getChannelsForUser(username).map(c => c.name)
-                    const viewData: ControlPanelViewData = {
-                        username,
-                        channel: name,
-                        data: data.get(d => d),
-                        channels: channelList,
-                        redeemTypes: REDEEM_TYPES,
-                        icons,
-                        panels: Object.values(PanelType).map(type => ({ type, open: true })),
-                        refreshTime,
-                        updateTime: new Date(),
+                const actions: ChannelActions = {
+                    'adjust-headpats': args => {
+                        data.update(d => {
+                            d.modules.headpats.count += args.delta
+                            if (args.delta > 0) d.modules.headpats.streak += args.delta
+                        })
+                        if (data.get(d => d.modules.headpats.count) === 0 && data.get(d => d.modules.headpats.streak) > 1) {
+                            for (const bot of getBotsForChannel(name)) {
+                                bot.chatClient.action(name, `${data.get(d => d.modules.headpats.streak)} headpat streak! girldmCheer girldmCheer girldmCheer girldmHeadpat girldmHeadpat girldmHeadpat`)
+                            }
+                            data.update(d => {
+                                d.modules.headpats.streak = 0
+                            })
+                        }
+                        return true
+                    },
+                    'adjust-evil': args => {
+                        data.update(d => {
+                            d.modules.evilDm.count += args.delta
+                            d.modules.evilDm.time = Date.now()
+                        })
+                        return true
+                    },
+                    'start-event': args => {
+                        const mode = data.get(d => d.modules.modeQueue.modes.find(m => m.id === args.id))
+                        if (mode) {
+                            data.update(d => {
+                                const m = d.modules.modeQueue.modes.find(m => m.id === mode.id)
+                                if (m) {
+                                    m.startTime = Date.now()
+                                    m.duration = args.duration
+                                }
+                            })
+                        }
+                        return true
+                    },
+                    'clear-event': args => {
+                        const mode = data.get(d => d.modules.modeQueue.modes.find(m => m.id === args.id))
+                        if (mode) {
+                            removeModeDelayed(data, mode)
+                        }
+                        return true
+                    },
+                    'mock-event': args => {
+                        if (args.type === 'girldm say something!!') {
+                            if (EVIL_PATTERN.test(args.message)) {
+                                data.update(d => {
+                                    d.modules.evilDm.count++
+                                    d.modules.evilDm.time = Date.now()
+                                })
+                            }
+                        } else {
+                            const mode: RedeemMode = {
+                                id: generateID(),
+                                type: args.type,
+                                userID: '',
+                                userName: args.username,
+                                message: args.message,
+                                amount: args.amount,
+                                redeemTime: Date.now(),
+                                visible: true,
+                            }
+                            addModeDelayed(data, mode)
+                        }
+                        return true
+                    },
+                    'reload': args => {
+                        refreshTime = Date.now()
+                        return true
+                    },
+                    'toggle-module': args => {
+                        data.update(d => {
+                            d.modules[args.type].enabled = args.enabled
+                        })
+                        return true
+                    },
+                    'set-access': args => {
+                        switch (args.type) {
+                            case AccountType.bot:
+                                data.update(d => {
+                                    d.bots[args.id] = args.access
+                                })
+                                return true
+                            case AccountType.user:
+                                data.update(d => {
+                                    d.users[args.id] = args.access
+                                })
+                                return true
+                            default:
+                                return false
+                        }
                     }
-                    return viewData
                 }
 
-                const getOverlayData = (): OverlayViewData => {
-                    const viewData: OverlayViewData = {
+                const views: ChannelViews = {
+                    'controlpanel': username => ({
+                        username,
                         channel: name,
-                        data: data.get(d => d),
+                        channelData: data.get(d => d),
+                        channels: getChannelsForUser(username).map(c => c.name),
+                        redeemTypes: REDEEM_TYPES,
+                        icons,
+                        panels: MODULE_TYPES.map(type => ({ type, open: true })),
+                        refreshTime,
+                        updateTime: new Date(),
+                    }),
+                    'overlay': () => ({
+                        channel: name,
+                        channelData: data.get(d => d),
                         modes: getDisplayModes(data.get(d => d.modules.modeQueue.modes)),
                         refreshTime,
-                    }
-                    return viewData
+                    }),
                 }
 
                 const router = express.Router()
+                router.use(express.json())
+
+                const actionPaths = Object.keys(actions) as (keyof ChannelActions)[]
+                for (const path of actionPaths) {
+                    router.post(`/actions/${path}/`, async (req, res) => {
+                        if (!hasTwitchAuth(req)) return respondTwitchAuthJSON(res)
+                        if (!hasChannelAuth(req, name)) return respondChannelAuthJSON(res)
+                        res.type('json').send(JSON.stringify(actions[path](req.body, req.session?.twitchUserName ?? '')))
+                    })
+                }
+
+                const viewPaths = Object.keys(views) as (keyof ChannelViews)[]
+                for (const path of viewPaths) {
+                    router.get(`/data/${path}/`, async (req, res) => {
+                        res.type('json').send(JSON.stringify(views[path](req.session?.twitchUserName ?? '')))
+                    })
+                }
 
                 router.get('/', (req, res) => {
                     if (!hasTwitchAuth(req)) return respondTwitchAuthRedirect(res)
                     if (!hasChannelAuth(req, name)) return respondChannelAuthMessage(res)
-                    res.render('channel', getControlPanelData(req.session!.twitchUserName ?? ''))
+                    res.render('channel', views.controlpanel(req.session?.twitchUserName ?? ''))
                 })
 
                 router.get('/overlay/', (req, res) => {
-                    res.render('overlay', getOverlayData())
-                })
-
-                router.post('/actions/adjust-headpats/', async (req, res) => {
-                    if (!hasTwitchAuth(req)) return respondTwitchAuthJSON(res)
-                    if (!hasChannelAuth(req, name)) return respondChannelAuthJSON(res)
-                    const delta = req.body.delta as number
-                    data.update(d => {
-                        d.modules.headpats.count += delta
-                        if (delta > 0) d.modules.headpats.streak += delta
-                    })
-                    if (data.get(d => d.modules.headpats.count) === 0 && data.get(d => d.modules.headpats.streak) > 1) {
-                        for (const bot of getBotsForChannel(name)) {
-                            bot.chatClient.action(name, `${data.get(d => d.modules.headpats.streak)} headpat streak! girldmCheer girldmCheer girldmCheer girldmHeadpat girldmHeadpat girldmHeadpat`)
-                        }
-                        data.update(d => {
-                            d.modules.headpats.streak = 0
-                        })
-                    }
-                    res.type('json').send('true')
-                })
-
-                router.post('/actions/adjust-evil/', (req, res) => {
-                    if (!hasTwitchAuth(req)) return respondTwitchAuthJSON(res)
-                    if (!hasChannelAuth(req, name)) return respondChannelAuthJSON(res)
-                    const delta = req.body.delta as number
-                    data.update(d => {
-                        d.modules.evilDm.count += delta
-                        d.modules.evilDm.time = Date.now()
-                    })
-                    res.type('json').send('true')
-                })
-
-                router.post('/actions/start-event/', (req, res) => {
-                    if (!hasTwitchAuth(req)) return respondTwitchAuthJSON(res)
-                    if (!hasChannelAuth(req, name)) return respondChannelAuthJSON(res)
-                    const mode = data.get(d => d.modules.modeQueue.modes.find(m => m.id === req.body.id))
-                    if (mode) {
-                        data.update(d => {
-                            const m = d.modules.modeQueue.modes.find(m => m.id === mode.id)
-                            if (m) {
-                                m.startTime = Date.now()
-                                m.duration = req.body.duration
-                            }
-                        })
-                    }
-                    res.type('json').send('true')
-                })
-
-                router.post('/actions/clear-event/', (req, res) => {
-                    if (!hasTwitchAuth(req)) return respondTwitchAuthJSON(res)
-                    if (!hasChannelAuth(req, name)) return respondChannelAuthJSON(res)
-                    const mode = data.get(d => d.modules.modeQueue.modes.find(m => m.id === req.body.id))
-                    if (mode) {
-                        removeModeDelayed(data, mode)
-                    }
-                    res.type('json').send('true')
-                })
-
-                router.post('/actions/mock-event/', (req, res) => {
-                    if (!hasTwitchAuth(req)) return respondTwitchAuthJSON(res)
-                    if (!hasChannelAuth(req, name)) return respondChannelAuthJSON(res)
-                    const type = req.body.type as RedeemType
-                    const username = req.body.username as string
-                    const message = req.body.message as string
-                    const amount = req.body.amount as number
-                    if (type === 'girldm say something!!') {
-                        if (EVIL_PATTERN.test(message)) {
-                            data.update(d => {
-                                d.modules.evilDm.count++
-                                d.modules.evilDm.time = Date.now()
-                            })
-                        }
-                        res.type('json').send('true')
-                    } else {
-                        const mode: RedeemMode = {
-                            id: generateID(),
-                            type,
-                            userID: '',
-                            userName: username,
-                            message,
-                            amount,
-                            redeemTime: Date.now(),
-                            visible: true,
-                        }
-                        addModeDelayed(data, mode)
-                        res.type('json').send('true')
-                    }
-                })
-
-                router.post('/actions/reload/', (req, res) => {
-                    if (!hasTwitchAuth(req)) return respondTwitchAuthJSON(res)
-                    if (!hasChannelAuth(req, name)) return respondChannelAuthJSON(res)
-                    refreshTime = Date.now()
-                    res.type('json').send('true')
-                })
-
-                router.get('/data/controlpanel/', (req, res) => {
-                    const username = req.session!.twitchUserName ?? ''
-                    res.type('json').send(JSON.stringify(getControlPanelData(username)))
-                })
-
-                router.get('/data/overlay/', (req, res) => {
-                    res.type('json').send(JSON.stringify(getOverlayData()))
+                    res.render('overlay', views.overlay(req.session?.twitchUserName ?? ''))
                 })
 
                 if (!channels[name]) {
@@ -630,7 +643,7 @@ async function run() {
     }))
 
     app.get('/', (req, res) => {
-        res.render('landing', { channels: getChannelsForUser(req.session?.twitchUserName ?? '') })
+        res.render('landing', views.landing(req.session?.twitchUserName ?? ''))
     })
 
     app.get('/overlay/', (req, res) => {
@@ -640,6 +653,59 @@ async function run() {
     setupAuthWorkflow(AccountType.bot, BOT_SCOPES)
     setupAuthWorkflow(AccountType.channel, CHANNEL_SCOPES)
     setupAuthWorkflow(AccountType.user, USER_SCOPES)
+
+    const actions: GlobalActions = {
+        'request-access': (args, username) => {
+            const user = users[username]
+            const channel = channels[args.channel]
+            if (!user || !channel) return false
+            if (!user.data.get(d => d.channels[args.channel])) {
+                user.data.update(d => d.channels[args.channel] = Access.approved)
+            }
+            if (!channel.data.get(d => d.users[username])) {
+                channel.data.update(d => d.users[username] = Access.pending)
+            }
+            return true
+        },
+        'set-access': (args, username) => {
+            switch (args.type) {
+                case AccountType.channel:
+                    users[username].data.update(d => {
+                        d.channels[args.id] = args.access
+                    })
+                    return true
+                default:
+                    return false
+            }
+        },
+    }
+
+    const views: GlobalViews = {
+        'landing': (username: string) => {
+            const user = users[username]
+            return {
+                username,
+                userData: user ? user.data.get(d => d) : null,
+                refreshTime,
+            }
+        }
+    }
+
+    const actionPaths = Object.keys(actions) as (keyof GlobalActions)[]
+    for (const path of actionPaths) {
+        app.post(`/actions/${path}/`, async (req, res) => {
+            if (!hasTwitchAuth(req)) return respondTwitchAuthJSON(res)
+            if (!hasChannelAuth(req, name)) return respondChannelAuthJSON(res)
+            res.type('json').send(JSON.stringify(actions[path](req.body, req.session?.twitchUserName ?? '')))
+        })
+    }
+
+    const viewPaths = Object.keys(views) as (keyof GlobalViews)[]
+    for (const path of viewPaths) {
+        app.get(`/data/${path}/`, async (req, res) => {
+            res.type('json').send(JSON.stringify(views[path](req.session?.twitchUserName ?? '')))
+        })
+    }
 
     const promises: Promise<void>[] = []
 

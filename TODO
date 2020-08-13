@@ -2,9 +2,6 @@
 Architecture
     Change to an event-stream model piped over server-side events
     Hydrate users on-demand to reduce memory overhead (bots and channels need to always be running to listen for events)
-    Split into plugins and separate data by plugin
-        Enable/disable plugins using shared interface
-        Each plugin gets one control panel section
 
 Channel Features
     Non-channel-point notifications
@@ -66,3 +63,14 @@ Bugs
     Hitting "Complete" and then "Thoroughly patted" in short succession causes the counter to go negative
     Users need access to the default channel ('hawkbar') to be able to use their own control panels - Might be fixed, needs testing
     Evil counter not triggering on say redeems, needs investigation
+
+
+Add prompt to request access on access-denied page
+Add text input + button to request access on homepage (if logged in as user)
+Bypass check and grant access if username and channel name match
+Add grid of approved users and user requests on user access tab
+Same for bot accounts
+Add page for users to manage their linked channels too
+Add approved/denied states instead of just in-list or not-in-list states
+
+Add timer combination modes (replace, extend)

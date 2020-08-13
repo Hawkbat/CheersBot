@@ -1,9 +1,11 @@
 import { refresh } from './apps/OverlayApp'
 
-setInterval(() => {
+function tryRefresh() {
     try {
         refresh()
     } catch (e) {
         console.error(e)
     }
-}, 1000)
+}
+
+setInterval(tryRefresh, 1000)

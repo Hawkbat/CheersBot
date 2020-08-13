@@ -1,4 +1,4 @@
-import { parseJSON } from 'shared'
+import { parseJSON, ChannelActions, ChannelViews, GlobalActions, GlobalViews } from 'shared'
 
 export function classes(...args: (string | string[] | { [key: string]: boolean })[]): string {
     const list = []
@@ -68,6 +68,7 @@ export async function postJSON<T, U>(url: string, data: T): Promise<U | null> {
     try {
         return parseJSON<U>(await (await fetch(url, {
             method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         })).text())
     } catch (e) {
@@ -75,3 +76,31 @@ export async function postJSON<T, U>(url: string, data: T): Promise<U | null> {
         return null
     }
 }
+
+declare const CHANNEL_NAME: string
+
+export async function channelAction<K extends keyof ChannelActions>(action: K, args: Parameters<ChannelActions[K]>[0]): Promise<ReturnType<ChannelActions[K]>> {
+    const result = await postJSON<typeof args, ReturnType<ChannelActions[K]>>(`/${CHANNEL_NAME}/actions/${action}`, args)
+    if (!result) throw new Error(`Error calling action ${action} with args ${JSON.stringify(args)}`)
+    return result
+}
+
+export async function channelView<K extends keyof ChannelViews>(view: K): Promise<ReturnType<ChannelViews[K]>> {
+    const result = await getJSON<ReturnType<ChannelViews[K]>>(`/${CHANNEL_NAME}/data/${view}`)
+    if (!result) throw new Error(`Error calling view ${view}`)
+    return result
+}
+
+export async function globalAction<K extends keyof GlobalActions>(action: K, args: Parameters<GlobalActions[K]>[0]): Promise<ReturnType<GlobalActions[K]>> {
+    const result = await postJSON<typeof args, ReturnType<GlobalActions[K]>>(`/actions/${action}`, args)
+    if (!result) throw new Error(`Error calling action ${action} with args ${JSON.stringify(args)}`)
+    return result
+}
+
+export async function globalView<K extends keyof GlobalViews>(view: K): Promise<ReturnType<GlobalViews[K]>> {
+    const result = await getJSON<ReturnType<GlobalViews[K]>>(`/data/${view}`)
+    if (!result) throw new Error(`Error calling view ${view}`)
+    return result
+}
+
+

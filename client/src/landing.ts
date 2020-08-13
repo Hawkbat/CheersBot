@@ -1,4 +1,5 @@
-import { refresh } from './apps/ControlPanelApp'
+
+import { refresh } from './apps/LandingApp'
 
 function tryRefresh() {
     try {
@@ -8,4 +9,4 @@ function tryRefresh() {
     }
 }
 
-setInterval(tryRefresh, 1000)
+setInterval(tryRefresh, 10000)

@@ -34,6 +34,7 @@ module.exports = {
     entry: {
         channel: './src/channel.ts',
         overlay: './src/overlay.ts',
+        landing: './src/landing.ts',
     },
     output: {
         path: path.resolve(__dirname, 'out'),

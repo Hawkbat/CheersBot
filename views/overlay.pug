@@ -6,9 +6,11 @@ html(lang="en")
         title Cheers Bot Overlay - #{channel}
         link(rel="stylesheet", href=`/common.css?refresh=${refreshTime}`)
         link(rel="stylesheet", href=`/overlay.css?refresh=${refreshTime}`)
+        script(src="https://kit.fontawesome.com/274907872e.js" crossorigin="anonymous")
         script(src="/react.development.js")
         script(src="/react-dom.development.js")
         script.
+            let CHANNEL_NAME = "#{channel}"
             let REFRESH_TIME = #{refreshTime}
         script(src=`/overlay.js?refresh=${refreshTime}`)
     body
