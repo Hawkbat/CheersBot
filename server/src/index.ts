@@ -1,6 +1,6 @@
-import { RedeemMode, Icon, generateID, Store, mergePartials, AccountType, BotData, ChannelData, UserData, Token, AccountData, ChannelActions, ChannelViews, MODULE_TYPES, Access, GlobalActions, GlobalViews } from 'shared'
+import { RedeemMode, Icon, generateID, Store, mergePartials, AccountType, BotData, ChannelData, UserData, Token, AccountData, ChannelActions, ChannelViews, MODULE_TYPES, Access, GlobalActions, GlobalViews, MessageMeta, parseJSON } from 'shared'
 import TwitchClient from 'twitch'
-import ChatClient, { PrivateMessage } from 'twitch-chat-client'
+import ChatClient, { PrivateMessage, LogLevel } from 'twitch-chat-client'
 import PubSubClient from 'twitch-pubsub-client'
 import WebHookClient, { ReverseProxyAdapter } from 'twitch-webhooks'
 import * as express from 'express'
@@ -14,6 +14,8 @@ import fetch from 'node-fetch'
 import { getDisplayModes, REDEEM_TYPES, removeModeDelayed, addModeDelayed, EVIL_PATTERN } from './girldm'
 import { Bot, Channel, User, Secrets } from './data'
 import { getTwitchEmotes, getTwitchBadges } from './twitchemotes'
+import expressWs = require('express-ws')
+import WebSocket = require('ws')
 
 const workingDir = process.cwd()
 
@@ -37,6 +39,7 @@ async function run() {
     let users: { [key: string]: User } = {}
 
     const app = express()
+    const wsApp = expressWs(app)
 
     function hasTwitchAuth(req: express.Request): boolean {
         return !!req.session?.twitchUserName
@@ -60,6 +63,14 @@ async function run() {
 
     function respondChannelAuthJSON(res: express.Response): void {
         res.status(403).type('json').send('' + JSON.stringify({ status: 403, error: `You don't have access to this channel!` }))
+    }
+
+    function getMessage(req: express.Request): MessageMeta {
+        return {
+            id: generateID(),
+            username: req.session?.twitchUserName ?? '',
+            channel: /^\/(\w+)\//.exec(req.path)?.[1] ?? '',
+        }
     }
 
     function getTokenPath(accountType: AccountType, userName: string): string {
@@ -96,6 +107,9 @@ async function run() {
                     acceptEntries: false,
                     entries: [],
                     rounds: [],
+                },
+                backdrop: {
+                    enabled: false,
                 },
                 channelInfo: {
                     enabled: true,
@@ -212,7 +226,7 @@ async function run() {
                         console.error(`Error refreshing token for ${accountType} ${userName}:`, e)
                     }
                 }
-            })
+            }, { preAuth: true })
 
             const user = await client.helix.users.getMe()
             userName = user.name
@@ -264,13 +278,14 @@ async function run() {
             if (data && client) {
                 const id = (await client.helix.users.getMe()).id
 
-                const chatClient = new ChatClient(client, { channels: data.get(d => [...Object.keys(d.channels).filter(c => d.channels[c] === Access.approved)]) })
+                const chatChannels = data.get(d => Object.keys(d.channels).filter(c => d.channels[c] === Access.approved))
+                const chatClient = new ChatClient(client, { channels: chatChannels, requestMembershipEvents: true })
                 await chatClient.connect()
 
                 chatClient.onPrivmsg(async (channel: string, user: string, message: string, msg: PrivateMessage) => {
-                    const c = channels[channel]
+                    const c = channels[channel.substr(1)]
                     if (!c) return
-                    const isUser = getUsersForChannel(channel.substr(1)).some(u => u.name === user)
+                    const isUser = getUsersForChannel(c.name).some(u => u.name === user)
                     if (isUser) {
                         if (message === 'girldmCheer') {
                             chatClient?.say(channel, 'girldmCheer girldmCheer girldmCheer girldmCheer')
@@ -302,6 +317,11 @@ async function run() {
                 let refreshTime = Date.now()
 
                 const id = (await client.helix.users.getMe()).id
+
+                const router = express.Router()
+                router.use(express.json())
+
+                const sockets: WebSocket[] = []
 
                 const icons: Icon[] = []
                 icons.push(...await getTwitchEmotes(id))
@@ -410,10 +430,11 @@ async function run() {
                     hostName: 'girldm.hawk.bar',
                     pathPrefix: `/${name}/hooks`,
                     listenerPort: 60004,
+                    port: 443,
                     ssl: true,
-                }))
+                }), { logger: { minLevel: LogLevel.TRACE } })
 
-                await webHookClient.subscribeToFollowsToUser(id, follow => {
+                await webHookClient.subscribeToFollowsToUser('71092938', follow => {
                     console.log(`${follow.userDisplayName} is following ${name}`)
                 })
 
@@ -423,10 +444,8 @@ async function run() {
                     })
                 }
 
-                webHookClient.applyMiddleware(app)
-
                 const actions: ChannelActions = {
-                    'adjust-headpats': args => {
+                    'headpats/adjust': args => {
                         data.update(d => {
                             d.modules.headpats.count += args.delta
                             if (args.delta > 0) d.modules.headpats.streak += args.delta
@@ -441,14 +460,14 @@ async function run() {
                         }
                         return true
                     },
-                    'adjust-evil': args => {
+                    'evildm/adjust': args => {
                         data.update(d => {
                             d.modules.evilDm.count += args.delta
                             d.modules.evilDm.time = Date.now()
                         })
                         return true
                     },
-                    'start-event': args => {
+                    'modequeue/start': args => {
                         const mode = data.get(d => d.modules.modeQueue.modes.find(m => m.id === args.id))
                         if (mode) {
                             data.update(d => {
@@ -461,14 +480,20 @@ async function run() {
                         }
                         return true
                     },
-                    'clear-event': args => {
+                    'modequeue/clear': args => {
                         const mode = data.get(d => d.modules.modeQueue.modes.find(m => m.id === args.id))
                         if (mode) {
                             removeModeDelayed(data, mode)
                         }
                         return true
                     },
-                    'mock-event': args => {
+                    'backdrop/fire-cannon': args => {
+                        return true
+                    },
+                    'backdrop/swap-camera': args => {
+                        return true
+                    },
+                    'debug/mock': args => {
                         if (args.type === 'girldm say something!!') {
                             if (EVIL_PATTERN.test(args.message)) {
                                 data.update(d => {
@@ -491,17 +516,17 @@ async function run() {
                         }
                         return true
                     },
-                    'reload': args => {
+                    'debug/reload': args => {
                         refreshTime = Date.now()
                         return true
                     },
-                    'toggle-module': args => {
+                    'config/enable-module': args => {
                         data.update(d => {
                             d.modules[args.type].enabled = args.enabled
                         })
                         return true
                     },
-                    'set-access': args => {
+                    'access/set': args => {
                         switch (args.type) {
                             case AccountType.bot:
                                 data.update(d => {
@@ -520,11 +545,11 @@ async function run() {
                 }
 
                 const views: ChannelViews = {
-                    'controlpanel': username => ({
-                        username,
+                    'controlpanel': msg => ({
+                        username: msg.username,
                         channel: name,
                         channelData: data.get(d => d),
-                        channels: getChannelsForUser(username).map(c => c.name),
+                        channels: getChannelsForUser(msg.username).map(c => c.name),
                         redeemTypes: REDEEM_TYPES,
                         icons,
                         panels: MODULE_TYPES.map(type => ({ type, open: true })),
@@ -539,33 +564,40 @@ async function run() {
                     }),
                 }
 
-                const router = express.Router()
-                router.use(express.json())
-
                 const actionPaths = Object.keys(actions) as (keyof ChannelActions)[]
                 for (const path of actionPaths) {
                     router.post(`/actions/${path}/`, async (req, res) => {
                         if (!hasTwitchAuth(req)) return respondTwitchAuthJSON(res)
                         if (!hasChannelAuth(req, name)) return respondChannelAuthJSON(res)
-                        res.type('json').send(JSON.stringify(actions[path](req.body, req.session?.twitchUserName ?? '')))
+                        res.type('json').send(JSON.stringify(actions[path](req.body, getMessage(req))))
                     })
                 }
 
                 const viewPaths = Object.keys(views) as (keyof ChannelViews)[]
                 for (const path of viewPaths) {
                     router.get(`/data/${path}/`, async (req, res) => {
-                        res.type('json').send(JSON.stringify(views[path](req.session?.twitchUserName ?? '')))
+                        res.type('json').send(JSON.stringify(views[path](getMessage(req))))
                     })
                 }
 
                 router.get('/', (req, res) => {
                     if (!hasTwitchAuth(req)) return respondTwitchAuthRedirect(res)
                     if (!hasChannelAuth(req, name)) return respondChannelAuthMessage(res)
-                    res.render('channel', views.controlpanel(req.session?.twitchUserName ?? ''))
+                    res.render('channel', views.controlpanel(getMessage(req)))
                 })
 
                 router.get('/overlay/', (req, res) => {
-                    res.render('overlay', views.overlay(req.session?.twitchUserName ?? ''))
+                    res.render('overlay', views.overlay(getMessage(req)))
+                })
+
+                router.ws('/ws/', (ws, req) => {
+                    sockets.push(ws)
+                    ws.on('message', msg => {
+                        console.log(`[${name}] msg: ${msg}`)
+                        parseJSON(msg.toString())
+
+                    })
+                    console.log(`[${name}] sock: ${req.header('forwarded') ?? req.header('x-forwarded-for') ?? req.header('true-client-ip') ?? req.ip}`)
                 })
 
                 if (!channels[name]) {
@@ -573,6 +605,8 @@ async function run() {
                         channels[name].router(req, res, next)
                     })
                 }
+
+                webHookClient.applyMiddleware(router)
 
                 return channels[name] = {
                     id,
@@ -643,7 +677,7 @@ async function run() {
     }))
 
     app.get('/', (req, res) => {
-        res.render('landing', views.landing(req.session?.twitchUserName ?? ''))
+        res.render('landing', views.landing(getMessage(req)))
     })
 
     app.get('/overlay/', (req, res) => {
@@ -655,22 +689,22 @@ async function run() {
     setupAuthWorkflow(AccountType.user, USER_SCOPES)
 
     const actions: GlobalActions = {
-        'request-access': (args, username) => {
-            const user = users[username]
+        'access/request': (args, msg) => {
+            const user = users[msg.username]
             const channel = channels[args.channel]
             if (!user || !channel) return false
             if (!user.data.get(d => d.channels[args.channel])) {
                 user.data.update(d => d.channels[args.channel] = Access.approved)
             }
-            if (!channel.data.get(d => d.users[username])) {
-                channel.data.update(d => d.users[username] = Access.pending)
+            if (!channel.data.get(d => d.users[msg.username])) {
+                channel.data.update(d => d.users[msg.username] = Access.pending)
             }
             return true
         },
-        'set-access': (args, username) => {
+        'access/set': (args, msg) => {
             switch (args.type) {
                 case AccountType.channel:
-                    users[username].data.update(d => {
+                    users[msg.username].data.update(d => {
                         d.channels[args.id] = args.access
                     })
                     return true
@@ -681,10 +715,10 @@ async function run() {
     }
 
     const views: GlobalViews = {
-        'landing': (username: string) => {
-            const user = users[username]
+        'landing': msg => {
+            const user = users[msg.username]
             return {
-                username,
+                username: msg.username,
                 userData: user ? user.data.get(d => d) : null,
                 refreshTime,
             }
@@ -696,14 +730,14 @@ async function run() {
         app.post(`/actions/${path}/`, async (req, res) => {
             if (!hasTwitchAuth(req)) return respondTwitchAuthJSON(res)
             if (!hasChannelAuth(req, name)) return respondChannelAuthJSON(res)
-            res.type('json').send(JSON.stringify(actions[path](req.body, req.session?.twitchUserName ?? '')))
+            res.type('json').send(JSON.stringify(actions[path](req.body, getMessage(req))))
         })
     }
 
     const viewPaths = Object.keys(views) as (keyof GlobalViews)[]
     for (const path of viewPaths) {
         app.get(`/data/${path}/`, async (req, res) => {
-            res.type('json').send(JSON.stringify(views[path](req.session?.twitchUserName ?? '')))
+            res.type('json').send(JSON.stringify(views[path](getMessage(req))))
         })
     }
 

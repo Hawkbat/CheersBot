@@ -67,6 +67,10 @@ Bugs
 Add timer combination modes (replace, extend)
 
 
+Win/Loss/Tie counter
+    Use either control panel or owner/moderator chat commands
+    Make visibility toggleable from control panel since it shouldn't always be active
+
 Log client-side errors by building a buffer of log messages and sending them on an interval, silently requeuing them if the server was not accessible
 Filter out server unavailable errors from CloudFlare since those are frequent
 

@@ -9,9 +9,9 @@ import { Button } from '../controls/Button'
 async function setAccess(type: AccountType, id: string, access: Access) {
     try {
         if (type === AccountType.channel)
-            await globalAction('set-access', { type, id, access })
+            await globalAction('access/set', { type, id, access })
         else
-            await channelAction('set-access', { type, id, access })
+            await channelAction('access/set', { type, id, access })
     } catch (e) {
         console.error(e)
     }

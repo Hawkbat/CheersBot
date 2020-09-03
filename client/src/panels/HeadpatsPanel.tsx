@@ -7,7 +7,7 @@ import { Button } from '../controls/Button'
 async function clearHeadpats() {
     try {
         const count = getNumberValue('headpat-count')
-        await channelAction('adjust-headpats', { delta: -count })
+        await channelAction('headpats/adjust', { delta: -count })
     } catch (e) {
         console.error(e)
     }
@@ -17,7 +17,7 @@ async function completeHeadpats() {
     try {
         const count = getNumberValue('headpat-input')
         if (count) {
-            await channelAction('adjust-headpats', { delta: -count })
+            await channelAction('headpats/adjust', { delta: -count })
             setNumberValue('headpat-input', 1)
         }
     } catch (e) {

@@ -7,7 +7,7 @@ import { Button } from '../controls/Button'
 async function clearEvil() {
     try {
         const count = getNumberValue('evil-count')
-        await channelAction('adjust-evil', { delta: -count })
+        await channelAction('evildm/adjust', { delta: -count })
     } catch (e) {
         console.error(e)
     }
@@ -17,7 +17,7 @@ async function adjustEvil() {
     try {
         const count = getNumberValue('evil-input')
         if (count) {
-            await channelAction('adjust-evil', { delta: count })
+            await channelAction('evildm/adjust', { delta: count })
             setNumberValue('evil-input', 0)
         }
     } catch (e) {

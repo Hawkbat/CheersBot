@@ -7,7 +7,7 @@ import { Button } from './Button'
 async function startMode(id: string) {
     try {
         const minutes = getNumberValue('timer-input')
-        await channelAction('start-event', { id, duration: minutes * 60 * 1000 })
+        await channelAction('modequeue/start', { id, duration: minutes * 60 * 1000 })
     } catch (e) {
         console.error(e)
     }
@@ -28,7 +28,7 @@ async function clearMode(id: string) {
         const alarm = document.getElementById('alarm') as HTMLAudioElement
         alarm.pause()
         alarm.currentTime = 0
-        await channelAction('clear-event', { id })
+        await channelAction('modequeue/clear', { id })
     } catch (e) {
         console.error(e)
     }

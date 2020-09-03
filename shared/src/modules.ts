@@ -55,6 +55,16 @@ export const UserQueueModule: Module<UserQueueData> = {
     getData: (data: ChannelData) => data.modules.userQueue,
 }
 
+export interface BackdropData extends ModuleData {
+
+}
+
+export const BackdropModule: Module<BackdropData> = {
+    name: 'Backdrop',
+    description: '--ALPHA-- Interactive Unity application backdrops controlled remotely from the control panel.',
+    getData: (data: ChannelData) => data.modules.backdrop,
+}
+
 export interface ChannelInfoData extends ModuleData {
 
 }
@@ -80,6 +90,7 @@ export const MODULES = {
     evilDm: EvilDmModule,
     modeQueue: ModeQueueModule,
     userQueue: UserQueueModule,
+    backdrop: BackdropModule,
     channelInfo: ChannelInfoModule,
     debug: DebugModule,
 }

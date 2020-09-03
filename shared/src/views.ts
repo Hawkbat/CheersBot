@@ -37,27 +37,58 @@ export enum ControlPanelPage {
     access = 'User Access',
 }
 
+export interface MessageMeta {
+    id: string
+    username: string
+    channel: string
+}
+
+export interface SocketMessage<K extends keyof (ChannelClientMessages & ChannelServerMessages & GlobalServerMessages & GlobalClientMessages), V> {
+    type: K
+    meta: MessageMeta
+    args: (ChannelClientMessages & ChannelServerMessages & GlobalServerMessages & GlobalClientMessages)[K]
+}
+
 export interface ChannelActions {
-    'adjust-headpats': (args: { delta: number }, username: string) => boolean
-    'adjust-evil': (args: { delta: number }, username: string) => boolean
-    'start-event': (args: { id: string, duration: number }, username: string) => boolean
-    'clear-event': (args: { id: string }, username: string) => boolean
-    'mock-event': (args: { type: RedeemType, username: string, message: string, amount: number }, username: string) => boolean
-    'reload': (args: {}, username: string) => boolean
-    'toggle-module': (args: { type: ModuleType, enabled: boolean }, username: string) => boolean
-    'set-access': (args: { type: AccountType, id: string, access: Access }, username: string) => boolean
+    'headpats/adjust': (args: { delta: number }, msg: MessageMeta) => boolean
+    'evildm/adjust': (args: { delta: number }, msg: MessageMeta) => boolean
+    'modequeue/start': (args: { id: string, duration: number }, msg: MessageMeta) => boolean
+    'modequeue/clear': (args: { id: string }, msg: MessageMeta) => boolean
+    'backdrop/fire-cannon': (args: { text: string }, msg: MessageMeta) => boolean
+    'backdrop/swap-camera': (args: { name: string }, msg: MessageMeta) => boolean
+    'debug/mock': (args: { type: RedeemType, username: string, message: string, amount: number }, msg: MessageMeta) => boolean
+    'debug/reload': (args: {}, msg: MessageMeta) => boolean
+    'config/enable-module': (args: { type: ModuleType, enabled: boolean }, msg: MessageMeta) => boolean
+    'access/set': (args: { type: AccountType, id: string, access: Access }, msg: MessageMeta) => boolean
 }
 
 export interface ChannelViews {
-    'controlpanel': (username: string) => ControlPanelViewData
-    'overlay': (username: string) => OverlayViewData
+    'controlpanel': (msg: MessageMeta) => ControlPanelViewData
+    'overlay': (msg: MessageMeta) => OverlayViewData
+}
+
+export interface ChannelServerMessages {
+    'backdrop/fire-cannon': (args: { text: string }, msg: MessageMeta) => void
+    'backdrop/swap-camera': (args: { name: string }, msg: MessageMeta) => void
+}
+
+export interface ChannelClientMessages {
+
 }
 
 export interface GlobalActions {
-    'request-access': (args: { channel: string }, username: string) => boolean
-    'set-access': (args: { type: AccountType, id: string, access: Access }, username: string) => boolean
+    'access/request': (args: { channel: string }, msg: MessageMeta) => boolean
+    'access/set': (args: { type: AccountType, id: string, access: Access }, msg: MessageMeta) => boolean
 }
 
 export interface GlobalViews {
-    'landing': (username: string) => LandingViewData
+    'landing': (msg: MessageMeta) => LandingViewData
+}
+
+export interface GlobalServerMessages {
+
+}
+
+export interface GlobalClientMessages {
+
 }

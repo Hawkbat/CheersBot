@@ -18,7 +18,7 @@ export function DebugPanel(props: ControlPanelViewData & DebugData & { page: Con
 
     const mockEvent = async () => {
         try {
-            await channelAction('mock-event', { type, username, message, amount })
+            await channelAction('debug/mock', { type, username, message, amount })
         } catch (e) {
             console.error(e)
         }
@@ -26,7 +26,7 @@ export function DebugPanel(props: ControlPanelViewData & DebugData & { page: Con
 
     const reload = async () => {
         try {
-            await channelAction('reload', {})
+            await channelAction('debug/reload', {})
         } catch (e) {
             console.error(e)
         }
