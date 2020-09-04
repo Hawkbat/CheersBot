@@ -54,6 +54,12 @@ export interface ChannelActions {
     'evildm/adjust': (args: { delta: number }, msg: MessageMeta) => boolean
     'modequeue/start': (args: { id: string, duration: number }, msg: MessageMeta) => boolean
     'modequeue/clear': (args: { id: string }, msg: MessageMeta) => boolean
+    'winloss/set-displayed': (args: { display: boolean }, msg: MessageMeta) => boolean
+    'winloss/adjust-wins': (args: { delta: number }, msg: MessageMeta) => boolean
+    'winloss/adjust-losses': (args: { delta: number }, msg: MessageMeta) => boolean
+    'winloss/adjust-draws': (args: { delta: number }, msg: MessageMeta) => boolean
+    'winloss/adjust-deaths': (args: { delta: number }, msg: MessageMeta) => boolean
+    'winloss/clear': (args: {}, msg: MessageMeta) => boolean
     'backdrop/fire-cannon': (args: { text: string }, msg: MessageMeta) => boolean
     'backdrop/swap-camera': (args: { name: string }, msg: MessageMeta) => boolean
     'debug/mock': (args: { type: RedeemType, username: string, message: string, amount: number }, msg: MessageMeta) => boolean

@@ -7,9 +7,10 @@ import { ChannelInfoPanel as ChannelInfoPanel } from '../panels/ChannelInfoPanel
 import { DebugPanel } from '../panels/DebugPanel'
 import { EvilDmPanel } from '../panels/EvilDmPanel'
 import { UserQueuePanel } from '../panels/UserQueuePanel'
+import { WinLossPanel } from '../panels/WinLossPanel'
 import { PanelField } from './PanelField'
 import { Toggle } from './Toggle'
-import { channelAction } from 'src/utils'
+import { channelAction } from '../utils'
 
 export function Panel(props: { page: ControlPanelPage, panel: PanelViewData, data: ControlPanelViewData, onToggle: (open: boolean) => void }) {
     const module = getModule(props.panel.type)
@@ -31,6 +32,8 @@ export function Panel(props: { page: ControlPanelPage, panel: PanelViewData, dat
                     return <EvilDmPanel page={props.page} {...props.data} {...getModule(props.panel.type).getData(props.data.channelData)} />
                 case 'modeQueue':
                     return <ModeQueuePanel page={props.page} {...props.data} {...getModule(props.panel.type).getData(props.data.channelData)} />
+                case 'winLoss':
+                    return <WinLossPanel page={props.page} {...props.data} {...getModule(props.panel.type).getData(props.data.channelData)} />
                 case 'userQueue':
                     return <UserQueuePanel page={props.page} {...props.data} {...getModule(props.panel.type).getData(props.data.channelData)} />
                 case 'channelInfo':

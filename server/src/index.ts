@@ -102,6 +102,15 @@ async function run() {
                     enabled: false,
                     modes: [],
                 },
+                winLoss: {
+                    enabled: false,
+                    display: true,
+                    wins: 0,
+                    losses: 0,
+                    draws: 0,
+                    deaths: 0,
+                    deathTime: 0,
+                },
                 userQueue: {
                     enabled: false,
                     acceptEntries: false,
@@ -285,14 +294,55 @@ async function run() {
                 chatClient.onPrivmsg(async (channel: string, user: string, message: string, msg: PrivateMessage) => {
                     const c = channels[channel.substr(1)]
                     if (!c) return
-                    const isUser = getUsersForChannel(c.name).some(u => u.name === user)
+                    const isUser = getUsersForChannel(c.name).some(u => u.name === user) || msg.userInfo.isBroadcaster || msg.userInfo.isMod
                     if (isUser) {
-                        if (message === 'girldmCheer') {
-                            chatClient?.say(channel, 'girldmCheer girldmCheer girldmCheer girldmCheer')
+                        const parts = message.split(/\b/g).map(p => p.trim()).filter(p => p.length)
+                        const prefix = parts.shift()
+                        const command = parts.shift()
+                        const args = parts
+
+                        switch (prefix) {
+                            case 'girldmCheer':
+                                switch (command) {
+                                    case undefined:
+                                        chatClient?.say(channel, 'girldmCheer girldmCheer girldmCheer girldmCheer')
+                                        break
+                                }
+                                break
+                            case '$':
+                                switch (command) {
+                                    case 'win':
+                                        c.data.update(d => {
+                                            d.modules.winLoss.wins++
+                                        })
+                                        break
+                                    case 'loss':
+                                        c.data.update(d => {
+                                            d.modules.winLoss.losses++
+                                        })
+                                        break
+                                    case 'draw':
+                                        c.data.update(d => {
+                                            d.modules.winLoss.draws++
+                                        })
+                                        break
+                                    case 'death':
+                                        c.data.update(d => {
+                                            d.modules.winLoss.deaths++
+                                            d.modules.winLoss.deathTime = Date.now()
+                                        })
+                                        break
+                                    case 'reset':
+                                        c.data.update(d => {
+                                            d.modules.winLoss.wins = 0
+                                            d.modules.winLoss.losses = 0
+                                            d.modules.winLoss.draws = 0
+                                            d.modules.winLoss.deaths = 0
+                                        })
+                                        break
+                                }
+                                break
                         }
-                    }
-                    if (message.startsWith('!join')) {
-                        const context = message.substr('!join'.length).trim()
                     }
                 })
 
@@ -485,6 +535,46 @@ async function run() {
                         if (mode) {
                             removeModeDelayed(data, mode)
                         }
+                        return true
+                    },
+                    'winloss/set-displayed': args => {
+                        data.update(d => {
+                            d.modules.winLoss.display = args.display
+                        })
+                        return true
+                    },
+                    'winloss/adjust-wins': args => {
+                        data.update(d => {
+                            d.modules.winLoss.wins += args.delta
+                        })
+                        return true
+                    },
+                    'winloss/adjust-losses': args => {
+                        data.update(d => {
+                            d.modules.winLoss.losses += args.delta
+                        })
+                        return true
+                    },
+                    'winloss/adjust-draws': args => {
+                        data.update(d => {
+                            d.modules.winLoss.draws += args.delta
+                        })
+                        return true
+                    },
+                    'winloss/adjust-deaths': args => {
+                        data.update(d => {
+                            d.modules.winLoss.deaths += args.delta
+                            if (args.delta > 0) d.modules.winLoss.deathTime = Date.now()
+                        })
+                        return true
+                    },
+                    'winloss/clear': args => {
+                        data.update(d => {
+                            d.modules.winLoss.wins = 0
+                            d.modules.winLoss.losses = 0
+                            d.modules.winLoss.draws = 0
+                            d.modules.winLoss.deaths = 0
+                        })
                         return true
                     },
                     'backdrop/fire-cannon': args => {

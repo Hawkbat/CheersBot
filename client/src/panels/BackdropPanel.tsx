@@ -1,25 +1,8 @@
 import * as React from 'react'
 import { BackdropData, ControlPanelViewData, ControlPanelPage } from 'shared'
 import { PanelField } from '../controls/PanelField'
-import { getNumberValue, setNumberValue, channelAction } from '../utils'
+import { channelAction } from '../utils'
 import { Button } from '../controls/Button'
-
-async function swapCamera() {
-
-}
-
-async function fireCannon() {
-    try {
-
-        const count = getNumberValue('evil-input')
-        if (count) {
-            await channelAction('evildm/adjust', { delta: count })
-            setNumberValue('evil-input', 0)
-        }
-    } catch (e) {
-        console.error(e)
-    }
-}
 
 export function BackdropPanel(props: ControlPanelViewData & BackdropData & { page: ControlPanelPage }) {
     const [cannonText, setCannonText] = React.useState('')

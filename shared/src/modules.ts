@@ -43,6 +43,21 @@ export const ModeQueueModule: Module<ModeQueueData> = {
     getData: (data: ChannelData) => data.modules.modeQueue,
 }
 
+export interface WinLossData extends ModuleData {
+    display: boolean
+    wins: number
+    losses: number
+    draws: number
+    deaths: number
+    deathTime: number
+}
+
+export const WinLossModule: Module<WinLossData> = {
+    name: 'Win/Loss Record',
+    description: 'Allows channels to track game win/loss records for a stream.',
+    getData: (data: ChannelData) => data.modules.winLoss,
+}
+
 export interface UserQueueData extends ModuleData {
     acceptEntries: boolean
     entries: UserQueueEntry[]
@@ -89,6 +104,7 @@ export const MODULES = {
     headpats: HeadpatsModule,
     evilDm: EvilDmModule,
     modeQueue: ModeQueueModule,
+    winLoss: WinLossModule,
     userQueue: UserQueueModule,
     backdrop: BackdropModule,
     channelInfo: ChannelInfoModule,
