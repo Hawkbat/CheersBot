@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { EvilDmData, ControlPanelViewData, ControlPanelPage } from 'shared'
+import { ControlPanelViewData, ControlPanelPage, ModuleDataType } from 'shared'
 import { PanelField } from '../controls/PanelField'
 import { getNumberValue, setNumberValue, channelAction } from '../utils'
 import { Button } from '../controls/Button'
@@ -25,12 +25,12 @@ async function adjustEvil() {
     }
 }
 
-export function EvilDmPanel(props: ControlPanelViewData & EvilDmData & { page: ControlPanelPage }) {
+export function EvilDmPanel(props: ControlPanelViewData & ModuleDataType<'evilDm'> & { page: ControlPanelPage }) {
     switch (props.page) {
         case ControlPanelPage.view:
             return <>
                 <PanelField>
-                    GirlDm has confessed to her crimes&nbsp;<span id="evil-count">{props.count}</span>&nbsp;times! Hecc!!!
+                    GirlDm has confessed to her crimes&nbsp;<span id="evil-count">{props.state.count}</span>&nbsp;times! Hecc!!!
         </PanelField>
                 <PanelField>
                     <Button primary onClick={e => adjustEvil()}>Adjust</Button>&nbsp;counter by&nbsp;<input id="evil-input" type="number" defaultValue="0" />

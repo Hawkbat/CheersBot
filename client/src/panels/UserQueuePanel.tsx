@@ -1,8 +1,8 @@
 import * as React from 'react'
-import { UserQueueData, ControlPanelViewData, ControlPanelPage } from 'shared'
+import { ControlPanelViewData, ControlPanelPage, ModuleDataType } from 'shared'
 import { PanelField } from '../controls/PanelField'
 
-export function UserQueuePanel(props: ControlPanelViewData & UserQueueData & { page: ControlPanelPage }) {
+export function UserQueuePanel(props: ControlPanelViewData & ModuleDataType<'userQueue'> & { page: ControlPanelPage }) {
     switch (props.page) {
         case ControlPanelPage.view:
             return <>
@@ -12,7 +12,7 @@ export function UserQueuePanel(props: ControlPanelViewData & UserQueueData & { p
                 <hr />
                 <PanelField>
                     <div id="users">
-                        {props.entries.length ? props.entries.map(e => <div></div>) : <i>No user entries submitted</i>}
+                        {props.state.entries.length ? props.state.entries.map(e => <div></div>) : <i>No user entries submitted</i>}
                     </div>
                 </PanelField>
             </>

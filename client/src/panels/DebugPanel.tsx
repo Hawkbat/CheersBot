@@ -1,12 +1,12 @@
 import * as React from 'react'
-import { ControlPanelViewData, Icon, UserEventCondition, DebugData, RedeemType, ControlPanelPage } from 'shared'
+import { ControlPanelViewData, Icon, UserEventCondition, RedeemType, ControlPanelPage, ModuleDataType } from 'shared'
 import { PanelField } from '../controls/PanelField'
 import { TwitchIcon } from '../controls/TwitchIcon'
 import { TagList } from '../controls/TagList'
 import { Button } from '../controls/Button'
 import { channelAction } from 'src/utils'
 
-export function DebugPanel(props: ControlPanelViewData & DebugData & { page: ControlPanelPage }) {
+export function DebugPanel(props: ControlPanelViewData & ModuleDataType<'debug'> & { page: ControlPanelPage }) {
 
     const [type, setType] = React.useState('' as RedeemType)
     const [username, setUsername] = React.useState('Anonymous')

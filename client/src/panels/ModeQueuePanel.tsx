@@ -1,9 +1,9 @@
 import * as React from 'react'
-import { ModeQueueData, ControlPanelViewData, ControlPanelPage } from 'shared'
+import { ControlPanelViewData, ControlPanelPage, ModuleDataType } from 'shared'
 import { PanelField } from '../controls/PanelField'
 import { QueuedMode } from '../controls/QueuedMode'
 
-export function ModeQueuePanel(props: ControlPanelViewData & ModeQueueData & { page: ControlPanelPage }) {
+export function ModeQueuePanel(props: ControlPanelViewData & ModuleDataType<'modeQueue'> & { page: ControlPanelPage }) {
     switch (props.page) {
         case ControlPanelPage.view:
             return <>
@@ -13,10 +13,10 @@ export function ModeQueuePanel(props: ControlPanelViewData & ModeQueueData & { p
                 <hr />
                 <PanelField>
                     <div id="modes">
-                        {props.modes.length ? props.modes.map(e => <QueuedMode key={e.id} mode={e} />) : <i>No modes currently queued</i>}
+                        {props.state.modes.length ? props.state.modes.map(e => <QueuedMode key={e.id} mode={e} />) : <i>No modes currently queued</i>}
                     </div>
                 </PanelField>
-                {props.channelData.modules.debug.enabled ? <></> : <audio id="alarm" src="/alarm.wav" loop />}
+                {props.channelData.modules.debug.config.enabled ? <></> : <audio id="alarm" src="/alarm.wav" loop />}
             </>
         default:
             return <></>

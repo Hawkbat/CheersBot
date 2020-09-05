@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { ControlPanelViewData, ControlPanelPage } from 'shared'
+import { ControlPanelViewData, ControlPanelPage, ModuleDataType } from 'shared'
 import { PanelField } from '../controls/PanelField'
 import { Button } from '../controls/Button'
 
@@ -10,7 +10,7 @@ function copyOverlayURL() {
     document.execCommand('copy')
 }
 
-export function ChannelInfoPanel(props: ControlPanelViewData & { page: ControlPanelPage }) {
+export function ChannelInfoPanel(props: ControlPanelViewData & ModuleDataType<'channelInfo'> & { page: ControlPanelPage }) {
     switch (props.page) {
         case ControlPanelPage.view:
             return <>

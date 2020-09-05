@@ -22,7 +22,7 @@ export async function refresh() {
             ReactDOM.render(<ControlPanelApp {...data} updateTime={new Date()} />, document.getElementById('app'))
 
             const pingTime = Date.now()
-            if (data.channelData.modules.modeQueue.modes.some(m => m.startTime && lastPingTime < (m.startTime + (m.duration ?? 0)) && pingTime >= (m.startTime + (m.duration ?? 0)))) {
+            if (data.channelData.modules.modeQueue.state.modes.some(m => m.startTime && lastPingTime < (m.startTime + (m.duration ?? 0)) && pingTime >= (m.startTime + (m.duration ?? 0)))) {
                 try {
                     const alarm = document.getElementById('alarm') as HTMLAudioElement
                     alarm.play()
@@ -56,7 +56,7 @@ export function ControlPanelApp(props: ControlPanelViewData) {
         const module = getModule(p.type)
         switch (page) {
             case ControlPanelPage.edit: return module !== null
-            case ControlPanelPage.view: return !module || module.getData(props.channelData).enabled
+            case ControlPanelPage.view: return !module || module.getData(props.channelData).config.enabled
             case ControlPanelPage.access: return false
         }
     })

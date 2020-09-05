@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { HeadpatData, ControlPanelViewData, ControlPanelPage } from 'shared'
+import { ControlPanelViewData, ControlPanelPage, ModuleDataType } from 'shared'
 import { PanelField } from '../controls/PanelField'
 import { getNumberValue, setNumberValue, channelAction } from '../utils'
 import { Button } from '../controls/Button'
@@ -25,12 +25,12 @@ async function completeHeadpats() {
     }
 }
 
-export function HeadpatsPanel(props: ControlPanelViewData & HeadpatData & { page: ControlPanelPage }) {
+export function HeadpatsPanel(props: ControlPanelViewData & ModuleDataType<'headpats'> & { page: ControlPanelPage }) {
     switch (props.page) {
         case ControlPanelPage.view:
             return <>
                 <PanelField>
-                    <span id="headpat-count">{props.count}</span>&nbsp;headpats redeemed!
+                    <span id="headpat-count">{props.state.count}</span>&nbsp;headpats redeemed!
         </PanelField>
                 <PanelField>
                     <Button primary onClick={e => completeHeadpats()}>Complete</Button>&nbsp;<input id="headpat-input" type="number" defaultValue="1" />&nbsp;headpats

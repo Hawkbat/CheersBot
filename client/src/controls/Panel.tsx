@@ -19,7 +19,7 @@ export function Panel(props: { page: ControlPanelPage, panel: PanelViewData, dat
             ? <>
                 <PanelField>{module.description}</PanelField>
                 <hr />
-                <PanelField label="Enabled"><Toggle value={module.getData(props.data.channelData).enabled} onToggle={async v => {
+                <PanelField label="Enabled"><Toggle value={module.getData(props.data.channelData).config.enabled} onToggle={async v => {
                     await channelAction('config/enable-module', { type: props.panel.type, enabled: v })
                 }} /></PanelField>
             </>

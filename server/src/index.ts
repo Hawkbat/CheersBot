@@ -89,42 +89,77 @@ async function run() {
             users: {},
             modules: {
                 headpats: {
-                    enabled: false,
-                    count: 0,
-                    streak: 0,
+                    config: {
+                        enabled: false,
+                    },
+                    state: {
+                        count: 0,
+                        streak: 0,
+                    },
                 },
                 evilDm: {
-                    enabled: false,
-                    count: 0,
-                    time: 0,
+                    config: {
+                        enabled: false,
+                    },
+                    state: {
+                        count: 0,
+                        time: 0,
+                    },
                 },
                 modeQueue: {
-                    enabled: false,
-                    modes: [],
+                    config: {
+                        enabled: false,
+                    },
+                    state: {
+                        modes: [],
+                    },
                 },
                 winLoss: {
-                    enabled: false,
-                    display: true,
-                    wins: 0,
-                    losses: 0,
-                    draws: 0,
-                    deaths: 0,
-                    deathTime: 0,
+                    config: {
+                        enabled: false,
+                    },
+                    state: {
+                        display: true,
+                        wins: 0,
+                        losses: 0,
+                        draws: 0,
+                        deaths: 0,
+                        deathTime: 0,
+                    },
                 },
                 userQueue: {
-                    enabled: false,
-                    acceptEntries: false,
-                    entries: [],
-                    rounds: [],
+                    config: {
+                        enabled: false,
+                    },
+                    state: {
+                        acceptEntries: false,
+                        entries: [],
+                        rounds: [],
+                    },
                 },
                 backdrop: {
-                    enabled: false,
+                    config: {
+                        enabled: false,
+                    },
+                    state: {
+
+                    },
                 },
                 channelInfo: {
-                    enabled: true,
+                    config: {
+                        enabled: true,
+                    },
+                    state: {
+
+                    },
                 },
                 debug: {
-                    enabled: false,
+                    config: {
+                        enabled: false,
+                    },
+                    state: {
+
+                    },
                 },
             },
         }
@@ -313,31 +348,31 @@ async function run() {
                                 switch (command) {
                                     case 'win':
                                         c.data.update(d => {
-                                            d.modules.winLoss.wins++
+                                            d.modules.winLoss.state.wins++
                                         })
                                         break
                                     case 'loss':
                                         c.data.update(d => {
-                                            d.modules.winLoss.losses++
+                                            d.modules.winLoss.state.losses++
                                         })
                                         break
                                     case 'draw':
                                         c.data.update(d => {
-                                            d.modules.winLoss.draws++
+                                            d.modules.winLoss.state.draws++
                                         })
                                         break
                                     case 'death':
                                         c.data.update(d => {
-                                            d.modules.winLoss.deaths++
-                                            d.modules.winLoss.deathTime = Date.now()
+                                            d.modules.winLoss.state.deaths++
+                                            d.modules.winLoss.state.deathTime = Date.now()
                                         })
                                         break
                                     case 'reset':
                                         c.data.update(d => {
-                                            d.modules.winLoss.wins = 0
-                                            d.modules.winLoss.losses = 0
-                                            d.modules.winLoss.draws = 0
-                                            d.modules.winLoss.deaths = 0
+                                            d.modules.winLoss.state.wins = 0
+                                            d.modules.winLoss.state.losses = 0
+                                            d.modules.winLoss.state.draws = 0
+                                            d.modules.winLoss.state.deaths = 0
                                         })
                                         break
                                 }
@@ -387,8 +422,8 @@ async function run() {
                         switch (msg.rewardName.trim()) {
                             case 'girldm headpats':
                                 data.update(d => {
-                                    d.modules.headpats.count++
-                                    d.modules.headpats.streak++
+                                    d.modules.headpats.state.count++
+                                    d.modules.headpats.state.streak++
                                 })
 
                                 if (!msg['_data'].data.redemption.reward.is_in_stock) {
@@ -436,8 +471,8 @@ async function run() {
                             case 'girldm say something!!':
                                 if (EVIL_PATTERN.test(msg.message)) {
                                     data.update(d => {
-                                        d.modules.evilDm.count++
-                                        d.modules.evilDm.time = Date.now()
+                                        d.modules.evilDm.state.count++
+                                        d.modules.evilDm.state.time = Date.now()
                                     })
                                 } else {
                                     console.log(msg)
@@ -455,7 +490,7 @@ async function run() {
                         if (msg.action === 'timeout') {
                             const username = msg.args[0]
                             const duration = parseFloat(msg.args[1])
-                            const ban = data.get(d => d.modules.modeQueue.modes).find(b => b.type === 'girldm heccin ban me' && b.userName.toLowerCase() === username.toLowerCase())
+                            const ban = data.get(d => d.modules.modeQueue.state.modes).find(b => b.type === 'girldm heccin ban me' && b.userName.toLowerCase() === username.toLowerCase())
                             if (ban) {
                                 ban.startTime = Date.now()
                                 ban.duration = BAN_TIMEOUT
@@ -465,7 +500,7 @@ async function run() {
                             }
                         } else if (msg.action === 'untimeout') {
                             const username = msg.args[0]
-                            const ban = data.get(d => d.modules.modeQueue.modes).find(b => b.type === 'girldm heccin ban me' && b.userName.toLowerCase() === username.toLowerCase())
+                            const ban = data.get(d => d.modules.modeQueue.state.modes).find(b => b.type === 'girldm heccin ban me' && b.userName.toLowerCase() === username.toLowerCase())
                             if (ban) {
                                 for (const bot of getBotsForChannel(name)) {
                                     bot.chatClient.action(name, `Welcome back, @${username}! girldmCheer`)
@@ -497,31 +532,31 @@ async function run() {
                 const actions: ChannelActions = {
                     'headpats/adjust': args => {
                         data.update(d => {
-                            d.modules.headpats.count += args.delta
-                            if (args.delta > 0) d.modules.headpats.streak += args.delta
+                            d.modules.headpats.state.count += args.delta
+                            if (args.delta > 0) d.modules.headpats.state.streak += args.delta
                         })
-                        if (data.get(d => d.modules.headpats.count) === 0 && data.get(d => d.modules.headpats.streak) > 1) {
+                        if (data.get(d => d.modules.headpats.state.count) === 0 && data.get(d => d.modules.headpats.state.streak) > 1) {
                             for (const bot of getBotsForChannel(name)) {
-                                bot.chatClient.action(name, `${data.get(d => d.modules.headpats.streak)} headpat streak! girldmCheer girldmCheer girldmCheer girldmHeadpat girldmHeadpat girldmHeadpat`)
+                                bot.chatClient.action(name, `${data.get(d => d.modules.headpats.state.streak)} headpat streak! girldmCheer girldmCheer girldmCheer girldmHeadpat girldmHeadpat girldmHeadpat`)
                             }
                             data.update(d => {
-                                d.modules.headpats.streak = 0
+                                d.modules.headpats.state.streak = 0
                             })
                         }
                         return true
                     },
                     'evildm/adjust': args => {
                         data.update(d => {
-                            d.modules.evilDm.count += args.delta
-                            d.modules.evilDm.time = Date.now()
+                            d.modules.evilDm.state.count += args.delta
+                            d.modules.evilDm.state.time = Date.now()
                         })
                         return true
                     },
                     'modequeue/start': args => {
-                        const mode = data.get(d => d.modules.modeQueue.modes.find(m => m.id === args.id))
+                        const mode = data.get(d => d.modules.modeQueue.state.modes.find(m => m.id === args.id))
                         if (mode) {
                             data.update(d => {
-                                const m = d.modules.modeQueue.modes.find(m => m.id === mode.id)
+                                const m = d.modules.modeQueue.state.modes.find(m => m.id === mode.id)
                                 if (m) {
                                     m.startTime = Date.now()
                                     m.duration = args.duration
@@ -531,7 +566,7 @@ async function run() {
                         return true
                     },
                     'modequeue/clear': args => {
-                        const mode = data.get(d => d.modules.modeQueue.modes.find(m => m.id === args.id))
+                        const mode = data.get(d => d.modules.modeQueue.state.modes.find(m => m.id === args.id))
                         if (mode) {
                             removeModeDelayed(data, mode)
                         }
@@ -539,41 +574,41 @@ async function run() {
                     },
                     'winloss/set-displayed': args => {
                         data.update(d => {
-                            d.modules.winLoss.display = args.display
+                            d.modules.winLoss.state.display = args.display
                         })
                         return true
                     },
                     'winloss/adjust-wins': args => {
                         data.update(d => {
-                            d.modules.winLoss.wins += args.delta
+                            d.modules.winLoss.state.wins += args.delta
                         })
                         return true
                     },
                     'winloss/adjust-losses': args => {
                         data.update(d => {
-                            d.modules.winLoss.losses += args.delta
+                            d.modules.winLoss.state.losses += args.delta
                         })
                         return true
                     },
                     'winloss/adjust-draws': args => {
                         data.update(d => {
-                            d.modules.winLoss.draws += args.delta
+                            d.modules.winLoss.state.draws += args.delta
                         })
                         return true
                     },
                     'winloss/adjust-deaths': args => {
                         data.update(d => {
-                            d.modules.winLoss.deaths += args.delta
-                            if (args.delta > 0) d.modules.winLoss.deathTime = Date.now()
+                            d.modules.winLoss.state.deaths += args.delta
+                            if (args.delta > 0) d.modules.winLoss.state.deathTime = Date.now()
                         })
                         return true
                     },
                     'winloss/clear': args => {
                         data.update(d => {
-                            d.modules.winLoss.wins = 0
-                            d.modules.winLoss.losses = 0
-                            d.modules.winLoss.draws = 0
-                            d.modules.winLoss.deaths = 0
+                            d.modules.winLoss.state.wins = 0
+                            d.modules.winLoss.state.losses = 0
+                            d.modules.winLoss.state.draws = 0
+                            d.modules.winLoss.state.deaths = 0
                         })
                         return true
                     },
@@ -587,8 +622,8 @@ async function run() {
                         if (args.type === 'girldm say something!!') {
                             if (EVIL_PATTERN.test(args.message)) {
                                 data.update(d => {
-                                    d.modules.evilDm.count++
-                                    d.modules.evilDm.time = Date.now()
+                                    d.modules.evilDm.state.count++
+                                    d.modules.evilDm.state.time = Date.now()
                                 })
                             }
                         } else {
@@ -612,7 +647,7 @@ async function run() {
                     },
                     'config/enable-module': args => {
                         data.update(d => {
-                            d.modules[args.type].enabled = args.enabled
+                            d.modules[args.type].config.enabled = args.enabled
                         })
                         return true
                     },
@@ -649,7 +684,7 @@ async function run() {
                     'overlay': () => ({
                         channel: name,
                         channelData: data.get(d => d),
-                        modes: getDisplayModes(data.get(d => d.modules.modeQueue.modes)),
+                        modes: getDisplayModes(data.get(d => d.modules.modeQueue.state.modes)),
                         refreshTime,
                     }),
                 }

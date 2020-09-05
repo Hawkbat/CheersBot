@@ -12,11 +12,11 @@ export const EVIL_PATTERN = /\b(evil|crimes|crime|puppy|puppies)[!.,]?\b/i
 export function addModeDelayed(store: Store<ChannelData>, mode: RedeemMode): void {
     store.update(d => {
         mode.visible = false
-        d.modules.modeQueue.modes.push(mode)
+        d.modules.modeQueue.state.modes.push(mode)
     })
     setTimeout(() => {
         store.update(d => {
-            const m = d.modules.modeQueue.modes.find(m => m.id === mode.id)
+            const m = d.modules.modeQueue.state.modes.find(m => m.id === mode.id)
             if (m) m.visible = true
         })
     }, 1000)
@@ -24,12 +24,12 @@ export function addModeDelayed(store: Store<ChannelData>, mode: RedeemMode): voi
 
 export function removeModeDelayed(store: Store<ChannelData>, mode: RedeemMode): void {
     store.update(d => {
-        const m = d.modules.modeQueue.modes.find(m => m.id === mode.id)
+        const m = d.modules.modeQueue.state.modes.find(m => m.id === mode.id)
         if (m) m.visible = false
     })
     setTimeout(() => {
         store.update(d => {
-            d.modules.modeQueue.modes = d.modules.modeQueue.modes.filter(m => m.id !== mode.id)
+            d.modules.modeQueue.state.modes = d.modules.modeQueue.state.modes.filter(m => m.id !== mode.id)
         })
     }, 1000)
 }

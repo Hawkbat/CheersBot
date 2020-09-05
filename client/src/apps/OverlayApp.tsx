@@ -23,14 +23,15 @@ export async function refresh() {
 }
 
 export function OverlayApp(props: OverlayViewData) {
-    const headpats = props.channelData.modules.headpats.count
-    const evilCount = props.channelData.modules.evilDm.count
+    const headpats = props.channelData.modules.headpats
+    const evilDm = props.channelData.modules.evilDm
     const winLoss = props.channelData.modules.winLoss
+    const modeQueue = props.channelData.modules.modeQueue
     return <div className="Overlay">
-        {props.channelData.modules.headpats.enabled ? <Mode visible={headpats > 0} icon={{ type: 'emote', id: "302176288", name: 'girldmHeadpat' }} username={'' + headpats} msg={'headpats redeemed!'} /> : <></>}
-        {props.channelData.modules.evilDm.enabled ? <Mode visible={evilCount > 0 && (props.channelData.modules.evilDm.time + 10000) > Date.now()} icon={{ type: 'emote', id: '302186553', name: 'girldmWut' }} username={'evil_dm_'} msg={`has confessed to her crimes ${evilCount} time${evilCount === 1 ? '' : 's'}!`} /> : <></>}
-        {winLoss.enabled && winLoss.display ? <Mode visible={true} icon={winLoss.losses > winLoss.wins ? { type: 'emote', id: '303414946', name: 'girldmWah' } : { type: 'emote', id: '303514962', name: 'girldmDab' }} username={''} msg={`<b>${winLoss.wins}</b> W - <b>${winLoss.losses}</b> L` + (winLoss.draws !== 0 ? ` - <b>${winLoss.draws}</b> D` : '')} /> : <></>}
-        {winLoss.enabled && winLoss.display ? <Mode visible={winLoss.deaths > 0 && (winLoss.deathTime + 10000) > Date.now()} icon={{ type: 'emote', id: '303415596', name: 'girldmDead' }} username={'' + winLoss.deaths} msg={winLoss.deaths === 1 ? 'death so far!' : 'deaths so far!'} /> : <></>}
-        {props.channelData.modules.modeQueue.enabled ? props.modes.map(m => <Mode key={m.id} visible={m.visible} icon={m.icon} username={m.showName ? m.userName : ''} msg={m.msg} />) : <></>}
+        {headpats.config.enabled ? <Mode visible={headpats.state.count > 0} icon={{ type: 'emote', id: "302176288", name: 'girldmHeadpat' }} username={'' + headpats.state.count} msg={'headpats redeemed!'} /> : <></>}
+        {evilDm.config.enabled ? <Mode visible={evilDm.state.count > 0 && (evilDm.state.time + 10000) > Date.now()} icon={{ type: 'emote', id: '302186553', name: 'girldmWut' }} username={'evil_dm_'} msg={`has confessed to her crimes ${evilDm.state.count} time${evilDm.state.count === 1 ? '' : 's'}!`} /> : <></>}
+        {winLoss.config.enabled && winLoss.state.display ? <Mode visible={true} icon={winLoss.state.losses > winLoss.state.wins ? { type: 'emote', id: '303414946', name: 'girldmWah' } : { type: 'emote', id: '303514962', name: 'girldmDab' }} username={''} msg={`<b>${winLoss.state.wins}</b> W - <b>${winLoss.state.losses}</b> L` + (winLoss.state.draws !== 0 ? ` - <b>${winLoss.state.draws}</b> D` : '')} /> : <></>}
+        {winLoss.config.enabled ? <Mode visible={winLoss.state.deaths > 0 && (winLoss.state.deathTime + 10000) > Date.now()} icon={{ type: 'emote', id: '303415596', name: 'girldmDead' }} username={'' + winLoss.state.deaths} msg={winLoss.state.deaths === 1 ? 'death so far!' : 'deaths so far!'} /> : <></>}
+        {modeQueue.config.enabled ? props.modes.map(m => <Mode key={m.id} visible={m.visible} icon={m.icon} username={m.showName ? m.userName : ''} msg={m.msg} />) : <></>}
     </div>
 }
