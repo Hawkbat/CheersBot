@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { ControlPanelViewData, PanelViewData, ControlPanelPage, getModule } from 'shared'
+import { ControlPanelAppViewData, PanelViewData, ControlPanelPage, getModule } from 'shared'
 import { PanelGroup } from './PanelGroup'
 import { HeadpatsPanel } from '../panels/HeadpatsPanel'
 import { ModeQueuePanel } from '../panels/ModeQueuePanel'
@@ -12,7 +12,7 @@ import { PanelField } from './PanelField'
 import { Toggle } from './Toggle'
 import { channelAction } from '../utils'
 
-export function Panel(props: { page: ControlPanelPage, panel: PanelViewData, data: ControlPanelViewData, onToggle: (open: boolean) => void }) {
+export function Panel(props: { page: ControlPanelPage, panel: PanelViewData, data: ControlPanelAppViewData, onToggle: (open: boolean) => void }) {
     const module = getModule(props.panel.type)
     return <PanelGroup open={props.panel.open} onToggle={open => props.onToggle(open)} label={module.name}>
         {props.page === ControlPanelPage.edit

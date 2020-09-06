@@ -1,4 +1,4 @@
-import { ControlPanelViewData, PanelViewData, ControlPanelPage, getModule, Access, AccountType } from 'shared'
+import { ControlPanelAppViewData, PanelViewData, ControlPanelPage, getModule, Access, AccountType } from 'shared'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd'
@@ -16,7 +16,7 @@ export async function refresh() {
     if (debounce) return
     debounce = true
     try {
-        const data = await channelView('controlpanel')
+        const data = await channelView('controlpanel-app')
         if (data) {
             if (data.refreshTime !== REFRESH_TIME) location.reload()
             ReactDOM.render(<ControlPanelApp {...data} updateTime={new Date()} />, document.getElementById('app'))
@@ -36,7 +36,7 @@ export async function refresh() {
     debounce = false
 }
 
-export function ControlPanelApp(props: ControlPanelViewData) {
+export function ControlPanelApp(props: ControlPanelAppViewData) {
     const [page, setPage] = React.useState(ControlPanelPage.view)
 
     const PANEL_STATE_KEY = `cheers-bot/${props.username}/${props.channel}/panels/${page}`

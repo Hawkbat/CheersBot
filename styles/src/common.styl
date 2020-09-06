@@ -73,11 +73,11 @@ hr
     border-bottom 1px solid hsla(0, 0, 100%, 0.1)
 
 b
-    color #50b9a2
+    color var(--accent-color)
     user-select text
 
 a
-    color #50b9a2
+    color var(--accent-color)
     text-decoration none
 
 .draggable
@@ -93,6 +93,11 @@ a
     right 0
     left 13px
     height 20px
+
+.Logo
+    width 28px
+    height 28px
+    vertical-align text-top
 
 .PanelHeader
     font-size 24px
@@ -111,7 +116,7 @@ a
     position absolute
     top -9px
     padding-left 5px
-    color #50b9a2
+    color var(--accent-color)
     font-weight bold
 
 .PanelGroup > .opener
@@ -174,7 +179,7 @@ button
 
 .Button.primary
 button.primary
-    background-color #2d7575
+    background-color var(--muted-color)
 
 .Button:hover
 button:hover
@@ -182,7 +187,7 @@ button:hover
 
 .Button.primary:hover
 button.primary:hover
-    background-color #50b9a2
+    background-color var(--accent-color)
 
 .Toggle
     display inline-block
@@ -206,7 +211,7 @@ button.primary:hover
     transition left 0.1s ease-in
 
 .Toggle.active
-    background-color #2d7575
+    background-color var(--muted-color)
 
 .Toggle.active::after
     left calc(100% - 24px)
@@ -300,10 +305,23 @@ button.primary:hover
     width 28px
     height 28px
 
+.TwitchIcon[data-size='1'] > img
+    max-height 30px
+
 .TwitchIcon[data-size='2']
     width 56px
     height 56px
 
+.TwitchIcon[data-size='2'] > img
+    max-height 64px
+
 .TwitchIcon[data-size='3']
     width 112px
     height 112px
+
+.TwitchIcon[data-size='3'] > img
+    max-height 128px
+
+.TwitchIconPicker
+    display flex
+    flex 1 0 auto

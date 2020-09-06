@@ -13,6 +13,11 @@ html(lang="en")
             let CHANNEL_NAME = "#{channel}"
             let REFRESH_TIME = #{refreshTime}
         script(src=`/overlay.js?refresh=${refreshTime}`)
+        style.
+            body {
+                --accent-color: #{isGirlDm ? '#50b9a2' : '#00aaff'};
+                --muted-color: #{isGirlDm ? '#2d7575' : '#006699'};
+            }
     body
         main
             #app

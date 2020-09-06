@@ -45,7 +45,7 @@ export type RedeemType =
 
 export interface RedeemMode {
     id: string
-    type: RedeemType
+    configID: string
     userID: string
     userName: string
     message: string
@@ -63,7 +63,7 @@ export interface RedeemModeDisplay extends RedeemMode {
 }
 
 export interface Icon {
-    type: 'emote' | 'badge'
+    type: 'emote' | 'badge' | 'ffz' | 'bttv' | 'logo'
     id: string
     name: string
 }

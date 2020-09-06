@@ -1,13 +1,12 @@
-import { RedeemModeDisplay, RedeemMode, RedeemType, Icon, Store, ChannelData } from 'shared'
-
-export const REDEEM_TYPES: { [key: string]: RedeemType } = {
-    ban: 'girldm heccin ban me',
-    nyan: '10 minutes nyan nyan dm~',
-    japanese: 'GIRLDM JAPANESE MODE ACTIVATE',
-    saySomething: 'girldm say something!!',
-}
+import { RedeemModeDisplay, RedeemMode, RedeemType, Icon, Store, ChannelData, MessageMeta, ModeQueueModeConfig } from 'shared'
+import * as url from 'url'
 
 export const EVIL_PATTERN = /\b(evil|crimes|crime|puppy|puppies)[!.,]?\b/i
+
+export function isGirlDm(msg: MessageMeta): boolean {
+    const hostname = url.parse(msg.url).hostname ?? ''
+    return hostname.trim().toLowerCase().startsWith('girldm.')
+}
 
 export function addModeDelayed(store: Store<ChannelData>, mode: RedeemMode): void {
     store.update(d => {
@@ -34,65 +33,28 @@ export function removeModeDelayed(store: Store<ChannelData>, mode: RedeemMode): 
     }, 1000)
 }
 
-export function getDisplayModes(modes: RedeemMode[]): RedeemModeDisplay[] {
+export function getDisplayModes(modes: RedeemMode[], configs: ModeQueueModeConfig[]): RedeemModeDisplay[] {
     return modes.map(mode => {
+        const config = configs.find(c => c.id === mode.configID)!
         const inModePeriod = mode.startTime && mode.duration && (Date.now() - mode.startTime) < mode.duration
         let msg = ''
         if (!mode.startTime) {
-            switch (mode.type) {
-                case REDEEM_TYPES.ban:
-                    msg = 'is getting heccin banned!'
-                    break
-                case REDEEM_TYPES.nyan:
-                    msg = 'It\'s nyan time, nyan~!'
-                    break
-                case REDEEM_TYPES.japanese:
-                    msg = 'GIRLDM JAPANESE MODE ACTIVATE!'
-                    break
-            }
+            msg = config.startText
         } else if (inModePeriod && mode.startTime && mode.duration) {
             const minutesLeft = Math.ceil((mode.duration - (Date.now() - mode.startTime)) / (60 * 1000))
             const minuteText = minutesLeft === 1 ? 'minute' : 'minutes'
-            switch (mode.type) {
-                case REDEEM_TYPES.ban:
-                    msg = `is heccin banned for ${minutesLeft} more ${minuteText}!`
-                    break
-                case REDEEM_TYPES.nyan:
-                    msg = `It's nyan time for ${minutesLeft} more ${minuteText}, nyan~!`
-                    break
-                case REDEEM_TYPES.japanese:
-                    msg = `DM is in Japanese mode for ${minutesLeft} more ${minuteText}!`
-                    break
-            }
+            msg = config.runningText
+                .replace('[minutesLeft]', minutesLeft.toString())
+                .replace('[minutes]', minuteText)
         } else {
-            switch (mode.type) {
-                case REDEEM_TYPES.ban:
-                    msg = `is ready to be freed!`
-                    break
-                case REDEEM_TYPES.nyan:
-                    msg = `Nyan time is over, nyan~!`
-                    break
-                case REDEEM_TYPES.japanese:
-                    msg = `Japanese mode is over! DM can speak English again!`
-                    break
-            }
+            msg = config.endText
         }
-        let icon: Icon = { type: 'emote', id: '302175577', name: 'girldmCheer' }
-        switch (mode.type) {
-            case REDEEM_TYPES.ban:
-                icon.id = '302186553'
-                icon.name = 'girldmWut'
-                break
-            default:
-                icon.id = '302175577'
-                icon.name = 'girldmCheer'
-                break
-        }
+        let icon: Icon = config.emote ?? { type: 'logo', id: 'hawkbar', name: 'Hawkbar' }
         return {
             ...mode,
             icon,
             msg,
-            showName: mode.type === REDEEM_TYPES.ban,
+            showName: config.showUsername,
         }
     })
 }

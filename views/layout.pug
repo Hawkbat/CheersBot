@@ -11,13 +11,18 @@ html(lang="en")
             link(rel="stylesheet", href="/common.css")
             link(rel="stylesheet", href="/index.css")
             script(src="https://kit.fontawesome.com/274907872e.js" crossorigin="anonymous")
+            style.
+                body {
+                    --accent-color: #{isGirlDm ? '#50b9a2' : '#00aaff'};
+                    --muted-color: #{isGirlDm ? '#2d7575' : '#006699'};
+                }
     body
         main
             block header
                 h1.PanelHeader
                     a(href="/")
-                        img(src="https://static-cdn.jtvnw.net/emoticons/v1/302175577/1.0")
+                        img.Logo(src=(isGirlDm ? "https://static-cdn.jtvnw.net/emoticons/v1/302175577/1.0" : "/Logo.png"))
                     | &nbsp;#{heading ? heading : title ? title : 'Cheers Bot'}
             block body
             block footer
-                footer &copy; 2020 <a href="http://hawk.bar/">Hawkbar</a>. Emotes with "girldm" prefix used with permission from <a href="https://twitter.com/Girl_Dm_">Girl_Dm_</a> for use with her channel. Twitch Emote APIs provided by <a href="http://twitchemotes.com/">twitchemotes.com</a>.
+                footer &copy; 2020 <a href="http://hawk.bar/">Hawkbar</a>. Emotes with "girldm" prefix used with permission from <a href="https://twitter.com/Girl_Dm_">Girl_Dm_</a> for use with her channel only. Twitch Emote APIs provided by <a href="http://twitchemotes.com/">twitchemotes.com</a>.

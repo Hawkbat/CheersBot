@@ -53,23 +53,11 @@ Other Features (Long-Term)
         Maybe work for generic queues of items (although Overwatch-specific functionality can be a submode)
     Twitch-integrated VRM-compatible games
 
-
-Girl DM Ideas
-    Evil counter - Done!
-        When a say redeem happens, look for the keywords "evil" or "war crimes"
-        If you find it, add to the "evil_dm_" counter
-
 Bugs
     Hitting "Complete" and then "Thoroughly patted" in short succession causes the counter to go negative
     Users need access to the default channel ('hawkbar') to be able to use their own control panels - Might be fixed, needs testing
-    Evil counter not triggering on say redeems, needs investigation
 
 Add timer combination modes (replace, extend)
-
-
-Win/Loss/Tie counter
-    Use either control panel or owner/moderator chat commands
-    Make visibility toggleable from control panel since it shouldn't always be active
 
 Log client-side errors by building a buffer of log messages and sending them on an interval, silently requeuing them if the server was not accessible
 Filter out server unavailable errors from CloudFlare since those are frequent

@@ -8,6 +8,7 @@ body
     color white
     text-shadow 1px 1px black, -1px -1px black, 1px -1px black, -1px 1px black
     align-items flex-start
+    padding 5px
 
 main
     display contents
@@ -17,22 +18,21 @@ main
     align-items center
     border-radius 28px
     background rgba(0, 0, 0, 0.25)
-    margin 5px
     padding-left 5px
     padding-right 15px
     overflow hidden
     height 56px
-
-b
-    font-size 32px
-
-.toggleable
     transform translate(-200px)
     opacity 0
     height 0
+    margin 0
     transition all 0.5s ease-in-out
 
-.visible
+.Mode.visible
     transform translate(0)
     opacity 1
     height 56px
+    margin-bottom 5px
+
+b
+    font-size 32px

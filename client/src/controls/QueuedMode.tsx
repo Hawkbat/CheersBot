@@ -1,4 +1,4 @@
-import { UserEvent, RedeemMode } from 'shared'
+import { UserEvent, RedeemMode, ModeQueueModeConfig } from 'shared'
 import * as React from 'react'
 import { PanelField } from './PanelField'
 import { getNumberValue, channelAction } from '../utils'
@@ -44,12 +44,12 @@ function isAlarmRunning(): boolean {
     return false
 }
 
-export function QueuedMode(props: { mode: RedeemMode }) {
+export function QueuedMode(props: { mode: RedeemMode, config: ModeQueueModeConfig }) {
     const timeLeft = (props.mode.duration ?? 0) - (Date.now() - (props.mode.startTime ?? 0))
 
     return <div className="QueuedEvent">
         <PanelField>
-            <i>{props.mode.type}</i>
+            <i>{props.config.redeemName}</i>
             <div className="spacer" />
             <span>{new Date(props.mode.redeemTime).toLocaleTimeString()}</span>
         </PanelField>

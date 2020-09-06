@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { ControlPanelViewData, ControlPanelPage, ModuleDataType } from 'shared'
+import { ControlPanelAppViewData, ControlPanelPage, ModuleDataType } from 'shared'
 import { PanelField } from '../controls/PanelField'
 import { Button } from '../controls/Button'
 
@@ -10,7 +10,7 @@ function copyOverlayURL() {
     document.execCommand('copy')
 }
 
-export function ChannelInfoPanel(props: ControlPanelViewData & ModuleDataType<'channelInfo'> & { page: ControlPanelPage }) {
+export function ChannelInfoPanel(props: ControlPanelAppViewData & ModuleDataType<'channelInfo'> & { page: ControlPanelPage }) {
     switch (props.page) {
         case ControlPanelPage.view:
             return <>
@@ -22,7 +22,7 @@ export function ChannelInfoPanel(props: ControlPanelViewData & ModuleDataType<'c
             </PanelField>
                 <hr />
                 <PanelField label="Overlay URL">
-                    <input id="overlay-url" type="text" readOnly value={`girldm.hawk.bar/${props.channel}/overlay/`} />&nbsp;<Button primary onClick={e => copyOverlayURL()}>Copy</Button>
+                    <input id="overlay-url" type="text" readOnly value={`${props.isGirlDm ? 'girldm' : 'cheers'}.hawk.bar/${props.channel}/overlay/`} />&nbsp;<Button primary onClick={e => copyOverlayURL()}>Copy</Button>
                 </PanelField>
             </>
         default:

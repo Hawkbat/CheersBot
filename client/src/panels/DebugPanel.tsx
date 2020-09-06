@@ -1,14 +1,15 @@
 import * as React from 'react'
-import { ControlPanelViewData, Icon, UserEventCondition, RedeemType, ControlPanelPage, ModuleDataType } from 'shared'
+import { ControlPanelAppViewData, Icon, UserEventCondition, RedeemType, ControlPanelPage, ModuleDataType } from 'shared'
 import { PanelField } from '../controls/PanelField'
 import { TwitchIcon } from '../controls/TwitchIcon'
 import { TagList } from '../controls/TagList'
 import { Button } from '../controls/Button'
 import { channelAction } from 'src/utils'
+import { Dropdown } from 'src/controls/Dropdown'
 
-export function DebugPanel(props: ControlPanelViewData & ModuleDataType<'debug'> & { page: ControlPanelPage }) {
+export function DebugPanel(props: ControlPanelAppViewData & ModuleDataType<'debug'> & { page: ControlPanelPage }) {
 
-    const [type, setType] = React.useState('' as RedeemType)
+    const [configID, setConfigID] = React.useState('')
     const [username, setUsername] = React.useState('Anonymous')
     const [message, setMessage] = React.useState('')
     const [amount, setAmount] = React.useState(1)
@@ -18,7 +19,7 @@ export function DebugPanel(props: ControlPanelViewData & ModuleDataType<'debug'>
 
     const mockEvent = async () => {
         try {
-            await channelAction('debug/mock', { type, username, message, amount })
+            await channelAction('debug/mock', { configID, username, message, amount })
         } catch (e) {
             console.error(e)
         }
@@ -44,10 +45,7 @@ export function DebugPanel(props: ControlPanelViewData & ModuleDataType<'debug'>
                 </PanelField>
                 <hr />
                 <PanelField label="Event Type">
-                    <select id="event-type" value={type} onChange={e => setType(e.target.value as RedeemType)}>
-                        <option></option>
-                        {Object.keys(props.redeemTypes).map((t, i) => <option key={i} value={props.redeemTypes[t]}>{t}</option>)}
-                    </select>
+                    <Dropdown nullable selected={configID} options={props.channelData.modules.modeQueue.config.modes.map(m => ({ value: m.id, text: m.redeemName }))} onSelect={v => setConfigID(v)} />
                 </PanelField>
                 <PanelField label="Event User">
                     <input id="event-username" type="text" value={username} onChange={e => setUsername(e.target.value)} />

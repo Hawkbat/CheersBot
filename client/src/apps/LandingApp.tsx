@@ -1,4 +1,4 @@
-import { LandingViewData, AccountType } from 'shared'
+import { LandingAppViewData, AccountType } from 'shared'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
 import { globalView } from '../utils'
@@ -14,7 +14,7 @@ export async function refresh() {
     if (debounce) return
     debounce = true
     try {
-        const data = await globalView('landing')
+        const data = await globalView('landing-app')
         if (data) {
             if (data.refreshTime !== REFRESH_TIME) location.reload()
             ReactDOM.render(<LandingApp {...data} />, document.getElementById('app'))
@@ -25,7 +25,7 @@ export async function refresh() {
     debounce = false
 }
 
-export function LandingApp(props: LandingViewData) {
+export function LandingApp(props: LandingAppViewData) {
     return <div className="Landing">
         {props.userData ? <>
             <div className="draggable">

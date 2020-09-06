@@ -1,4 +1,4 @@
-import { RedeemMode, UserQueueEntry, UserQueueRound, ChannelData } from './data'
+import { RedeemMode, UserQueueEntry, UserQueueRound, ChannelData, Icon } from './data'
 
 export interface ModuleStateData {
 
@@ -26,7 +26,7 @@ export interface HeadpatStateData extends ModuleStateData {
 }
 
 export interface HeadpatConfigData extends ModuleConfigData {
-
+    emote: Icon | null
 }
 
 export const HeadpatsModule: Module<HeadpatStateData, HeadpatConfigData> = {
@@ -41,7 +41,7 @@ export interface EvilDmStateData extends ModuleStateData {
 }
 
 export interface EvilDmConfigData extends ModuleConfigData {
-
+    emote: Icon | null
 }
 
 export const EvilDmModule: Module<EvilDmStateData, EvilDmConfigData> = {
@@ -54,13 +54,23 @@ export interface ModeQueueStateData extends ModuleStateData {
     modes: RedeemMode[]
 }
 
-export interface ModeQueueConfigData extends ModuleConfigData {
-
+export interface ModeQueueModeConfig {
+    id: string
+    redeemName: string
+    emote: Icon | null
+    showUsername: boolean
+    startText: string
+    runningText: string
+    endText: string
 }
 
-export const ModeQueueModule: Module<ModeQueueStateData, ModuleConfigData> = {
+export interface ModeQueueConfigData extends ModuleConfigData {
+    modes: ModeQueueModeConfig[]
+}
+
+export const ModeQueueModule: Module<ModeQueueStateData, ModeQueueConfigData> = {
     name: 'Mode Queue',
-    description: 'For Girl_Dm_! Displays timers in the overlay when certain channel point rewards are redeemed.',
+    description: 'Displays timers in the overlay when certain channel point rewards are redeemed.',
     getData: (data: ChannelData) => data.modules.modeQueue,
 }
 
@@ -74,7 +84,10 @@ export interface WinLossStateData extends ModuleStateData {
 }
 
 export interface WinLossConfigData extends ModuleConfigData {
-
+    winningEmote: Icon | null
+    tiedEmote: Icon | null
+    losingEmote: Icon | null
+    deathEmote: Icon | null
 }
 
 export const WinLossModule: Module<WinLossStateData, WinLossConfigData> = {

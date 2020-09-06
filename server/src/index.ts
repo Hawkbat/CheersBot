@@ -1,4 +1,4 @@
-import { RedeemMode, Icon, generateID, Store, mergePartials, AccountType, BotData, ChannelData, UserData, Token, AccountData, ChannelActions, ChannelViews, MODULE_TYPES, Access, GlobalActions, GlobalViews, MessageMeta, parseJSON } from 'shared'
+import { RedeemMode, Icon, generateID, Store, mergePartials, AccountType, BotData, ChannelData, UserData, Token, AccountData, ChannelActions, ChannelViews, MODULE_TYPES, Access, GlobalActions, GlobalViews, MessageMeta, parseJSON, GlobalBaseViewData, ChannelBaseViewData } from 'shared'
 import TwitchClient from 'twitch'
 import ChatClient, { PrivateMessage, LogLevel } from 'twitch-chat-client'
 import PubSubClient from 'twitch-pubsub-client'
@@ -11,9 +11,11 @@ import * as path from 'path'
 import { readJSON, writeJSON } from './utils'
 import { SessionStore } from './sessionStore'
 import fetch from 'node-fetch'
-import { getDisplayModes, REDEEM_TYPES, removeModeDelayed, addModeDelayed, EVIL_PATTERN } from './girldm'
+import { getDisplayModes, removeModeDelayed, addModeDelayed, EVIL_PATTERN, isGirlDm } from './girldm'
 import { Bot, Channel, User, Secrets } from './data'
 import { getTwitchEmotes, getTwitchBadges } from './twitchemotes'
+import { getFFZEmoteURL, getFFZEmotes } from './frankerfacez'
+import { getBTTVEmotes, getGlobalBTTVEmotes } from './betterttv'
 import expressWs = require('express-ws')
 import WebSocket = require('ws')
 
@@ -57,8 +59,9 @@ async function run() {
         return getUsersForChannel(channel).some(u => u.name === req.session?.twitchUserName)
     }
 
-    function respondChannelAuthMessage(res: express.Response): void {
-        res.status(403).render('message', { message: `You don't have access to this channel!` })
+    function respondChannelAuthMessage(req: express.Request, res: express.Response): void {
+        res.status(403)
+        renderGlobalView(req, res, 'message', { message: `You don't have access to this channel!` })
     }
 
     function respondChannelAuthJSON(res: express.Response): void {
@@ -66,11 +69,29 @@ async function run() {
     }
 
     function getMessage(req: express.Request): MessageMeta {
-        return {
+        const msg: MessageMeta = {
             id: generateID(),
             username: req.session?.twitchUserName ?? '',
             channel: /^\/(\w+)\//.exec(req.path)?.[1] ?? '',
+            url: `${req.protocol}://${req.hostname}${req.url}`,
         }
+        return msg
+    }
+
+    function getGlobalViewData(msg: MessageMeta): GlobalBaseViewData {
+        return {
+            meta: msg,
+            refreshTime,
+            isGirlDm: isGirlDm(msg),
+        }
+    }
+
+    function renderGlobalView<T extends keyof GlobalViews>(req: express.Request, res: express.Response, view: T, args: Parameters<GlobalViews[T]>[0]) {
+        const msg = getMessage(req)
+        res.render(view, {
+            ...getGlobalViewData(msg),
+            ...views[view](args as any, msg),
+        })
     }
 
     function getTokenPath(accountType: AccountType, userName: string): string {
@@ -91,6 +112,7 @@ async function run() {
                 headpats: {
                     config: {
                         enabled: false,
+                        emote: null,
                     },
                     state: {
                         count: 0,
@@ -100,6 +122,7 @@ async function run() {
                 evilDm: {
                     config: {
                         enabled: false,
+                        emote: null,
                     },
                     state: {
                         count: 0,
@@ -109,6 +132,7 @@ async function run() {
                 modeQueue: {
                     config: {
                         enabled: false,
+                        modes: [],
                     },
                     state: {
                         modes: [],
@@ -117,6 +141,10 @@ async function run() {
                 winLoss: {
                     config: {
                         enabled: false,
+                        winningEmote: null,
+                        tiedEmote: null,
+                        losingEmote: null,
+                        deathEmote: null,
                     },
                     state: {
                         display: true,
@@ -174,10 +202,10 @@ async function run() {
     }
 
     function setupAuthWorkflow(accountType: AccountType, accessScopes: string[]): void {
-        const redirectUri = `https://girldm.hawk.bar/oauth/${accountType}/`
 
         app.get(`/oauth/${accountType}/`, async (req, res) => {
             try {
+                const redirectUri = `https://${req.hostname}/oauth/${accountType}/`
                 const code = req.query.code
 
                 const result = await fetch(`https://id.twitch.tv/oauth2/token?client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}&code=${code}&grant_type=authorization_code&redirect_uri=${redirectUri}`, { method: 'POST' })
@@ -210,18 +238,21 @@ async function run() {
                 } else {
                     throw new Error(`Failed to generate a ${accountType} client`)
                 }
-                res.status(200).render('message', { message: `Successfully logged in!`, redirect: '/' })
+                res.status(200)
+                renderGlobalView(req, res, 'message', { message: `Successfully logged in!`, redirect: '/' })
             } catch (e) {
                 console.error(`Error registering: `, e)
-                res.status(500).render('message', { message: `We weren't able to log you in :( Let Hawkbar know the bot is broken!` })
+                res.status(500)
+                renderGlobalView(req, res, 'message', { message: `We weren't able to log you in :( Let Hawkbar know the bot is broken!` })
             }
         })
 
         app.get(`/authorize/${accountType}/`, (req, res) => {
-            res.render('authorize', { accountType })
+            renderGlobalView(req, res, 'authorize', { accountType })
         })
 
         app.get(`/authorize/${accountType}/redirect/`, (req, res) => {
+            const redirectUri = `https://${req.hostname}/oauth/${accountType}/`
             const url = `https://id.twitch.tv/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${redirectUri}&response_type=code&scope=${accessScopes.join('+')}`
             res.redirect(url)
         })
@@ -399,6 +430,23 @@ async function run() {
         const { data, client } = await generateClient(AccountType.channel, name)
         try {
             if (data && client) {
+                function getChannelViewData(msg: MessageMeta): ChannelBaseViewData {
+                    return {
+                        channel: name,
+                        meta: msg,
+                        refreshTime,
+                        isGirlDm: isGirlDm(msg),
+                    }
+                }
+
+                function renderChannelView<T extends keyof ChannelViews>(req: express.Request, res: express.Response, view: T, args: Parameters<ChannelViews[T]>[0]) {
+                    const msg = getMessage(req)
+                    res.render(view, {
+                        ...getChannelViewData(msg),
+                        ...views[view](args as any, msg),
+                    })
+                }
+
                 let refreshTime = Date.now()
 
                 const id = (await client.helix.users.getMe()).id
@@ -411,8 +459,11 @@ async function run() {
                 const icons: Icon[] = []
                 icons.push(...await getTwitchEmotes(id))
                 icons.push(...await getTwitchBadges(id))
+                icons.push(...await getFFZEmotes(id))
+                icons.push(...await getBTTVEmotes(id))
                 icons.push(...await getTwitchEmotes('0'))
                 icons.push(...await getTwitchBadges('0'))
+                icons.push(...await getGlobalBTTVEmotes())
 
                 const pubSubClient = new PubSubClient()
                 await pubSubClient.registerUserListener(client, id)
@@ -432,55 +483,30 @@ async function run() {
                                     }
                                 }
                                 break
-                            case 'girldm heccin ban me':
-                                addModeDelayed(data, {
-                                    id: generateID(),
-                                    type: 'girldm heccin ban me',
-                                    userID: msg.userId,
-                                    userName: msg.userDisplayName,
-                                    message: '',
-                                    amount: 1,
-                                    redeemTime: Date.now(),
-                                    visible: true,
-                                })
-                                break
-                            case '10 minutes nyan nyan dm~':
-                                addModeDelayed(data, {
-                                    id: generateID(),
-                                    type: '10 minutes nyan nyan dm~',
-                                    userID: msg.userId,
-                                    userName: msg.userDisplayName,
-                                    message: '',
-                                    amount: 1,
-                                    redeemTime: Date.now(),
-                                    visible: true,
-                                })
-                                break
-                            case 'GIRLDM JAPANESE MODE ACTIVATE':
-                                addModeDelayed(data, {
-                                    id: generateID(),
-                                    type: 'GIRLDM JAPANESE MODE ACTIVATE',
-                                    userID: msg.userId,
-                                    userName: msg.userDisplayName,
-                                    message: '',
-                                    amount: 1,
-                                    redeemTime: Date.now(),
-                                    visible: true,
-                                })
-                                break
                             case 'girldm say something!!':
                                 if (EVIL_PATTERN.test(msg.message)) {
                                     data.update(d => {
                                         d.modules.evilDm.state.count++
                                         d.modules.evilDm.state.time = Date.now()
                                     })
-                                } else {
-                                    console.log(msg)
                                 }
                                 break
                             default:
                                 console.log(msg)
                                 break
+                        }
+                        const modeConfig = data.get(d => d.modules.modeQueue.config.modes.find(m => m.redeemName.trim() === msg.rewardName.trim()))
+                        if (modeConfig) {
+                            addModeDelayed(data, {
+                                id: generateID(),
+                                configID: modeConfig.id,
+                                userID: msg.userId,
+                                userName: msg.userDisplayName,
+                                message: '',
+                                amount: 1,
+                                redeemTime: Date.now(),
+                                visible: true,
+                            })
                         }
                     })
                 }
@@ -490,7 +516,7 @@ async function run() {
                         if (msg.action === 'timeout') {
                             const username = msg.args[0]
                             const duration = parseFloat(msg.args[1])
-                            const ban = data.get(d => d.modules.modeQueue.state.modes).find(b => b.type === 'girldm heccin ban me' && b.userName.toLowerCase() === username.toLowerCase())
+                            const ban = data.get(d => d.modules.modeQueue.state.modes.find(b => d.modules.modeQueue.config.modes.some(m => b.configID === m.id && m.redeemName === 'girldm heccin ban me') && b.userName.toLowerCase() === username.toLowerCase()))
                             if (ban) {
                                 ban.startTime = Date.now()
                                 ban.duration = BAN_TIMEOUT
@@ -500,7 +526,7 @@ async function run() {
                             }
                         } else if (msg.action === 'untimeout') {
                             const username = msg.args[0]
-                            const ban = data.get(d => d.modules.modeQueue.state.modes).find(b => b.type === 'girldm heccin ban me' && b.userName.toLowerCase() === username.toLowerCase())
+                            const ban = data.get(d => d.modules.modeQueue.state.modes.find(b => d.modules.modeQueue.config.modes.some(m => b.configID === m.id && m.redeemName === 'girldm heccin ban me') && b.userName.toLowerCase() === username.toLowerCase()))
                             if (ban) {
                                 for (const bot of getBotsForChannel(name)) {
                                     bot.chatClient.action(name, `Welcome back, @${username}! girldmCheer`)
@@ -512,7 +538,7 @@ async function run() {
                 }
 
                 const webHookClient = new WebHookClient(client, new ReverseProxyAdapter({
-                    hostName: 'girldm.hawk.bar',
+                    hostName: 'cheers.hawk.bar',
                     pathPrefix: `/${name}/hooks`,
                     listenerPort: 60004,
                     port: 443,
@@ -545,10 +571,22 @@ async function run() {
                         }
                         return true
                     },
+                    'headpats/set-emote': args => {
+                        data.update(d => {
+                            d.modules.headpats.config.emote = args.emote
+                        })
+                        return true
+                    },
                     'evildm/adjust': args => {
                         data.update(d => {
                             d.modules.evilDm.state.count += args.delta
                             d.modules.evilDm.state.time = Date.now()
+                        })
+                        return true
+                    },
+                    'evildm/set-emote': args => {
+                        data.update(d => {
+                            d.modules.evilDm.config.emote = args.emote
                         })
                         return true
                     },
@@ -570,6 +608,44 @@ async function run() {
                         if (mode) {
                             removeModeDelayed(data, mode)
                         }
+                        return true
+                    },
+                    'modequeue/add-mode': args => {
+                        data.update(d => {
+                            d.modules.modeQueue.config.modes.push({
+                                id: generateID(),
+                                redeemName: '',
+                                emote: null,
+                                showUsername: false,
+                                startText: 'Mode redeemed!',
+                                runningText: 'Redeemed mode is active for [minutesLeft] more [minutes]!',
+                                endText: 'Redeemed mode is done!',
+                                ...args,
+                            })
+                        })
+                        return true
+                    },
+                    'modequeue/edit-mode': args => {
+                        let updated = false
+                        data.update(d => {
+                            d.modules.modeQueue.config.modes = d.modules.modeQueue.config.modes.map(m => {
+                                if (m.id === args.id) {
+                                    updated = true
+                                    return {
+                                        ...m,
+                                        ...args,
+                                    }
+                                } else {
+                                    return m
+                                }
+                            })
+                        })
+                        return updated
+                    },
+                    'modequeue/delete-mode': args => {
+                        data.update(d => {
+                            d.modules.modeQueue.config.modes = d.modules.modeQueue.config.modes.filter(m => m.id !== args.id)
+                        })
                         return true
                     },
                     'winloss/set-displayed': args => {
@@ -612,6 +688,30 @@ async function run() {
                         })
                         return true
                     },
+                    'winloss/set-winning-emote': args => {
+                        data.update(d => {
+                            d.modules.winLoss.config.winningEmote = args.emote
+                        })
+                        return true
+                    },
+                    'winloss/set-losing-emote': args => {
+                        data.update(d => {
+                            d.modules.winLoss.config.losingEmote = args.emote
+                        })
+                        return true
+                    },
+                    'winloss/set-tied-emote': args => {
+                        data.update(d => {
+                            d.modules.winLoss.config.tiedEmote = args.emote
+                        })
+                        return true
+                    },
+                    'winloss/set-death-emote': args => {
+                        data.update(d => {
+                            d.modules.winLoss.config.deathEmote = args.emote
+                        })
+                        return true
+                    },
                     'backdrop/fire-cannon': args => {
                         return true
                     },
@@ -619,7 +719,7 @@ async function run() {
                         return true
                     },
                     'debug/mock': args => {
-                        if (args.type === 'girldm say something!!') {
+                        if (data.get(d => d.modules.modeQueue.config.modes.find(m => m.id === args.configID && m.redeemName === 'girldm say something!!'))) {
                             if (EVIL_PATTERN.test(args.message)) {
                                 data.update(d => {
                                     d.modules.evilDm.state.count++
@@ -629,7 +729,7 @@ async function run() {
                         } else {
                             const mode: RedeemMode = {
                                 id: generateID(),
-                                type: args.type,
+                                configID: args.configID,
                                 userID: '',
                                 userName: args.username,
                                 message: args.message,
@@ -670,22 +770,43 @@ async function run() {
                 }
 
                 const views: ChannelViews = {
-                    'controlpanel': msg => ({
-                        username: msg.username,
+                    'access-denied': (args, msg) => ({
+                        meta: msg,
+                        refreshTime,
                         channel: name,
+                        isGirlDm: isGirlDm(msg),
+                    }),
+                    'channel': (args, msg) => ({
+                        meta: msg,
+                        refreshTime,
+                        channel: name,
+                        isGirlDm: isGirlDm(msg),
+                    }),
+                    'overlay': (args, msg) => ({
+                        meta: msg,
+                        refreshTime,
+                        channel: name,
+                        isGirlDm: isGirlDm(msg),
+                    }),
+                    'controlpanel-app': (args, msg) => ({
+                        username: msg.username,
                         channelData: data.get(d => d),
                         channels: getChannelsForUser(msg.username).map(c => c.name),
-                        redeemTypes: REDEEM_TYPES,
                         icons,
                         panels: MODULE_TYPES.map(type => ({ type, open: true })),
-                        refreshTime,
                         updateTime: new Date(),
-                    }),
-                    'overlay': () => ({
-                        channel: name,
-                        channelData: data.get(d => d),
-                        modes: getDisplayModes(data.get(d => d.modules.modeQueue.state.modes)),
+                        meta: msg,
                         refreshTime,
+                        channel: name,
+                        isGirlDm: isGirlDm(msg),
+                    }),
+                    'overlay-app': (args, msg) => ({
+                        channelData: data.get(d => d),
+                        modes: getDisplayModes(data.get(d => d.modules.modeQueue.state.modes), data.get(d => d.modules.modeQueue.config.modes)),
+                        meta: msg,
+                        channel: name,
+                        refreshTime,
+                        isGirlDm: isGirlDm(msg),
                     }),
                 }
 
@@ -701,18 +822,18 @@ async function run() {
                 const viewPaths = Object.keys(views) as (keyof ChannelViews)[]
                 for (const path of viewPaths) {
                     router.get(`/data/${path}/`, async (req, res) => {
-                        res.type('json').send(JSON.stringify(views[path](getMessage(req))))
+                        res.type('json').send(JSON.stringify(views[path](req.query as any, getMessage(req))))
                     })
                 }
 
                 router.get('/', (req, res) => {
                     if (!hasTwitchAuth(req)) return respondTwitchAuthRedirect(res)
-                    if (!hasChannelAuth(req, name)) return respondChannelAuthMessage(res)
-                    res.render('channel', views.controlpanel(getMessage(req)))
+                    if (!hasChannelAuth(req, name)) return respondChannelAuthMessage(req, res)
+                    renderChannelView(req, res, 'channel', {})
                 })
 
                 router.get('/overlay/', (req, res) => {
-                    res.render('overlay', views.overlay(getMessage(req)))
+                    renderChannelView(req, res, 'overlay', {})
                 })
 
                 router.ws('/ws/', (ws, req) => {
@@ -779,17 +900,30 @@ async function run() {
         compress: true,
     }))
 
+    app.get('/favicon.ico', (req, res, next) => {
+        if (isGirlDm(getMessage(req))) {
+            res.sendFile(workingDir + '/static/favicon-girldm.ico')
+            return
+        }
+        next()
+    })
+
     app.use(express.static(workingDir + '/styles/out/'))
     app.use(express.static(workingDir + '/client/out/'))
     app.use(express.static(workingDir + '/shared/out/'))
     app.use(express.static(workingDir + '/static/'))
 
-    app.set('trust proxy', 1)
+    app.get('/ffz/:id/:size', async (req, res) => {
+        const url = await getFFZEmoteURL(req.params.id, parseInt(req.params.size) as 1 | 2 | 3)
+        res.redirect(301, url)
+    })
+
+    app.set('trust proxy', true)
     app.use(session({
         secret: secrets.session.secret,
         cookie: {
             httpOnly: true,
-            secure: true,
+            secure: false,
             sameSite: 'strict',
             maxAge: 30 * 24 * 60 * 60 * 1000,
         },
@@ -802,11 +936,7 @@ async function run() {
     }))
 
     app.get('/', (req, res) => {
-        res.render('landing', views.landing(getMessage(req)))
-    })
-
-    app.get('/overlay/', (req, res) => {
-        res.render('message', { message: 'This is the wrong URL for the Cheers Bot overlay! Copy the URL from your channel\'s Cheers Bot control panel!' })
+        renderGlobalView(req, res, 'landing', {})
     })
 
     setupAuthWorkflow(AccountType.bot, BOT_SCOPES)
@@ -840,14 +970,27 @@ async function run() {
     }
 
     const views: GlobalViews = {
-        'landing': msg => {
+        'authorize': (args, msg) => ({
+            ...getGlobalViewData(msg),
+            ...args,
+        }),
+        'message': (args, msg) => ({
+            ...getGlobalViewData(msg),
+            ...args,
+        }),
+        'landing': (args, msg) => ({
+            ...getGlobalViewData(msg),
+            ...args,
+        }),
+        'landing-app': (args, msg) => {
             const user = users[msg.username]
             return {
+                ...getGlobalViewData(msg),
+                ...args,
                 username: msg.username,
                 userData: user ? user.data.get(d => d) : null,
-                refreshTime,
             }
-        }
+        },
     }
 
     const actionPaths = Object.keys(actions) as (keyof GlobalActions)[]
@@ -862,7 +1005,7 @@ async function run() {
     const viewPaths = Object.keys(views) as (keyof GlobalViews)[]
     for (const path of viewPaths) {
         app.get(`/data/${path}/`, async (req, res) => {
-            res.type('json').send(JSON.stringify(views[path](getMessage(req))))
+            res.type('json').send(JSON.stringify(views[path](req.query as any, getMessage(req))))
         })
     }
 

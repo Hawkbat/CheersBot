@@ -53,7 +53,11 @@ export function localRetrieveJSON<T>(key: string, defaultValue?: T): T | null {
 
 export async function getJSON<T>(url: string): Promise<T | null> {
     try {
-        const response = await fetch(url)
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' },
+            cache: 'no-cache',
+        })
         if (!response.ok) {
             return null
         }
@@ -68,7 +72,8 @@ export async function postJSON<T, U>(url: string, data: T): Promise<U | null> {
     try {
         return parseJSON<U>(await (await fetch(url, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+            cache: 'no-cache',
             body: JSON.stringify(data)
         })).text())
     } catch (e) {

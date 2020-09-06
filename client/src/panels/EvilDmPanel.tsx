@@ -1,8 +1,9 @@
 import * as React from 'react'
-import { ControlPanelViewData, ControlPanelPage, ModuleDataType } from 'shared'
+import { ControlPanelAppViewData, ControlPanelPage, ModuleDataType } from 'shared'
 import { PanelField } from '../controls/PanelField'
 import { getNumberValue, setNumberValue, channelAction } from '../utils'
 import { Button } from '../controls/Button'
+import { TwitchIconPicker } from 'src/controls/TwitchIconPicker'
 
 async function clearEvil() {
     try {
@@ -25,7 +26,7 @@ async function adjustEvil() {
     }
 }
 
-export function EvilDmPanel(props: ControlPanelViewData & ModuleDataType<'evilDm'> & { page: ControlPanelPage }) {
+export function EvilDmPanel(props: ControlPanelAppViewData & ModuleDataType<'evilDm'> & { page: ControlPanelPage }) {
     switch (props.page) {
         case ControlPanelPage.view:
             return <>
@@ -37,6 +38,13 @@ export function EvilDmPanel(props: ControlPanelViewData & ModuleDataType<'evilDm
                 </PanelField>
                 <PanelField>
                     <Button onClick={e => clearEvil()}>Reset evil counter</Button>
+                </PanelField>
+            </>
+        case ControlPanelPage.edit:
+            return <>
+                <hr />
+                <PanelField label="Emote">
+                    <TwitchIconPicker selected={props.config.emote} options={props.icons} onSelect={v => channelAction('evildm/set-emote', { emote: v })} />
                 </PanelField>
             </>
         default:
