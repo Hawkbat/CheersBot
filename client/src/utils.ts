@@ -1,4 +1,4 @@
-import { parseJSON, ChannelActions, ChannelViews, GlobalActions, GlobalViews } from 'shared'
+import { parseJSON, ChannelActions, ChannelViews, GlobalActions, GlobalViews, ChannelData } from 'shared'
 
 export function classes(...args: (string | string[] | { [key: string]: boolean })[]): string {
     const list = []
@@ -56,7 +56,7 @@ export async function getJSON<T>(url: string): Promise<T | null> {
         const response = await fetch(url, {
             method: 'GET',
             headers: { 'Accept': 'application/json' },
-            cache: 'no-cache',
+            cache: 'no-store',
         })
         if (!response.ok) {
             return null
@@ -73,7 +73,7 @@ export async function postJSON<T, U>(url: string, data: T): Promise<U | null> {
         return parseJSON<U>(await (await fetch(url, {
             method: 'POST',
             headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-            cache: 'no-cache',
+            cache: 'no-store',
             body: JSON.stringify(data)
         })).text())
     } catch (e) {
@@ -128,4 +128,9 @@ export async function globalView<K extends keyof GlobalViews>(view: K): Promise<
     }
 }
 
-
+export function getChannelCSS(data: ChannelData): React.CSSProperties {
+    return {
+        '--accent-color': data.modules.channelInfo.config.accentColor,
+        '--muted-color': data.modules.channelInfo.config.mutedColor,
+    } as React.CSSProperties
+}

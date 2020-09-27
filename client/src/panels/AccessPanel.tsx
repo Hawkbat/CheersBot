@@ -44,7 +44,7 @@ export function AccessPanel(props: { data: ChannelData | UserData | BotData, typ
     return <div className="draggable">
         <PanelGroup label={label + 's'} open={true}>
             {Object.entries(users).sort(accessSort).map(e => <PanelField key={e[0]} label={e[0]}>
-                <Dropdown selected={e[1]} options={Object.keys(Access).map(o => ({ value: o, text: o.substr(0, 1).toUpperCase() + o.substr(1) }))} onSelect={async v => await setAccess(AccountType.user, e[0], v as Access)} />
+                <Dropdown selected={e[1]} options={Object.keys(Access).map(o => ({ value: o, text: o.substr(0, 1).toUpperCase() + o.substr(1) }))} onSelect={async v => await setAccess(props.type, e[0], v as Access)} />
             </PanelField>)}
             <hr />
             <PanelField>

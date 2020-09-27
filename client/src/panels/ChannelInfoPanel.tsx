@@ -2,6 +2,7 @@ import * as React from 'react'
 import { ControlPanelAppViewData, ControlPanelPage, ModuleDataType } from 'shared'
 import { PanelField } from '../controls/PanelField'
 import { Button } from '../controls/Button'
+import { channelAction } from 'src/utils'
 
 function copyOverlayURL() {
     const input = document.getElementById('overlay-url') as HTMLInputElement
@@ -15,14 +16,26 @@ export function ChannelInfoPanel(props: ControlPanelAppViewData & ModuleDataType
         case ControlPanelPage.view:
             return <>
                 <PanelField>
-                    Welcome very much,&nbsp;<b>{props.username}</b>! Cheer u!!!
-            </PanelField>
+                    {props.isGirlDm
+                        ? <>Welcome very much,&nbsp;<b>{props.username}</b>! Cheer u!!!</>
+                        : <>Welcome,&nbsp;<b>{props.username}</b>!</>}
+                </PanelField>
                 <PanelField>
                     This is the control panel for&nbsp;<b>{props.channel}</b>!
-            </PanelField>
+                </PanelField>
                 <hr />
                 <PanelField label="Overlay URL">
                     <input id="overlay-url" type="text" readOnly value={`${props.isGirlDm ? 'girldm' : 'cheers'}.hawk.bar/${props.channel}/overlay/`} />&nbsp;<Button primary onClick={e => copyOverlayURL()}>Copy</Button>
+                </PanelField>
+            </>
+        case ControlPanelPage.edit:
+            return <>
+                <hr />
+                <PanelField label="Accent Color">
+                    <input type="color" defaultValue={props.config.accentColor} onChange={e => channelAction('channelinfo/set-accent-color', { color: e.target.value })} />
+                </PanelField>
+                <PanelField label="Muted Color">
+                    <input type="color" defaultValue={props.config.mutedColor} onChange={e => channelAction('channelinfo/set-muted-color', { color: e.target.value })} />
                 </PanelField>
             </>
         default:

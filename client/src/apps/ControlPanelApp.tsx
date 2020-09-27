@@ -2,7 +2,7 @@ import { ControlPanelAppViewData, PanelViewData, ControlPanelPage, getModule, Ac
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd'
-import { channelView, classes, localRetrieveJSON, localStoreJSON, channelAction } from '../utils'
+import { channelView, classes, localRetrieveJSON, localStoreJSON, channelAction, getChannelCSS } from '../utils'
 import { Panel } from '../controls/Panel'
 import { TabSet } from '../controls/TabSet'
 import { AccessPanel } from 'src/panels/AccessPanel'
@@ -80,7 +80,7 @@ export function ControlPanelApp(props: ControlPanelAppViewData) {
         })
     }
 
-    return <>
+    return <div className={classes('ControlPanel')} style={getChannelCSS(props.channelData)}>
         <DragDropContext onDragEnd={(result, provided) => {
             if (result.destination) movePanels(result.source.index, result.destination.index)
         }}>
@@ -112,5 +112,5 @@ export function ControlPanelApp(props: ControlPanelAppViewData) {
                 </div>}
             </Droppable>
         </DragDropContext>
-    </>
+    </div>
 }

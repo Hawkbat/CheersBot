@@ -43,7 +43,7 @@ export function EvilDmPanel(props: ControlPanelAppViewData & ModuleDataType<'evi
         case ControlPanelPage.edit:
             return <>
                 <hr />
-                <PanelField label="Emote">
+                <PanelField label="Emote" help="The emote displayed in the overlay when an evil say-something redeem happens">
                     <TwitchIconPicker selected={props.config.emote} options={props.icons} onSelect={v => channelAction('evildm/set-emote', { emote: v })} />
                 </PanelField>
             </>

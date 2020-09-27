@@ -4,9 +4,8 @@ import { PanelField } from './PanelField'
 import { getNumberValue, channelAction } from '../utils'
 import { Button } from './Button'
 
-async function startMode(id: string) {
+async function startMode(id: string, minutes: number) {
     try {
-        const minutes = getNumberValue('timer-input')
         await channelAction('modequeue/start', { id, duration: minutes * 60 * 1000 })
     } catch (e) {
         console.error(e)
@@ -15,9 +14,11 @@ async function startMode(id: string) {
 
 async function stopMode(id: string) {
     try {
-        const alarm = document.getElementById('alarm') as HTMLAudioElement
-        alarm.pause()
-        alarm.currentTime = 0
+        const alarm = document.getElementById('alarm') as HTMLAudioElement | null
+        if (alarm) {
+            alarm.pause()
+            alarm.currentTime = 0
+        }
     } catch (e) {
         console.error(e)
     }
@@ -25,9 +26,11 @@ async function stopMode(id: string) {
 
 async function clearMode(id: string) {
     try {
-        const alarm = document.getElementById('alarm') as HTMLAudioElement
-        alarm.pause()
-        alarm.currentTime = 0
+        const alarm = document.getElementById('alarm') as HTMLAudioElement | null
+        if (alarm) {
+            alarm.pause()
+            alarm.currentTime = 0
+        }
         await channelAction('modequeue/clear', { id })
     } catch (e) {
         console.error(e)
@@ -36,8 +39,10 @@ async function clearMode(id: string) {
 
 function isAlarmRunning(): boolean {
     try {
-        const alarm = document.getElementById('alarm') as HTMLAudioElement
-        return !alarm.paused
+        const alarm = document.getElementById('alarm') as HTMLAudioElement | null
+        if (alarm) {
+            return !alarm.paused
+        }
     } catch (e) {
         console.error(e)
     }
@@ -47,11 +52,14 @@ function isAlarmRunning(): boolean {
 export function QueuedMode(props: { mode: RedeemMode, config: ModeQueueModeConfig }) {
     const timeLeft = (props.mode.duration ?? 0) - (Date.now() - (props.mode.startTime ?? 0))
 
+    const [duration, setDuration] = React.useState(props.config.duration)
+
     return <div className="QueuedEvent">
         <PanelField>
             <i>{props.config.redeemName}</i>
             <div className="spacer" />
             <span>{new Date(props.mode.redeemTime).toLocaleTimeString()}</span>
+            &nbsp;<Button onClick={e => clearMode(props.mode.id)}>X</Button>
         </PanelField>
         <PanelField>
             Redeemed by&nbsp;<b>{props.mode.userName}</b>
@@ -65,20 +73,14 @@ export function QueuedMode(props: { mode: RedeemMode, config: ModeQueueModeConfi
             }</span>
         </PanelField>
         <PanelField>
+            <span>Duration:&nbsp;<input type="number" defaultValue={duration} onChange={e => setDuration(parseInt(e.target.value))} />&nbsp;minutes</span>
+            <div className="spacer" />
             <span>{
                 !props.mode.startTime
-                    ? <Button primary onClick={e => startMode(props.mode.id)}>Start timer</Button>
-                    : props.mode.startTime && timeLeft > 0
-                        ? <Button primary onClick={e => startMode(props.mode.id)}>Restart timer</Button>
-                        : <Button primary onClick={e => clearMode(props.mode.id)}>Dismiss event</Button>
-            }</span>
-            &nbsp;or&nbsp;
-            <span>{
-                !props.mode.startTime || timeLeft > 0
-                    ? <Button onClick={e => clearMode(props.mode.id)}>dismiss event</Button>
+                    ? <Button primary onClick={e => startMode(props.mode.id, duration)}>Start timer</Button>
                     : isAlarmRunning()
-                        ? <Button onClick={e => stopMode(props.mode.id)}>stop alarm</Button>
-                        : <Button onClick={e => startMode(props.mode.id)}>restart timer</Button>
+                        ? <Button onClick={e => stopMode(props.mode.id)}>Stop alarm</Button>
+                        : <Button onClick={e => startMode(props.mode.id, duration)}>Restart timer</Button>
             }</span>
         </PanelField>
     </div>

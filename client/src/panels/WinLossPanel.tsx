@@ -47,16 +47,16 @@ export function WinLossPanel(props: ControlPanelAppViewData & ModuleDataType<'wi
         case ControlPanelPage.edit:
             return <>
                 <hr />
-                <PanelField label="Winning Emote">
+                <PanelField label="Winning Emote" help="The emote displayed in the overlay when you have more wins than losses">
                     <TwitchIconPicker selected={props.config.winningEmote} options={props.icons} onSelect={v => channelAction('winloss/set-winning-emote', { emote: v })} />
                 </PanelField>
-                <PanelField label="Losing Emote">
+                <PanelField label="Losing Emote" help="The emote displayed in the overlay when you have more losses than wins">
                     <TwitchIconPicker selected={props.config.losingEmote} options={props.icons} onSelect={v => channelAction('winloss/set-losing-emote', { emote: v })} />
                 </PanelField>
-                <PanelField label="Tied Emote">
+                <PanelField label="Tied Emote" help="The emote displayed in the overlay when you have the same number of wins and losses">
                     <TwitchIconPicker selected={props.config.tiedEmote} options={props.icons} onSelect={v => channelAction('winloss/set-tied-emote', { emote: v })} />
                 </PanelField>
-                <PanelField label="Death Emote">
+                <PanelField label="Death Emote" help="The emote displayed in the overlay when your death counter increases">
                     <TwitchIconPicker selected={props.config.deathEmote} options={props.icons} onSelect={v => channelAction('winloss/set-death-emote', { emote: v })} />
                 </PanelField>
             </>

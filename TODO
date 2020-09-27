@@ -52,6 +52,7 @@ Other Features (Long-Term)
     VOD review queue (Overwatch)
         Maybe work for generic queues of items (although Overwatch-specific functionality can be a submode)
     Twitch-integrated VRM-compatible games
+    Integrations for posting and deleting go-live posts on Twitter and Discord
 
 Bugs
     Hitting "Complete" and then "Thoroughly patted" in short succession causes the counter to go negative
@@ -63,3 +64,7 @@ Log client-side errors by building a buffer of log messages and sending them on 
 Filter out server unavailable errors from CloudFlare since those are frequent
 
 Temporarily disable action buttons when firing off an async process, showing a spinner while the async function runs and then reenabling when the function returns. If an error occurs, show an error icon in the button which shows the error message on mouse over.
+
+NEED GUIDES on how to set things up! Inside the app itself if possible so it can't go horribly out of date
+
+Make it easier to copy usernames of ban-redeemed people (clipboard copy button maybe?)

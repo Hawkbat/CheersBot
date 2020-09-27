@@ -9,7 +9,7 @@ import * as stylus from 'stylus'
 import * as fs from 'fs'
 import * as path from 'path'
 import { readJSON, writeJSON } from './utils'
-import { SessionStore } from './sessionStore'
+import { SessionStore } from './SessionStore'
 import fetch from 'node-fetch'
 import { getDisplayModes, removeModeDelayed, addModeDelayed, EVIL_PATTERN, isGirlDm } from './girldm'
 import { Bot, Channel, User, Secrets } from './data'
@@ -176,6 +176,8 @@ async function run() {
                 channelInfo: {
                     config: {
                         enabled: true,
+                        accentColor: '#00aaff',
+                        mutedColor: '#006699',
                     },
                     state: {
 
@@ -620,6 +622,7 @@ async function run() {
                                 startText: 'Mode redeemed!',
                                 runningText: 'Redeemed mode is active for [minutesLeft] more [minutes]!',
                                 endText: 'Redeemed mode is done!',
+                                duration: 10,
                                 ...args,
                             })
                         })
@@ -718,27 +721,30 @@ async function run() {
                     'backdrop/swap-camera': args => {
                         return true
                     },
+                    'channelinfo/set-accent-color': args => {
+                        data.update(d => {
+                            d.modules.channelInfo.config.accentColor = args.color
+                        })
+                        return true
+                    },
+                    'channelinfo/set-muted-color': args => {
+                        data.update(d => {
+                            d.modules.channelInfo.config.mutedColor = args.color
+                        })
+                        return true
+                    },
                     'debug/mock': args => {
-                        if (data.get(d => d.modules.modeQueue.config.modes.find(m => m.id === args.configID && m.redeemName === 'girldm say something!!'))) {
-                            if (EVIL_PATTERN.test(args.message)) {
-                                data.update(d => {
-                                    d.modules.evilDm.state.count++
-                                    d.modules.evilDm.state.time = Date.now()
-                                })
-                            }
-                        } else {
-                            const mode: RedeemMode = {
-                                id: generateID(),
-                                configID: args.configID,
-                                userID: '',
-                                userName: args.username,
-                                message: args.message,
-                                amount: args.amount,
-                                redeemTime: Date.now(),
-                                visible: true,
-                            }
-                            addModeDelayed(data, mode)
+                        const mode: RedeemMode = {
+                            id: generateID(),
+                            configID: args.configID,
+                            userID: '',
+                            userName: args.username,
+                            message: args.message,
+                            amount: args.amount,
+                            redeemTime: Date.now(),
+                            visible: true,
                         }
+                        addModeDelayed(data, mode)
                         return true
                     },
                     'debug/reload': args => {
@@ -939,6 +945,12 @@ async function run() {
         renderGlobalView(req, res, 'landing', {})
     })
 
+    app.get('/logout', (req, res) => {
+        req.session?.destroy(err => {
+            res.redirect('/')
+        })
+    })
+
     setupAuthWorkflow(AccountType.bot, BOT_SCOPES)
     setupAuthWorkflow(AccountType.channel, CHANNEL_SCOPES)
     setupAuthWorkflow(AccountType.user, USER_SCOPES)
@@ -984,6 +996,18 @@ async function run() {
         }),
         'landing-app': (args, msg) => {
             const user = users[msg.username]
+            if (user && channels[user.name]) {
+                if (channels[user.name].data.get(d => d.users[user.name]) !== Access.approved) {
+                    channels[user.name].data.update(d => {
+                        d.users[user.name] = Access.approved
+                    })
+                }
+                if (user.data.get(d => d.channels[user.name] !== Access.approved)) {
+                    user.data.update(d => {
+                        d.channels[user.name] = Access.approved
+                    })
+                }
+            }
             return {
                 ...getGlobalViewData(msg),
                 ...args,
@@ -997,7 +1021,6 @@ async function run() {
     for (const path of actionPaths) {
         app.post(`/actions/${path}/`, async (req, res) => {
             if (!hasTwitchAuth(req)) return respondTwitchAuthJSON(res)
-            if (!hasChannelAuth(req, name)) return respondChannelAuthJSON(res)
             res.type('json').send(JSON.stringify(actions[path](req.body, getMessage(req))))
         })
     }

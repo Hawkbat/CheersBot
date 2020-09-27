@@ -9,7 +9,7 @@ import { Dropdown } from 'src/controls/Dropdown'
 
 export function DebugPanel(props: ControlPanelAppViewData & ModuleDataType<'debug'> & { page: ControlPanelPage }) {
 
-    const [configID, setConfigID] = React.useState('')
+    const [configID, setConfigID] = React.useState(props.channelData.modules.modeQueue.config.modes[0]?.id ?? '')
     const [username, setUsername] = React.useState('Anonymous')
     const [message, setMessage] = React.useState('')
     const [amount, setAmount] = React.useState(1)
@@ -45,7 +45,7 @@ export function DebugPanel(props: ControlPanelAppViewData & ModuleDataType<'debu
                 </PanelField>
                 <hr />
                 <PanelField label="Event Type">
-                    <Dropdown nullable selected={configID} options={props.channelData.modules.modeQueue.config.modes.map(m => ({ value: m.id, text: m.redeemName }))} onSelect={v => setConfigID(v)} />
+                    <Dropdown selected={configID} options={props.channelData.modules.modeQueue.config.modes.map(m => ({ value: m.id, text: m.redeemName }))} onSelect={v => setConfigID(v)} />
                 </PanelField>
                 <PanelField label="Event User">
                     <input id="event-username" type="text" value={username} onChange={e => setUsername(e.target.value)} />

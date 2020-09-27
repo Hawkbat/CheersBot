@@ -2,7 +2,7 @@ import { OverlayAppViewData, Icon } from 'shared'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
 import { Mode } from '../controls/Mode'
-import { channelView } from '../utils'
+import { channelView, getChannelCSS } from '../utils'
 
 declare const REFRESH_TIME: number
 
@@ -30,8 +30,8 @@ export function OverlayApp(props: OverlayAppViewData) {
     const winLoss = props.channelData.modules.winLoss
     const modeQueue = props.channelData.modules.modeQueue
 
-    return <div className="Overlay">
-        <Mode visible={headpats.config.enabled && headpats.state.count > 0} icon={headpats.config.emote ?? defaultEmote} username={'' + headpats.state.count} msg={'headpat' + (headpats.state.count !== 1 ? 's' : '') + 'redeemed!'} />
+    return <div className="Overlay" style={getChannelCSS(props.channelData)}>
+        <Mode visible={headpats.config.enabled && headpats.state.count > 0} icon={headpats.config.emote ?? defaultEmote} username={'' + headpats.state.count} msg={'headpat' + (headpats.state.count !== 1 ? 's' : '') + ' redeemed!'} />
         <Mode visible={evilDm.config.enabled && evilDm.state.count > 0 && (evilDm.state.time + 10000) > Date.now()} icon={evilDm.config.emote ?? defaultEmote} username={'evil_dm_'} msg={`has confessed to her crimes ${evilDm.state.count} time${evilDm.state.count === 1 ? '' : 's'}!`} />
         <Mode visible={winLoss.config.enabled && winLoss.state.display} icon={winLoss.state.losses > winLoss.state.wins ? winLoss.config.losingEmote ?? defaultEmote : winLoss.state.losses < winLoss.state.wins ? winLoss.config.winningEmote ?? defaultEmote : winLoss.config.tiedEmote ?? defaultEmote} username={''} msg={`<b>${winLoss.state.wins}</b> W - <b>${winLoss.state.losses}</b> L` + (winLoss.state.draws !== 0 ? ` - <b>${winLoss.state.draws}</b> D` : '')} />
         <Mode visible={winLoss.config.enabled && winLoss.state.deaths > 0 && (winLoss.state.deathTime + 10000) > Date.now()} icon={winLoss.config.deathEmote ?? defaultEmote} username={'' + winLoss.state.deaths} msg={winLoss.state.deaths === 1 ? 'death so far!' : 'deaths so far!'} />

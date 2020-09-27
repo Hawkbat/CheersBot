@@ -57,6 +57,9 @@ input
 input[type='number']
     width 55px
 
+input[type='color']
+    padding 0 5px
+
 input:active
 input:focus
 select:active
@@ -150,7 +153,7 @@ a
 
 .PanelField > .label
     display flex
-    flex 0 0 100px
+    flex 0 0 110px
     font-weight bold
     align-items baseline
 
@@ -215,6 +218,15 @@ button.primary:hover
 
 .Toggle.active::after
     left calc(100% - 24px)
+
+.Info
+    position relative
+    top -4px
+    margin-left 4px
+    color var(--muted-color)
+
+.Info:hover
+    color var(--accent-color)
 
 .spacer
     flex 1 1 auto

@@ -43,7 +43,7 @@ export function HeadpatsPanel(props: ControlPanelAppViewData & ModuleDataType<'h
         case ControlPanelPage.edit:
             return <>
                 <hr />
-                <PanelField label="Emote">
+                <PanelField label="Emote" help="The emote displayed in the overlay when there are pending headpats">
                     <TwitchIconPicker selected={props.config.emote} options={props.icons} onSelect={v => channelAction('headpats/set-emote', { emote: v })} />
                 </PanelField>
             </>

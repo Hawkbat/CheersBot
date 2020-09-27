@@ -31,9 +31,17 @@ export function LandingApp(props: LandingAppViewData) {
             <div className="draggable">
                 <PanelGroup label="Your Control Panels">
                     <PanelField>Select a channel from the list below to access the corresponding control panel!</PanelField>
-                    <PanelField>{Object.keys(props.userData.channels).map(c => <React.Fragment key={c}><Button href={`/${c}/`}>{c}</Button>&nbsp;</React.Fragment>)}</PanelField>
+                    <PanelField>
+                        <div className="list">
+                            {Object.keys(props.userData.channels).map(c => <React.Fragment key={c}><Button href={`/${c}/`}>{c}</Button>&nbsp;</React.Fragment>)}
+                        </div>
+                    </PanelField>
                     <hr />
                     <PanelField>If you don't see your channel in the list, you may need to be given access! The Cheers Bot works on a two-way approval system, where both the channel account and user account need to grant access to each other. Message Hawkbar for help!</PanelField>
+                    <hr />
+                    <PanelField>
+                        <Button href="/logout">Log out of Cheers Bot</Button>
+                    </PanelField>
                 </PanelGroup>
             </div>
             <AccessPanel type={AccountType.channel} data={props.userData} />

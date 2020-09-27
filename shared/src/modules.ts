@@ -31,7 +31,7 @@ export interface HeadpatConfigData extends ModuleConfigData {
 
 export const HeadpatsModule: Module<HeadpatStateData, HeadpatConfigData> = {
     name: 'Headpats',
-    description: 'For Girl_Dm_! Keeps an overlay counter of how many times a certain channel point reward is redeemed.',
+    description: 'Currently for Girl_Dm_ only! Keeps an overlay counter of how many times a certain channel point reward is redeemed.',
     getData: (data: ChannelData) => data.modules.headpats,
 }
 
@@ -46,7 +46,7 @@ export interface EvilDmConfigData extends ModuleConfigData {
 
 export const EvilDmModule: Module<EvilDmStateData, EvilDmConfigData> = {
     name: 'Evil DM',
-    description: 'For Girl_Dm_! Keeps an overlay counter of how many times a certain channel point reward is redeemed with certain keywords in the message.',
+    description: 'Currently for Girl_Dm_ only! Keeps an overlay counter of how many times a certain channel point reward is redeemed with certain keywords in the message.',
     getData: (data: ChannelData) => data.modules.evilDm,
 }
 
@@ -62,6 +62,7 @@ export interface ModeQueueModeConfig {
     startText: string
     runningText: string
     endText: string
+    duration: number
 }
 
 export interface ModeQueueConfigData extends ModuleConfigData {
@@ -70,7 +71,7 @@ export interface ModeQueueConfigData extends ModuleConfigData {
 
 export const ModeQueueModule: Module<ModeQueueStateData, ModeQueueConfigData> = {
     name: 'Mode Queue',
-    description: 'Displays timers in the overlay when certain channel point rewards are redeemed.',
+    description: 'Displays "modes" in the overlay that can be controlled with timers, when certain channel point rewards are redeemed.',
     getData: (data: ChannelData) => data.modules.modeQueue,
 }
 
@@ -92,7 +93,7 @@ export interface WinLossConfigData extends ModuleConfigData {
 
 export const WinLossModule: Module<WinLossStateData, WinLossConfigData> = {
     name: 'Win/Loss Record',
-    description: 'Allows channels to track game win/loss records for a stream.',
+    description: 'Allows channels to track game wins, losses, and deaths for a stream and display them in the overlay.',
     getData: (data: ChannelData) => data.modules.winLoss,
 }
 
@@ -108,7 +109,7 @@ export interface UserQueueConfigData extends ModuleConfigData {
 
 export const UserQueueModule: Module<UserQueueStateData, UserQueueConfigData> = {
     name: 'User Queue',
-    description: '--ALPHA-- Allows Twitch chat to submit entries into a queue the streamer can then draw from. Could be used for raffles, viewer game drafting, and similar events.',
+    description: '--PRE-ALPHA-- Allows Twitch chat to submit entries into a queue the streamer can then draw from. Could be used for raffles, viewer game drafting, and similar events.',
     getData: (data: ChannelData) => data.modules.userQueue,
 }
 
@@ -122,7 +123,7 @@ export interface BackdropConfigData extends ModuleConfigData {
 
 export const BackdropModule: Module<BackdropStateData, BackdropConfigData> = {
     name: 'Backdrop',
-    description: '--ALPHA-- Interactive Unity application backdrops controlled remotely from the control panel.',
+    description: '--PRE-ALPHA-- Interactive Unity application backdrops controlled remotely from the control panel.',
     getData: (data: ChannelData) => data.modules.backdrop,
 }
 
@@ -131,7 +132,8 @@ export interface ChannelInfoStateData extends ModuleStateData {
 }
 
 export interface ChannelInfoConfigData extends ModuleConfigData {
-
+    accentColor: string
+    mutedColor: string
 }
 
 export const ChannelInfoModule: Module<ChannelInfoStateData, ChannelInfoConfigData> = {
