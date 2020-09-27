@@ -12,7 +12,7 @@
     "express": "^4.17.1",
     "express-session": "^1.17.1",
     "express-ws": "^4.0.0",
-    "node-fetch": "^2.6.0",
+    "node-fetch": "^2.6.1",
     "pug": "^3.0.0",
     "shared": "file:../shared",
     "stylus": "^0.54.8",
