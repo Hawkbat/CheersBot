@@ -220,19 +220,29 @@ button.primary:hover
     left calc(100% - 24px)
 
 .Info
+.Warning
     position relative
     top -4px
     margin-left 4px
+
+.Info
     color var(--muted-color)
 
 .Info:hover
     color var(--accent-color)
+
+.Warning
+    color hsl(45, 100%, 50%)
+
+.Warning:hover
+    color hsl(45, 100%, 80%)
 
 .spacer
     flex 1 1 auto
 
 .QueuedEvent
 .QueuedMode
+.QueuedVod
     margin-bottom 5px
     padding 5px
     background #3a3a3d
@@ -241,6 +251,7 @@ button.primary:hover
 
 .QueuedEvent:last-child
 .QueuedMode:last-child
+.QueuedVod:last-child
     margin-bottom 0
 
 .TagList

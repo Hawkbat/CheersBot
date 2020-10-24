@@ -3,11 +3,12 @@ import { ControlPanelAppViewData, PanelViewData, ControlPanelPage, getModule } f
 import { PanelGroup } from './PanelGroup'
 import { HeadpatsPanel } from '../panels/HeadpatsPanel'
 import { ModeQueuePanel } from '../panels/ModeQueuePanel'
-import { ChannelInfoPanel as ChannelInfoPanel } from '../panels/ChannelInfoPanel'
+import { ChannelInfoPanel } from '../panels/ChannelInfoPanel'
 import { DebugPanel } from '../panels/DebugPanel'
 import { EvilDmPanel } from '../panels/EvilDmPanel'
 import { UserQueuePanel } from '../panels/UserQueuePanel'
 import { WinLossPanel } from '../panels/WinLossPanel'
+import { VodQueuePanel } from '../panels/VodQueuePanel'
 import { PanelField } from './PanelField'
 import { Toggle } from './Toggle'
 import { channelAction } from '../utils'
@@ -36,6 +37,8 @@ export function Panel(props: { page: ControlPanelPage, panel: PanelViewData, dat
                     return <WinLossPanel page={props.page} {...props.data} {...getModule(props.panel.type).getData(props.data.channelData)} />
                 case 'userQueue':
                     return <UserQueuePanel page={props.page} {...props.data} {...getModule(props.panel.type).getData(props.data.channelData)} />
+                case 'vodQueue':
+                    return <VodQueuePanel page={props.page} {...props.data} {...getModule(props.panel.type).getData(props.data.channelData)} />
                 case 'channelInfo':
                     return <ChannelInfoPanel page={props.page} {...props.data} {...getModule(props.panel.type).getData(props.data.channelData)} />
                 case 'debug':

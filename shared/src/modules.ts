@@ -1,4 +1,4 @@
-import { RedeemMode, UserQueueEntry, UserQueueRound, ChannelData, Icon } from './data'
+import { RedeemMode, UserQueueEntry, UserQueueRound, ChannelData, Icon, VodQueueGame, VodQueueEntry } from './data'
 
 export interface ModuleStateData {
 
@@ -127,6 +127,22 @@ export const BackdropModule: Module<BackdropStateData, BackdropConfigData> = {
     getData: (data: ChannelData) => data.modules.backdrop,
 }
 
+export interface VodQueueStateData extends ModuleStateData {
+    entries: VodQueueEntry[]
+    patchDate: string
+}
+
+export interface VodQueueConfigData extends ModuleConfigData {
+    redeemName: string
+    game: VodQueueGame
+}
+
+export const VodQueueModule: Module<VodQueueStateData, VodQueueConfigData> = {
+    name: 'VOD Queue',
+    description: '--PRE-ALPHA-- Allows channels to track VOD review requests and automatically invalidate them when new patches come out. Games currently supported: Any (Generic), Overwatch',
+    getData: (data: ChannelData) => data.modules.vodQueue,
+}
+
 export interface ChannelInfoStateData extends ModuleStateData {
 
 }
@@ -163,6 +179,7 @@ export const MODULES = {
     winLoss: WinLossModule,
     userQueue: UserQueueModule,
     backdrop: BackdropModule,
+    vodQueue: VodQueueModule,
     channelInfo: ChannelInfoModule,
     debug: DebugModule,
 }

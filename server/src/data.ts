@@ -13,6 +13,7 @@ export interface Secrets {
     session: {
         secret: string
     }
+    local: boolean
 }
 
 export interface Account<T extends AccountData> {

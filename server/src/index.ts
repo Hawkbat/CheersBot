@@ -1,4 +1,4 @@
-import { RedeemMode, Icon, generateID, Store, mergePartials, AccountType, BotData, ChannelData, UserData, Token, AccountData, ChannelActions, ChannelViews, MODULE_TYPES, Access, GlobalActions, GlobalViews, MessageMeta, parseJSON, GlobalBaseViewData, ChannelBaseViewData } from 'shared'
+import { RedeemMode, Icon, generateID, Store, mergePartials, AccountType, BotData, ChannelData, UserData, Token, AccountData, ChannelActions, ChannelViews, MODULE_TYPES, Access, GlobalActions, GlobalViews, MessageMeta, parseJSON, GlobalBaseViewData, ChannelBaseViewData, VodQueueGame } from 'shared'
 import TwitchClient from 'twitch'
 import ChatClient, { PrivateMessage, LogLevel } from 'twitch-chat-client'
 import PubSubClient from 'twitch-pubsub-client'
@@ -8,9 +8,10 @@ import * as session from 'express-session'
 import * as stylus from 'stylus'
 import * as fs from 'fs'
 import * as path from 'path'
+import * as cheerio from 'cheerio'
+import fetch from 'node-fetch'
 import { readJSON, writeJSON } from './utils'
 import { SessionStore } from './SessionStore'
-import fetch from 'node-fetch'
 import { getDisplayModes, removeModeDelayed, addModeDelayed, EVIL_PATTERN, isGirlDm } from './girldm'
 import { Bot, Channel, User, Secrets } from './data'
 import { getTwitchEmotes, getTwitchBadges } from './twitchemotes'
@@ -163,6 +164,17 @@ async function run() {
                         acceptEntries: false,
                         entries: [],
                         rounds: [],
+                    },
+                },
+                vodQueue: {
+                    config: {
+                        enabled: false,
+                        game: VodQueueGame.generic,
+                        redeemName: '',
+                    },
+                    state: {
+                        entries: [],
+                        patchDate: '',
                     },
                 },
                 backdrop: {
@@ -510,6 +522,15 @@ async function run() {
                                 visible: true,
                             })
                         }
+                        const isVodConfig = data.get(d => d.modules.vodQueue.config.redeemName.trim() === msg.rewardName.trim())
+                        if (isVodConfig) {
+                            data.update(d => d.modules.vodQueue.state.entries.push({
+                                id: generateID(),
+                                user: { id: msg.userId, name: msg.userName },
+                                time: Date.now(),
+                                context: msg.message,
+                            }))
+                        }
                     })
                 }
 
@@ -556,6 +577,19 @@ async function run() {
                         console.log(`${sub.userDisplayName} subscribed to ${name}`)
                     })
                 }
+
+                setInterval(async () => {
+                    if (data.get(d => d.modules.vodQueue.config.enabled && d.modules.vodQueue.config.game === VodQueueGame.overwatch)) {
+                        const html = await (await fetch('https://playoverwatch.com/en-us/news/patch-notes/')).text()
+                        const $ = cheerio.load(html)
+                        const latestPatchDate = $('.PatchNotes-labels').first().text()
+                        if (latestPatchDate) {
+                            data.update(d => {
+                                d.modules.vodQueue.state.patchDate = latestPatchDate
+                            })
+                        }
+                    }
+                }, 60 * 1000)
 
                 const actions: ChannelActions = {
                     'headpats/adjust': args => {
@@ -719,6 +753,32 @@ async function run() {
                         return true
                     },
                     'backdrop/swap-camera': args => {
+                        return true
+                    },
+                    'vodqueue/set-config': args => {
+                        data.update(d => {
+                            d.modules.vodQueue.config = {
+                                ...d.modules.vodQueue.config,
+                                ...args,
+                            }
+                        })
+                        return true
+                    },
+                    'vodqueue/delete-entry': args => {
+                        data.update(d => {
+                            d.modules.vodQueue.state.entries = d.modules.vodQueue.state.entries.filter(e => e.id !== args.id)
+                        })
+                        return true
+                    },
+                    'vodqueue/mock': args => {
+                        data.update(d => {
+                            d.modules.vodQueue.state.entries.push({
+                                id: generateID(),
+                                time: Date.now(),
+                                user: { id: '', name: 'Anonymous' },
+                                context: generateID(),
+                            })
+                        })
                         return true
                     },
                     'channelinfo/set-accent-color': args => {
@@ -940,6 +1000,11 @@ async function run() {
         saveUninitialized: false,
         store: new SessionStore(),
     }))
+
+    app.use((req, res, next) => {
+        if (secrets.local && req.session) req.session.twitchUserName = 'hawkbar'
+        next()
+    })
 
     app.get('/', (req, res) => {
         renderGlobalView(req, res, 'landing', {})

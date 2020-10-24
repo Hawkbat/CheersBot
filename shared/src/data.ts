@@ -189,3 +189,18 @@ export interface Notification {
     config: UserEventConfig
     event: UserEvent
 }
+
+export enum VodQueueGame {
+    generic = 'Generic',
+    overwatch = 'Overwatch',
+}
+
+export interface VodQueueEntry {
+    id: string
+    user: {
+        id: string
+        name: string
+    }
+    time: number
+    context: string
+}

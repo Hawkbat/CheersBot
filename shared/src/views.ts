@@ -1,5 +1,5 @@
 import { RedeemType, Icon, RedeemModeDisplay, ChannelData, AccountType, Access, UserData } from './data'
-import { ModuleType, ModeQueueModeConfig } from './modules'
+import { ModuleType, ModeQueueModeConfig, VodQueueConfigData } from './modules'
 
 export interface BaseViewData {
     meta: MessageMeta
@@ -107,6 +107,9 @@ export interface ChannelActions {
     'winloss/set-death-emote': (args: { emote: Icon | null }, msg: MessageMeta) => boolean
     'backdrop/fire-cannon': (args: { text: string }, msg: MessageMeta) => boolean
     'backdrop/swap-camera': (args: { name: string }, msg: MessageMeta) => boolean
+    'vodqueue/set-config': (args: Partial<VodQueueConfigData>, msg: MessageMeta) => boolean
+    'vodqueue/delete-entry': (args: { id: string }, msg: MessageMeta) => boolean
+    'vodqueue/mock': (args: {}, msg: MessageMeta) => boolean
     'channelinfo/set-accent-color': (args: { color: string }, msg: MessageMeta) => boolean
     'channelinfo/set-muted-color': (args: { color: string }, msg: MessageMeta) => boolean
     'debug/mock': (args: { configID: string, username: string, message: string, amount: number }, msg: MessageMeta) => boolean
