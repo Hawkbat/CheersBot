@@ -3,11 +3,14 @@
   "version": "1.0.0",
   "description": "Heccin cheers bot!",
   "main": "index.js",
-  "dependencies": {},
+  "dependencies": {
+    "open-cli": "^6.0.1",
+    "rimraf": "^3.0.2"
+  },
   "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "cd client && npm i && cd ../server && npm i && cd ../ && tsc --build client server && cd client && npx webpack"
+    "build": "npm i && cd client && npm run build && cd ../server && npm run build && cd ../ && open-cli https://cheers-dev.hawk.bar/"
   },
   "author": "Hawkbat",
   "license": "UNLICENSED"

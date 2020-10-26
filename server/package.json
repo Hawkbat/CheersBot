@@ -4,6 +4,7 @@
   "description": "",
   "main": "out/index.js",
   "scripts": {
+    "build": "rimraf out tsconfig.tsbuildinfo && npm i && tsc -b ./",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

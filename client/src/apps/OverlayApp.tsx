@@ -1,7 +1,7 @@
 import { OverlayAppViewData, Icon } from 'shared'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
-import { Mode } from '../controls/Mode'
+import { Bubble } from '../controls/Bubble'
 import { channelView, getChannelCSS } from '../utils'
 
 declare const REFRESH_TIME: number
@@ -29,12 +29,14 @@ export function OverlayApp(props: OverlayAppViewData) {
     const evilDm = props.channelData.modules.evilDm
     const winLoss = props.channelData.modules.winLoss
     const modeQueue = props.channelData.modules.modeQueue
+    const customMessage = props.channelData.modules.customMessage
 
     return <div className="Overlay" style={getChannelCSS(props.channelData)}>
-        <Mode visible={headpats.config.enabled && headpats.state.count > 0} icon={headpats.config.emote ?? defaultEmote} username={'' + headpats.state.count} msg={'headpat' + (headpats.state.count !== 1 ? 's' : '') + ' redeemed!'} />
-        <Mode visible={evilDm.config.enabled && evilDm.state.count > 0 && (evilDm.state.time + 10000) > Date.now()} icon={evilDm.config.emote ?? defaultEmote} username={'evil_dm_'} msg={`has confessed to her crimes ${evilDm.state.count} time${evilDm.state.count === 1 ? '' : 's'}!`} />
-        <Mode visible={winLoss.config.enabled && winLoss.state.display} icon={winLoss.state.losses > winLoss.state.wins ? winLoss.config.losingEmote ?? defaultEmote : winLoss.state.losses < winLoss.state.wins ? winLoss.config.winningEmote ?? defaultEmote : winLoss.config.tiedEmote ?? defaultEmote} username={''} msg={`<b>${winLoss.state.wins}</b> W - <b>${winLoss.state.losses}</b> L` + (winLoss.state.draws !== 0 ? ` - <b>${winLoss.state.draws}</b> D` : '')} />
-        <Mode visible={winLoss.config.enabled && winLoss.state.deaths > 0 && (winLoss.state.deathTime + 10000) > Date.now()} icon={winLoss.config.deathEmote ?? defaultEmote} username={'' + winLoss.state.deaths} msg={winLoss.state.deaths === 1 ? 'death so far!' : 'deaths so far!'} />
-        {props.modes.map(m => <Mode key={m.id} visible={modeQueue.config.enabled && m.visible} icon={m.icon} username={m.showName ? m.userName : ''} msg={m.msg} />)}
+        {customMessage.state.messages.map(m => <Bubble key={m.id} visible={m.visible} icon={m.emote ?? defaultEmote} msg={m.message} />)}
+        <Bubble visible={headpats.config.enabled && headpats.state.count > 0} icon={headpats.config.emote ?? defaultEmote} username={'' + headpats.state.count} msg={'headpat' + (headpats.state.count !== 1 ? 's' : '') + ' redeemed!'} />
+        <Bubble visible={evilDm.config.enabled && evilDm.state.count > 0 && (evilDm.state.time + 10000) > Date.now()} icon={evilDm.config.emote ?? defaultEmote} username={'evil_dm_'} msg={`has confessed to her crimes ${evilDm.state.count} time${evilDm.state.count === 1 ? '' : 's'}!`} />
+        <Bubble visible={winLoss.config.enabled && winLoss.state.display} icon={winLoss.state.losses > winLoss.state.wins ? winLoss.config.losingEmote ?? defaultEmote : winLoss.state.losses < winLoss.state.wins ? winLoss.config.winningEmote ?? defaultEmote : winLoss.config.tiedEmote ?? defaultEmote} username={''} msg={`<b>${winLoss.state.wins}</b> W - <b>${winLoss.state.losses}</b> L` + (winLoss.state.draws !== 0 ? ` - <b>${winLoss.state.draws}</b> D` : '')} />
+        <Bubble visible={winLoss.config.enabled && winLoss.state.deaths > 0 && (winLoss.state.deathTime + 10000) > Date.now()} icon={winLoss.config.deathEmote ?? defaultEmote} username={'' + winLoss.state.deaths} msg={winLoss.state.deaths === 1 ? 'death so far!' : 'deaths so far!'} />
+        {props.modes.map(m => <Bubble key={m.id} visible={modeQueue.config.enabled && m.visible} icon={m.icon} username={m.showName ? m.userName : ''} msg={m.msg} />)}
     </div>
 }

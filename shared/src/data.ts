@@ -204,3 +204,10 @@ export interface VodQueueEntry {
     time: number
     context: string
 }
+
+export interface CustomMessage {
+    id: string
+    emote: Icon | null
+    message: string
+    visible: boolean
+}

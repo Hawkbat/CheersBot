@@ -185,11 +185,20 @@ async function run() {
 
                     },
                 },
+                customMessage: {
+                    config: {
+                        enabled: false,
+                    },
+                    state: {
+                        messages: [],
+                    },
+                },
                 channelInfo: {
                     config: {
                         enabled: true,
                         accentColor: '#00aaff',
                         mutedColor: '#006699',
+                        commandPrefix: '!',
                     },
                     state: {
 
@@ -389,7 +398,7 @@ async function run() {
                                         break
                                 }
                                 break
-                            case '$':
+                            case c.data.get(d => d.modules.channelInfo.config.commandPrefix):
                                 switch (command) {
                                     case 'win':
                                         c.data.update(d => {
@@ -781,6 +790,41 @@ async function run() {
                         })
                         return true
                     },
+                    'custommessage/add-message': args => {
+                        data.update(d => {
+                            d.modules.customMessage.state.messages.push({
+                                id: generateID(),
+                                emote: null,
+                                message: '',
+                                visible: false,
+                                ...args,
+                            })
+                        })
+                        return true
+                    },
+                    'custommessage/edit-message': args => {
+                        let updated = false
+                        data.update(d => {
+                            d.modules.customMessage.state.messages = d.modules.customMessage.state.messages.map(m => {
+                                if (m.id === args.id) {
+                                    updated = true
+                                    return {
+                                        ...m,
+                                        ...args,
+                                    }
+                                } else {
+                                    return m
+                                }
+                            })
+                        })
+                        return updated
+                    },
+                    'custommessage/delete-message': args => {
+                        data.update(d => {
+                            d.modules.customMessage.state.messages = d.modules.customMessage.state.messages.filter(m => m.id !== args.id)
+                        })
+                        return true
+                    },
                     'channelinfo/set-accent-color': args => {
                         data.update(d => {
                             d.modules.channelInfo.config.accentColor = args.color
@@ -790,6 +834,12 @@ async function run() {
                     'channelinfo/set-muted-color': args => {
                         data.update(d => {
                             d.modules.channelInfo.config.mutedColor = args.color
+                        })
+                        return true
+                    },
+                    'channelinfo/set-command-prefix': args => {
+                        data.update(d => {
+                            d.modules.channelInfo.config.commandPrefix = args.commandPrefix
                         })
                         return true
                     },

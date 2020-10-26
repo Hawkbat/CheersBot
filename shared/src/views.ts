@@ -1,4 +1,4 @@
-import { RedeemType, Icon, RedeemModeDisplay, ChannelData, AccountType, Access, UserData } from './data'
+import { RedeemType, Icon, RedeemModeDisplay, ChannelData, AccountType, Access, UserData, CustomMessage } from './data'
 import { ModuleType, ModeQueueModeConfig, VodQueueConfigData } from './modules'
 
 export interface BaseViewData {
@@ -110,8 +110,12 @@ export interface ChannelActions {
     'vodqueue/set-config': (args: Partial<VodQueueConfigData>, msg: MessageMeta) => boolean
     'vodqueue/delete-entry': (args: { id: string }, msg: MessageMeta) => boolean
     'vodqueue/mock': (args: {}, msg: MessageMeta) => boolean
+    'custommessage/add-message': (args: Partial<CustomMessage>, msg: MessageMeta) => boolean
+    'custommessage/edit-message': (args: { id: string } & Partial<CustomMessage>, msg: MessageMeta) => boolean
+    'custommessage/delete-message': (args: { id: string }, msg: MessageMeta) => boolean
     'channelinfo/set-accent-color': (args: { color: string }, msg: MessageMeta) => boolean
     'channelinfo/set-muted-color': (args: { color: string }, msg: MessageMeta) => boolean
+    'channelinfo/set-command-prefix': (args: { commandPrefix: string }, msg: MessageMeta) => boolean
     'debug/mock': (args: { configID: string, username: string, message: string, amount: number }, msg: MessageMeta) => boolean
     'debug/reload': (args: {}, msg: MessageMeta) => boolean
     'config/enable-module': (args: { type: ModuleType, enabled: boolean }, msg: MessageMeta) => boolean
