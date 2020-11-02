@@ -6,10 +6,10 @@ html(lang="en")
     head
         block head
             meta(charset="UTF-8")
-            meta(name="viewport", content="width=340")
+            meta(name="viewport" content="width=340")
             title #{title ? title : 'Cheers Bot'}
-            link(rel="stylesheet", href="/common.css")
-            link(rel="stylesheet", href="/index.css")
+            link(rel="stylesheet" href="/common.css?refresh=${refreshTime}")
+            link(rel="stylesheet" href="/index.css?refresh=${refreshTime}")
             script(src="https://kit.fontawesome.com/274907872e.js" crossorigin="anonymous")
             style.
                 body {
