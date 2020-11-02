@@ -1,0 +1,27 @@
+{
+    "changelog": [
+        {
+            "version": "1.0.0",
+            "released": "2020-09-27",
+            "changes": [
+                "First tracked version",
+                "Added timer redemption tracking",
+                "Added win/loss tracker",
+                "Added info tooltips to configuration fields",
+                "Improved stability when server goes offline",
+                "Applied minor fixes and improvements"
+            ]
+        },
+        {
+            "version": "1.1.0",
+            "released": "2020-11-01",
+            "changes": [
+                "Added VOD queue module with Overwatch support",
+                "Added custom message module",
+                "Added display of module status (alpha/beta/etc.)",
+                "Added 'What's New' popup",
+                "Applied minor fixes and improvements"
+            ]
+        }
+    ]
+}

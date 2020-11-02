@@ -1,4 +1,4 @@
-import { RedeemType, Icon, RedeemModeDisplay, ChannelData, AccountType, Access, UserData, CustomMessage } from './data'
+import { RedeemType, Icon, RedeemModeDisplay, ChannelData, AccountType, Access, UserData, CustomMessage, Changelog } from './data'
 import { ModuleType, ModeQueueModeConfig, VodQueueConfigData } from './modules'
 
 export interface BaseViewData {
@@ -53,6 +53,7 @@ export interface ControlPanelAppViewData extends ChannelBaseViewData {
     icons: Icon[]
     panels: PanelViewData[]
     updateTime: Date
+    changelog: Changelog
 }
 
 export interface OverlayAppViewData extends ChannelBaseViewData {
@@ -64,6 +65,7 @@ export interface OverlayAppViewData extends ChannelBaseViewData {
 export interface LandingAppViewData extends GlobalBaseViewData {
     username: string
     userData: UserData | null
+    changelog: Changelog
 }
 
 export enum ControlPanelPage {

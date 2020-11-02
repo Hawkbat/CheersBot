@@ -178,7 +178,7 @@ export interface CustomMessageConfigData extends ModuleConfigData {
 export const CustomMessageModule: Module<CustomMessageStateData, CustomMessageConfigData> = {
     name: 'Custom Messages',
     description: 'Displays custom overlay messages similar to the ones used by other features.',
-    version: ModuleVersion.preAlpha,
+    version: ModuleVersion.beta,
     getData: (data: ChannelData) => data.modules.customMessage,
 }
 
@@ -210,7 +210,7 @@ export interface DebugConfigData extends ModuleConfigData {
 export const DebugModule: Module<DebugStateData, DebugConfigData> = {
     name: 'Debug',
     description: 'Provides information and tools for testing and debugging the control panel. Don\'t enable unless you know what you\'re doing!',
-    version: ModuleVersion.released,
+    version: ModuleVersion.alpha,
     getData: (data: ChannelData) => data.modules.debug,
 }
 

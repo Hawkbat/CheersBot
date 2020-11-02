@@ -2,10 +2,11 @@ import { LandingAppViewData, AccountType } from 'shared'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
 import { globalView } from '../utils'
-import { PanelGroup } from 'src/controls/PanelGroup'
-import { PanelField } from 'src/controls/PanelField'
-import { Button } from 'src/controls/Button'
-import { AccessPanel } from 'src/panels/AccessPanel'
+import { PanelGroup } from '../controls/PanelGroup'
+import { PanelField } from '../controls/PanelField'
+import { Button } from '../controls/Button'
+import { AccessPanel } from '../panels/AccessPanel'
+import { Changelog } from '../controls/Changelog'
 
 declare const REFRESH_TIME: number
 
@@ -27,6 +28,7 @@ export async function refresh() {
 
 export function LandingApp(props: LandingAppViewData) {
     return <div className="Landing">
+        <Changelog changelog={props.changelog.changelog} />
         {props.userData ? <>
             <div className="draggable">
                 <PanelGroup label="Your Control Panels">

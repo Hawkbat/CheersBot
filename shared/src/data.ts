@@ -211,3 +211,13 @@ export interface CustomMessage {
     message: string
     visible: boolean
 }
+
+export interface Changelog {
+    changelog: ChangelogVersion[]
+}
+
+export interface ChangelogVersion {
+    version: string
+    released: string
+    changes: string[]
+}

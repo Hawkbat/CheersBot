@@ -4,8 +4,8 @@ import { PanelField } from '../controls/PanelField'
 import { TwitchIcon } from '../controls/TwitchIcon'
 import { TagList } from '../controls/TagList'
 import { Button } from '../controls/Button'
-import { channelAction } from 'src/utils'
-import { Dropdown } from 'src/controls/Dropdown'
+import { channelAction } from '../utils'
+import { Dropdown } from '../controls/Dropdown'
 
 export function DebugPanel(props: ControlPanelAppViewData & ModuleDataType<'debug'> & { page: ControlPanelPage }) {
 

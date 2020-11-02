@@ -3,7 +3,7 @@ import { ControlPanelAppViewData, ControlPanelPage, ModuleDataType } from 'share
 import { PanelField } from '../controls/PanelField'
 import { getNumberValue, setNumberValue, channelAction } from '../utils'
 import { Button } from '../controls/Button'
-import { TwitchIconPicker } from 'src/controls/TwitchIconPicker'
+import { TwitchIconPicker } from '../controls/TwitchIconPicker'
 
 async function clearEvil() {
     try {

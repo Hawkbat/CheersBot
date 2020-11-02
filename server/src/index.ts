@@ -1,4 +1,4 @@
-import { RedeemMode, Icon, generateID, Store, mergePartials, AccountType, BotData, ChannelData, UserData, Token, AccountData, ChannelActions, ChannelViews, MODULE_TYPES, Access, GlobalActions, GlobalViews, MessageMeta, parseJSON, GlobalBaseViewData, ChannelBaseViewData, VodQueueGame } from 'shared'
+import { RedeemMode, Icon, generateID, Store, mergePartials, AccountType, BotData, ChannelData, UserData, Token, AccountData, ChannelActions, ChannelViews, MODULE_TYPES, Access, GlobalActions, GlobalViews, MessageMeta, parseJSON, GlobalBaseViewData, ChannelBaseViewData, VodQueueGame, Changelog } from 'shared'
 import TwitchClient from 'twitch'
 import ChatClient, { PrivateMessage, LogLevel } from 'twitch-chat-client'
 import PubSubClient from 'twitch-pubsub-client'
@@ -25,6 +25,9 @@ const workingDir = process.cwd()
 async function run() {
     const secrets = await readJSON<Secrets>(workingDir + '/secrets.json')
     if (!secrets) throw new Error('secrets.json is missing or incorrectly formatted; app cannot be initialized')
+
+    const changelog = (await readJSON<Changelog>(workingDir + '/changelog.json'))!
+    if (!changelog) throw new Error('changelog.json is missing or incorrectly formatted; app cannot be initialized')
 
     const CLIENT_ID = secrets.twitch.clientID
     const CLIENT_SECRET = secrets.twitch.clientSecret
@@ -915,6 +918,7 @@ async function run() {
                         refreshTime,
                         channel: name,
                         isGirlDm: isGirlDm(msg),
+                        changelog,
                     }),
                     'overlay-app': (args, msg) => ({
                         channelData: data.get(d => d),
@@ -1128,6 +1132,7 @@ async function run() {
                 ...args,
                 username: msg.username,
                 userData: user ? user.data.get(d => d) : null,
+                changelog,
             }
         },
     }

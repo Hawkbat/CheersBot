@@ -5,7 +5,8 @@ import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd'
 import { channelView, classes, localRetrieveJSON, localStoreJSON, channelAction, getChannelCSS } from '../utils'
 import { Panel } from '../controls/Panel'
 import { TabSet } from '../controls/TabSet'
-import { AccessPanel } from 'src/panels/AccessPanel'
+import { AccessPanel } from '../panels/AccessPanel'
+import { Changelog } from '../controls/Changelog'
 
 declare const REFRESH_TIME: number
 
@@ -84,6 +85,7 @@ export function ControlPanelApp(props: ControlPanelAppViewData) {
         <DragDropContext onDragEnd={(result, provided) => {
             if (result.destination) movePanels(result.source.index, result.destination.index)
         }}>
+            <Changelog changelog={props.changelog.changelog} />
             <TabSet selected={page} options={[
                 { value: ControlPanelPage.view, icon: 'sliders-h' },
                 { value: ControlPanelPage.edit, icon: 'cogs' },

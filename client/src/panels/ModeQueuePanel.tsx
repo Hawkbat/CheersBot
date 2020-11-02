@@ -2,10 +2,10 @@ import * as React from 'react'
 import { ControlPanelAppViewData, ControlPanelPage, ModuleDataType } from 'shared'
 import { PanelField } from '../controls/PanelField'
 import { QueuedMode } from '../controls/QueuedMode'
-import { Button } from 'src/controls/Button'
-import { channelAction, classes } from 'src/utils'
-import { TwitchIconPicker } from 'src/controls/TwitchIconPicker'
-import { Toggle } from 'src/controls/Toggle'
+import { Button } from '../controls/Button'
+import { channelAction, classes } from '../utils'
+import { TwitchIconPicker } from '../controls/TwitchIconPicker'
+import { Toggle } from '../controls/Toggle'
 
 export function ModeQueuePanel(props: ControlPanelAppViewData & ModuleDataType<'modeQueue'> & { page: ControlPanelPage }) {
     const [tested, setTested] = React.useState('')

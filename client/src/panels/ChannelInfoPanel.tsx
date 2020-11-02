@@ -2,7 +2,7 @@ import * as React from 'react'
 import { ControlPanelAppViewData, ControlPanelPage, ModuleDataType } from 'shared'
 import { PanelField } from '../controls/PanelField'
 import { Button } from '../controls/Button'
-import { channelAction } from 'src/utils'
+import { channelAction } from '../utils'
 
 function copyOverlayURL() {
     const input = document.getElementById('overlay-url') as HTMLInputElement
