@@ -10,7 +10,8 @@
   "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "npm i && cd client && npm run build && cd ../server && npm run build && cd ../ && open-cli https://cheers-dev.hawk.bar/"
+    "build": "npm i && cd client && npm run build && cd ../server && npm run build && cd ../",
+    "build:local": "npm run build && open-cli https://cheers-dev.hawk.bar/"
   },
   "author": "Hawkbat",
   "license": "UNLICENSED"

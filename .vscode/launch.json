@@ -11,7 +11,7 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "preLaunchTask": "npm: build",
+            "preLaunchTask": "npm: build:local",
             "runtimeArgs": [
                 "--no-warnings"
             ],
