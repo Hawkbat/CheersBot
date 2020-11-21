@@ -25,4 +25,10 @@ html(lang="en")
                     | &nbsp;#{heading ? heading : title ? title : 'Cheers Bot'}
             block body
             block footer
-                footer &copy; 2020 <a href="http://hawk.bar/">Hawkbar</a>. Emotes with "girldm" prefix used with permission from <a href="https://twitter.com/Girl_Dm_">Girl_Dm_</a> for use with her channel only. Twitch Emote APIs provided by <a href="http://twitchemotes.com/">twitchemotes.com</a>.
+                footer
+                    | &copy; 2020 <a href="http://hawk.bar/">Hawkbar</a>
+                    | | <a href="/privacy">Privacy Policy</a>
+                    | | <a href="/tos">Terms of Service</a>
+                    | | Twitch Emote APIs provided by <a href="http://twitchemotes.com/">twitchemotes.com</a>
+                    if isGirlDm
+                        | | Emotes with "girldm" prefix used with permission from <a href="https://twitter.com/Girl_Dm_">Girl_Dm_</a> for use with her channel only

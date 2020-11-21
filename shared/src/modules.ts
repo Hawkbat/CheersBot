@@ -193,7 +193,7 @@ export interface ChannelInfoConfigData extends ModuleConfigData {
 }
 
 export const ChannelInfoModule: Module<ChannelInfoStateData, ChannelInfoConfigData> = {
-    name: 'User and Channel',
+    name: 'User and Channel Info',
     description: 'Displays information about the current user and channel. Don\'t disable unless you know what you\'re doing!',
     version: ModuleVersion.released,
     getData: (data: ChannelData) => data.modules.channelInfo,

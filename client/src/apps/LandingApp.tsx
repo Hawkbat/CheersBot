@@ -1,4 +1,4 @@
-import { LandingAppViewData, AccountType } from 'shared'
+import { LandingAppViewData, AccountType, MODULES, ModuleVersion } from 'shared'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
 import { globalView } from '../utils'
@@ -47,7 +47,24 @@ export function LandingApp(props: LandingAppViewData) {
                 </PanelGroup>
             </div>
             <AccessPanel type={AccountType.channel} data={props.userData} />
-        </> : <></>}
+        </> : <>
+                <section>
+                    <p>
+                        The Heccin Cheers Bot is a streaming platform integration similar to Streamlabs that provides various functionality for your live broadcasts! Features include:
+                        <ul>
+                            {Object.values(MODULES).filter(m => m.version === ModuleVersion.beta || m.version === ModuleVersion.released).map(m => <li>{m.name}</li>)}
+                            <li>And more to come!</li>
+                        </ul>
+                    </p>
+                    <p>
+                        All features are driven through a mobile-friendly web-based control panel you can customize for your needs. You can grant acess to your control panel to moderators and alt accounts to help manage your stream for you, or control it yourself from a PC or mobile device!
+                    </p>
+                    <p>
+                        For a demonstration of features and help setting things up on your stream, check out this how-to video:
+                        <iframe width="320" height="180" src="https://www.youtube.com/embed/7qQL3YtycBw" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+                    </p>
+                </section>
+            </>}
         <div className="draggable">
             <PanelGroup label="Log In or Register">
                 <PanelField>To connect as a user account in order to access the control panel of your channel, or channels you moderate:</PanelField>

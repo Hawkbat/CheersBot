@@ -39,6 +39,7 @@ async function run() {
     const BAN_TIMEOUT = 10 * 60 * 1000
 
     const refreshTime = Date.now()
+    let localLoggedIn = false
 
     let bots: { [key: string]: Bot } = {}
     let channels: { [key: string]: Channel } = {}
@@ -274,6 +275,10 @@ async function run() {
         })
 
         app.get(`/authorize/${accountType}/`, (req, res) => {
+            if (secrets?.local) {
+                localLoggedIn = true
+                return res.redirect('/')
+            }
             renderGlobalView(req, res, 'authorize', { accountType })
         })
 
@@ -1056,7 +1061,7 @@ async function run() {
     }))
 
     app.use((req, res, next) => {
-        if (secrets.local && req.session) req.session.twitchUserName = 'hawkbar'
+        if (secrets.local && localLoggedIn && req.session) req.session.twitchUserName = 'hawkbar'
         next()
     })
 
@@ -1064,7 +1069,16 @@ async function run() {
         renderGlobalView(req, res, 'landing', {})
     })
 
+    app.get('/privacy', (req, res) => {
+        res.render('privacy')
+    })
+
+    app.get('/tos', (req, res) => {
+        res.render('tos')
+    })
+
     app.get('/logout', (req, res) => {
+        if (secrets.local) localLoggedIn = false
         req.session?.destroy(err => {
             res.redirect('/')
         })
