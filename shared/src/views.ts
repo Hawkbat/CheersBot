@@ -1,5 +1,5 @@
-import { RedeemType, Icon, RedeemModeDisplay, ChannelData, AccountType, Access, UserData, CustomMessage, Changelog } from './data'
-import { ModuleType, ModeQueueModeConfig, VodQueueConfigData } from './modules'
+import { Icon, ChannelData, AccountType, Access, UserData, Changelog } from './data'
+import { ModuleType, ModeQueueModeConfig, VodQueueConfigData, RedeemModeDisplay, CustomMessage, CounterConfig, Counter } from './modules'
 
 export interface BaseViewData {
     meta: MessageMeta
@@ -115,6 +115,10 @@ export interface ChannelActions {
     'custommessage/add-message': (args: Partial<CustomMessage>, msg: MessageMeta) => boolean
     'custommessage/edit-message': (args: { id: string } & Partial<CustomMessage>, msg: MessageMeta) => boolean
     'custommessage/delete-message': (args: { id: string }, msg: MessageMeta) => boolean
+    'counters/set-count': (args: { id: string } & Counter, msg: MessageMeta) => boolean
+    'counters/add-config': (args: Partial<CounterConfig>, msg: MessageMeta) => boolean
+    'counters/edit-config': (args: { id: string } & Partial<CounterConfig>, msg: MessageMeta) => boolean
+    'counters/delete-config': (args: { id: string }, msg: MessageMeta) => boolean
     'channelinfo/set-accent-color': (args: { color: string }, msg: MessageMeta) => boolean
     'channelinfo/set-muted-color': (args: { color: string }, msg: MessageMeta) => boolean
     'channelinfo/set-command-prefix': (args: { commandPrefix: string }, msg: MessageMeta) => boolean

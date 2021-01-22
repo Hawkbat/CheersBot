@@ -5,6 +5,7 @@
   "main": "out/index.js",
   "types": "out/index.d.ts",
   "scripts": {
+    "prebuild": "rimraf out tsconfig.tsbuildinfo",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

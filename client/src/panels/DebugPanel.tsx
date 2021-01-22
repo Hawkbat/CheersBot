@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { ControlPanelAppViewData, Icon, UserEventCondition, RedeemType, ControlPanelPage, ModuleDataType } from 'shared'
+import { ControlPanelAppViewData, Icon, UserEventCondition, ControlPanelPage, ModuleDataType } from 'shared'
 import { PanelField } from '../controls/PanelField'
 import { TwitchIcon } from '../controls/TwitchIcon'
 import { TagList } from '../controls/TagList'

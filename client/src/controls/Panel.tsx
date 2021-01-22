@@ -9,6 +9,7 @@ import { UserQueuePanel } from '../panels/UserQueuePanel'
 import { WinLossPanel } from '../panels/WinLossPanel'
 import { VodQueuePanel } from '../panels/VodQueuePanel'
 import { CustomMessagePanel } from '../panels/CustomMessagePanel'
+import { CountersPanel } from '../panels/CountersPanel'
 import { channelAction } from '../utils'
 import { PanelGroup } from './PanelGroup'
 import { PanelField } from './PanelField'
@@ -42,6 +43,8 @@ export function Panel(props: { page: ControlPanelPage, panel: PanelViewData, dat
                     return <VodQueuePanel page={props.page} {...props.data} {...getModule(props.panel.type).getData(props.data.channelData)} />
                 case 'customMessage':
                     return <CustomMessagePanel page={props.page} {...props.data} {...getModule(props.panel.type).getData(props.data.channelData)} />
+                case 'counters':
+                    return <CountersPanel page={props.page} {...props.data} {...getModule(props.panel.type).getData(props.data.channelData)} />
                 case 'channelInfo':
                     return <ChannelInfoPanel page={props.page} {...props.data} {...getModule(props.panel.type).getData(props.data.channelData)} />
                 case 'debug':

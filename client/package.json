@@ -4,7 +4,8 @@
   "description": "",
   "main": "out/client.js",
   "scripts": {
-    "build": "rimraf out tsconfig.tsbuildinfo && npm i && tsc -b ./ && npx webpack",
+    "prebuild": "rimraf out tsconfig.tsbuildinfo",
+    "build": "npm i && tsc -b ./ && npx webpack",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

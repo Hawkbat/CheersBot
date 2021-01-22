@@ -14,6 +14,7 @@ export interface Secrets {
         secret: string
     }
     local: boolean
+    superUsers: string[]
 }
 
 export interface Account<T extends AccountData> {

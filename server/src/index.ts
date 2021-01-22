@@ -1,4 +1,4 @@
-import { RedeemMode, Icon, generateID, Store, mergePartials, AccountType, BotData, ChannelData, UserData, Token, AccountData, ChannelActions, ChannelViews, MODULE_TYPES, Access, GlobalActions, GlobalViews, MessageMeta, parseJSON, GlobalBaseViewData, ChannelBaseViewData, VodQueueGame, Changelog } from 'shared'
+import { RedeemMode, Icon, generateID, Store, mergePartials, AccountType, BotData, ChannelData, UserData, Token, AccountData, ChannelActions, ChannelViews, MODULE_TYPES, Access, GlobalActions, GlobalViews, MessageMeta, parseJSON, GlobalBaseViewData, ChannelBaseViewData, VodQueueGame, Changelog, CounterVisibility } from 'shared'
 import TwitchClient from 'twitch'
 import ChatClient, { PrivateMessage, LogLevel } from 'twitch-chat-client'
 import PubSubClient from 'twitch-pubsub-client'
@@ -197,6 +197,23 @@ async function run() {
                         messages: [],
                     },
                 },
+                counters: {
+                    config: {
+                        enabled: false,
+                        configs: [],
+                    },
+                    state: {
+                        counters: {},
+                    },
+                },
+                eventQueue: {
+                    config: {
+                        enabled: false,
+                    },
+                    state: {
+
+                    },
+                },
                 channelInfo: {
                     config: {
                         enabled: true,
@@ -363,11 +380,6 @@ async function run() {
         return c ? Object.values(bots).filter(b => b.data.get(d => d.channels[c.name] === Access.approved) && c.data.get(d => d.bots[b.name] === Access.approved)) : []
     }
 
-    function getChannelsForBot(bot: string): Channel[] {
-        const b = bots[bot]
-        return b ? Object.values(channels).filter(c => c.data.get(d => d.users[b.name] === Access.approved) && b.data.get(d => d.channels[c.name] === Access.approved)) : []
-    }
-
     function getUsersForChannel(channel: string): User[] {
         const c = channels[channel]
         return c ? Object.values(users).filter(u => u.data.get(d => d.channels[c.name] === Access.approved) && c.data.get(d => d.users[u.name] === Access.approved)) : []
@@ -375,6 +387,7 @@ async function run() {
 
     function getChannelsForUser(user: string): Channel[] {
         const u = users[user]
+        if (secrets?.superUsers.includes(user)) return Object.values(channels)
         return u ? Object.values(channels).filter(c => c.data.get(d => d.users[u.name] === Access.approved) && u.data.get(d => d.channels[c.name] === Access.approved)) : []
     }
 
@@ -547,6 +560,15 @@ async function run() {
                                 time: Date.now(),
                                 context: msg.message,
                             }))
+                        }
+                        const counterConfig = data.get(d => d.modules.counters.config.configs.find(c => c.redeemName.trim() === msg.rewardName.trim()))
+                        if (counterConfig) {
+                            const counter = data.get(d => d.modules.counters.state.counters[counterConfig.id])
+                            data.update(d => d.modules.counters.state.counters[counterConfig.id] = {
+                                ...counter,
+                                count: (counter?.count ?? 0) + 1,
+                                time: Date.now(),
+                            })
                         }
                     })
                 }
@@ -833,6 +855,52 @@ async function run() {
                         })
                         return true
                     },
+                    'counters/set-count': args => {
+                        const { id, ...counter } = args
+                        data.update(d => {
+                            d.modules.counters.state.counters[id] = counter
+                        })
+                        return true
+                    },
+                    'counters/add-config': args => {
+                        data.update(d => {
+                            d.modules.counters.config.configs.push({
+                                id: generateID(),
+                                redeemName: '',
+                                emote: null,
+                                message: 'redeemed',
+                                visibility: CounterVisibility.whenRedeemed,
+                                duration: 5,
+                                maximum: null,
+                                ...args,
+                            })
+                        })
+                        return true
+
+                    },
+                    'counters/edit-config': args => {
+                        let updated = false
+                        data.update(d => {
+                            d.modules.counters.config.configs = d.modules.counters.config.configs.map(c => {
+                                if (c.id === args.id) {
+                                    updated = true
+                                    return {
+                                        ...c,
+                                        ...args,
+                                    }
+                                } else {
+                                    return c
+                                }
+                            })
+                        })
+                        return updated
+                    },
+                    'counters/delete-config': args => {
+                        data.update(d => {
+                            d.modules.counters.config.configs = d.modules.counters.config.configs.filter(c => c.id !== args.id)
+                        })
+                        return true
+                    },
                     'channelinfo/set-accent-color': args => {
                         data.update(d => {
                             d.modules.channelInfo.config.accentColor = args.color
@@ -1061,7 +1129,7 @@ async function run() {
     }))
 
     app.use((req, res, next) => {
-        if (secrets.local && localLoggedIn && req.session) req.session.twitchUserName = 'hawkbar'
+        if (secrets.local && localLoggedIn && req.session) req.session.twitchUserName = secrets.superUsers[0]
         next()
     })
 

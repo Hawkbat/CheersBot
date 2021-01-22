@@ -32,10 +32,10 @@ export function HeadpatsPanel(props: ControlPanelAppViewData & ModuleDataType<'h
             return <>
                 <PanelField>
                     <span id="headpat-count">{props.state.count}</span>&nbsp;headpats redeemed!
-        </PanelField>
+                </PanelField>
                 <PanelField>
                     <Button primary onClick={e => completeHeadpats()}>Complete</Button>&nbsp;<input id="headpat-input" type="number" defaultValue="1" />&nbsp;headpats
-        </PanelField>
+                </PanelField>
                 <PanelField>
                     <Button onClick={e => clearHeadpats()}>Head has been thoroughly patted</Button>
                 </PanelField>
