@@ -61,7 +61,7 @@ async function run() {
     }
 
     function hasChannelAuth(req: express.Request, channel: string): boolean {
-        return getUsersForChannel(channel).some(u => u.name === req.session?.twitchUserName)
+        return getUsersForChannel(channel).some(u => u.name === req.session?.twitchUserName) || (secrets?.superUsers.includes(req.session?.twitchUserName ?? '') ?? false)
     }
 
     function respondChannelAuthMessage(req: express.Request, res: express.Response): void {
