@@ -1209,6 +1209,13 @@ async function run() {
                     })
                 }
             }
+            if (user && secrets.superUsers.includes(msg.username)) {
+                user.data.update(d => {
+                    for (const channel in channels) {
+                        d.channels[channel] = Access.approved
+                    }
+                })
+            }
             return {
                 ...getGlobalViewData(msg),
                 ...args,
