@@ -721,6 +721,7 @@ async function run() {
                     'modequeue/delete-mode': args => {
                         data.update(d => {
                             d.modules.modeQueue.config.modes = d.modules.modeQueue.config.modes.filter(m => m.id !== args.id)
+                            d.modules.modeQueue.state.modes = d.modules.modeQueue.state.modes.filter(m => m.configID !== args.id)
                         })
                         return true
                     },
@@ -898,6 +899,7 @@ async function run() {
                     'counters/delete-config': args => {
                         data.update(d => {
                             d.modules.counters.config.configs = d.modules.counters.config.configs.filter(c => c.id !== args.id)
+                            delete d.modules.counters.state.counters[args.id]
                         })
                         return true
                     },
