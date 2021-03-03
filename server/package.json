@@ -16,7 +16,7 @@
     "express-session": "^1.17.1",
     "express-ws": "^4.0.0",
     "node-fetch": "^2.6.1",
-    "pug": "^3.0.0",
+    "pug": "^3.0.1",
     "shared": "file:../shared",
     "stylus": "^0.54.8",
     "twitch": "^4.1.3",
