@@ -1,4 +1,4 @@
-import { ChannelData, ModuleVersion } from '../data'
+import { ModuleVersion } from '../data'
 import { BackdropModule } from './backdrop'
 import { ChannelInfoModule } from './channelinfo'
 import { CountersModule } from './counters'
@@ -30,7 +30,7 @@ export interface Module<State extends ModuleStateData = ModuleStateData, Config 
     description: string
     version: ModuleVersion
 
-    getData: (data: ChannelData) => ModuleData<State, Config>
+    getData: (modules: ModuleMap) => ModuleData<State, Config>
 }
 
 export const MODULES = {
@@ -57,3 +57,5 @@ export const MODULE_TYPES = Object.keys(MODULES) as ModuleType[]
 export function getModule<T extends ModuleType>(type: T): typeof MODULES[T] {
     return MODULES[type]
 }
+
+export type ModuleMap = { [key in ModuleType]: ModuleDataType<key> }

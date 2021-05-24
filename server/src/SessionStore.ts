@@ -1,13 +1,12 @@
 import * as session from 'express-session'
+import { SessionData } from 'express-session'
 import { deleteFile, readJSON, writeJSON } from './utils'
 
 const workingDir = process.cwd()
 
-declare global {
-    namespace Express {
-        interface SessionData {
-            twitchUserName?: string
-        }
+declare module 'express-session' {
+    interface SessionData {
+        twitchUserName?: string
     }
 }
 
@@ -21,18 +20,18 @@ function getPath(sid: string) {
 
 export class SessionStore extends session.Store {
 
-    sessions: { [key: string]: Express.SessionData } = {}
+    sessions: { [key: string]: SessionData } = {}
 
     constructor(config: object = {}) {
         super(config)
     }
 
-    get = async (sid: string, callback: (err: any, session?: Express.SessionData | null | undefined) => void) => {
+    get = async (sid: string, callback: (err: any, session?: SessionData | null | undefined) => void) => {
         try {
             if (this.sessions[sid]) {
                 callback?.(null, this.sessions[sid])
             } else {
-                const session = await readJSON<Express.SessionData>(getPath(sid))
+                const session = await readJSON<SessionData>(getPath(sid))
                 if (session) {
                     this.sessions[sid] = session
                     callback?.(null, session)
@@ -44,16 +43,16 @@ export class SessionStore extends session.Store {
             callback?.(e)
         }
     }
-    set = async (sid: string, session: Express.SessionData, callback?: ((err?: any) => void) | undefined) => {
+    set = async (sid: string, session: SessionData, callback?: ((err?: any) => void) | undefined) => {
         try {
             this.sessions[sid] = session
-            await writeJSON<Express.SessionData>(getPath(sid), session)
+            await writeJSON<SessionData>(getPath(sid), session)
             callback?.()
         } catch (e) {
             callback?.(e)
         }
     }
-    touch = async (sid: string, session: Express.SessionData, callback?: ((err?: any) => void) | undefined) => {
+    touch = async (sid: string, session: SessionData, callback?: ((err?: any) => void) | undefined) => {
         try {
             this.sessions[sid] = session
             callback?.()
@@ -83,15 +82,15 @@ export class SessionStore extends session.Store {
             callback?.(e)
         }
     }
-    length = async (callback: (err: any, length?: number | null | undefined) => void) => {
+    length = async (callback: (err: any, length: number) => void) => {
         try {
             callback?.(null, Object.keys(this.sessions).length)
         } catch (e) {
-            callback?.(e, null)
+            callback?.(e, 0)
         }
     }
     all = async (callback: (err: any, obj?: {
-        [sid: string]: Express.SessionData
+        [sid: string]: SessionData
     } | null | undefined) => void) => {
         try {
             callback?.(null, this.sessions)

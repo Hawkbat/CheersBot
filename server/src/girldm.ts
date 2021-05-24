@@ -1,5 +1,6 @@
-import { RedeemModeDisplay, RedeemMode, Icon, Store, ChannelData, MessageMeta, ModeQueueModeConfig } from 'shared'
+import { RedeemModeDisplay, RedeemMode, Icon, Store, MessageMeta, ModeQueueModeConfig } from 'shared'
 import * as url from 'url'
+import { ChannelData } from './data'
 
 export const EVIL_PATTERN = /\b(evil|crimes|crime|puppy|puppies)[!.,]?\b/i
 

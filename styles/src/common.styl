@@ -327,34 +327,49 @@ button.primary:hover
     flex-direction column
     align-items flex-start
 
-.TwitchIcon
+.ExternalIcon
     display inline-flex
     align-self normal
     justify-content center
     align-items center
 
-.TwitchIcon[data-size='1']
+.ExternalIcon[data-size='1']
     width 28px
     height 28px
 
-.TwitchIcon[data-size='1'] > img
+.ExternalIcon[data-size='1'] > img
     max-height 30px
 
-.TwitchIcon[data-size='2']
+.ExternalIcon[data-size='2']
     width 56px
     height 56px
 
-.TwitchIcon[data-size='2'] > img
+.ExternalIcon[data-size='2'] > img
     max-height 64px
 
-.TwitchIcon[data-size='3']
+.ExternalIcon[data-size='3']
     width 112px
     height 112px
 
-.TwitchIcon[data-size='3'] > img
+.ExternalIcon[data-size='3'] > img
     max-height 128px
 
-.TwitchIconPicker
+.ExternalIcon > .Icon
+    position relative
+
+.ExternalIcon[data-size='1'] > .Icon
+    font-size 22px
+    top 1px
+
+.ExternalIcon[data-size='2'] > .Icon
+    font-size 44px
+    top 2px
+
+.ExternalIcon[data-size='3'] > .Icon
+    font-size 88px
+    top 4px
+
+.ExternalIconPicker
     display flex
     flex 1 0 auto
 

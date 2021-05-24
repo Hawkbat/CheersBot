@@ -1,8 +1,9 @@
-import { RedeemMode, Icon, generateID, Store, mergePartials, AccountType, BotData, ChannelData, UserData, Token, AccountData, ChannelActions, ChannelViews, MODULE_TYPES, Access, GlobalActions, GlobalViews, MessageMeta, parseJSON, GlobalBaseViewData, ChannelBaseViewData, VodQueueGame, Changelog, CounterVisibility } from 'shared'
-import TwitchClient from 'twitch'
-import ChatClient, { PrivateMessage, LogLevel } from 'twitch-chat-client'
-import PubSubClient from 'twitch-pubsub-client'
-import WebHookClient, { ReverseProxyAdapter } from 'twitch-webhooks'
+import { RedeemMode, Icon, generateID, Store, mergePartials, AccountType, ChannelActions, ChannelViews, MODULE_TYPES, Access, GlobalActions, GlobalViews, MessageMeta, parseJSON, GlobalBaseViewData, ChannelBaseViewData, VodQueueGame, Changelog, CounterVisibility, IconMap } from 'shared'
+import { ApiClient as TwitchClient, RefreshableAuthProvider, StaticAuthProvider } from 'twitch'
+import { ChatClient, PrivateMessage, LogLevel } from 'twitch-chat-client'
+import { PubSubClient } from 'twitch-pubsub-client'
+import { WebHookListener, ReverseProxyAdapter } from 'twitch-webhooks'
+import * as Discord from 'discord.js'
 import * as express from 'express'
 import * as session from 'express-session'
 import * as stylus from 'stylus'
@@ -13,12 +14,15 @@ import fetch from 'node-fetch'
 import { readJSON, writeJSON } from './utils'
 import { SessionStore } from './SessionStore'
 import { getDisplayModes, removeModeDelayed, addModeDelayed, EVIL_PATTERN, isGirlDm } from './girldm'
-import { Bot, Channel, User, Secrets } from './data'
+import { Bot, Channel, User, Secrets, AccountData, BotData, TwitchToken, UserData, ChannelData, DiscordToken } from './data'
 import { getTwitchEmotes, getTwitchBadges } from './twitchemotes'
 import { getFFZEmoteURL, getFFZEmotes } from './frankerfacez'
 import { getBTTVEmotes, getGlobalBTTVEmotes } from './betterttv'
+import { TwitchTokenResponse } from './twitch'
+import { DiscordTokenResponse } from './discord'
 import expressWs = require('express-ws')
 import WebSocket = require('ws')
+import { getFontAwesomeBrandingIcons } from './icons'
 
 const workingDir = process.cwd()
 
@@ -35,6 +39,7 @@ async function run() {
     const BOT_SCOPES = ['chat:read', 'chat:edit']
     const CHANNEL_SCOPES = ['moderation:read', 'channel:moderate', 'channel:read:redemptions', 'channel:read:subscriptions']
     const USER_SCOPES = ['user:read:email']
+    const DISCORD_SCOPES = ['bot', 'identify', 'guilds', 'guilds.join']
 
     const BAN_TIMEOUT = 10 * 60 * 1000
 
@@ -73,11 +78,11 @@ async function run() {
         res.status(403).type('json').send('' + JSON.stringify({ status: 403, error: `You don't have access to this channel!` }))
     }
 
-    function getMessage(req: express.Request): MessageMeta {
+    function getMessage(req: express.Request, channel: string): MessageMeta {
         const msg: MessageMeta = {
             id: generateID(),
             username: req.session?.twitchUserName ?? '',
-            channel: /^\/(\w+)\//.exec(req.path)?.[1] ?? '',
+            channel: channel,
             url: `${req.protocol}://${req.hostname}${req.url}`,
         }
         return msg
@@ -92,7 +97,7 @@ async function run() {
     }
 
     function renderGlobalView<T extends keyof GlobalViews>(req: express.Request, res: express.Response, view: T, args: Parameters<GlobalViews[T]>[0]) {
-        const msg = getMessage(req)
+        const msg = getMessage(req, '')
         res.render(view, {
             ...getGlobalViewData(msg),
             ...views[view](args as any, msg),
@@ -106,8 +111,8 @@ async function run() {
     function getDefaultData(accountType: AccountType.bot): BotData
     function getDefaultData(accountType: AccountType.channel): ChannelData
     function getDefaultData(accountType: AccountType.user): UserData
-    function getDefaultData(accountType: AccountType, token?: Token): AccountData
-    function getDefaultData(accountType: AccountType, token?: Token): AccountData {
+    function getDefaultData(accountType: AccountType, token?: TwitchToken): AccountData
+    function getDefaultData(accountType: AccountType, token?: TwitchToken): AccountData {
         if (!token) token = { accessToken: '', refreshToken: '', scope: [] }
         const DEFAULT_DATA_CHANNEL: ChannelData = {
             token,
@@ -253,9 +258,9 @@ async function run() {
                 const code = req.query.code
 
                 const result = await fetch(`https://id.twitch.tv/oauth2/token?client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}&code=${code}&grant_type=authorization_code&redirect_uri=${redirectUri}`, { method: 'POST' })
-                const data = await result.json()
+                const data = await result.json() as TwitchTokenResponse
 
-                const token: Token = {
+                const token: TwitchToken = {
                     accessToken: data.access_token,
                     refreshToken: data.refresh_token,
                     scope: data.scope,
@@ -309,11 +314,11 @@ async function run() {
     async function generateClient(accountType: AccountType.bot, userName: string): Promise<{ data: Store<BotData> | null, client: TwitchClient | null }>
     async function generateClient(accountType: AccountType.channel, userName: string): Promise<{ data: Store<ChannelData> | null, client: TwitchClient | null }>
     async function generateClient(accountType: AccountType.user, userName: string): Promise<{ data: Store<UserData> | null, client: TwitchClient | null }>
-    async function generateClient(accountType: AccountType, token: Token): Promise<{ data: Store<AccountData> | null, client: TwitchClient | null }>
-    async function generateClient<T extends AccountData>(accountType: AccountType, userNameOrToken: string | Token): Promise<{ data: Store<T> | null, client: TwitchClient | null }> {
+    async function generateClient(accountType: AccountType, token: TwitchToken): Promise<{ data: Store<AccountData> | null, client: TwitchClient | null }>
+    async function generateClient<T extends AccountData>(accountType: AccountType, userNameOrToken: string | TwitchToken): Promise<{ data: Store<T> | null, client: TwitchClient | null }> {
         let userName: string = ''
         let tokenPath: string = ''
-        let token: Token
+        let token: TwitchToken
         try {
             if (typeof userNameOrToken === 'string') {
                 userName = userNameOrToken
@@ -328,7 +333,7 @@ async function run() {
                 token = userNameOrToken
             }
 
-            const client = TwitchClient.withCredentials(CLIENT_ID, token.accessToken, token.scope, {
+            const authProvider = new RefreshableAuthProvider(new StaticAuthProvider(CLIENT_ID, token.accessToken, token.scope, 'user'), {
                 clientSecret: CLIENT_SECRET,
                 refreshToken: token.refreshToken,
                 onRefresh: async token => {
@@ -349,7 +354,11 @@ async function run() {
                         console.error(`Error refreshing token for ${accountType} ${userName}:`, e)
                     }
                 }
-            }, { preAuth: true })
+            })
+
+            const client = new TwitchClient({ authProvider })
+
+            await client.requestScopes(token.scope)
 
             const user = await client.helix.users.getMe()
             userName = user.name
@@ -484,7 +493,7 @@ async function run() {
                 }
 
                 function renderChannelView<T extends keyof ChannelViews>(req: express.Request, res: express.Response, view: T, args: Parameters<ChannelViews[T]>[0]) {
-                    const msg = getMessage(req)
+                    const msg = getMessage(req, name)
                     res.render(view, {
                         ...getChannelViewData(msg),
                         ...views[view](args as any, msg),
@@ -500,14 +509,16 @@ async function run() {
 
                 const sockets: WebSocket[] = []
 
-                const icons: Icon[] = []
-                icons.push(...await getTwitchEmotes(id))
-                icons.push(...await getTwitchBadges(id))
-                icons.push(...await getFFZEmotes(id))
-                icons.push(...await getBTTVEmotes(id))
-                icons.push(...await getTwitchEmotes('0'))
-                icons.push(...await getTwitchBadges('0'))
-                icons.push(...await getGlobalBTTVEmotes())
+                const icons: IconMap = {
+                    'Channel Emotes': await getTwitchEmotes(id),
+                    'Channel Badges': await getTwitchBadges(id),
+                    'FFZ Channel Emotes': await getFFZEmotes(id),
+                    'BTTV Channel Emotes': await getBTTVEmotes(id),
+                    'Global Twitch Emotes': await getTwitchEmotes('0'),
+                    'Global Twitch Badges': await getTwitchBadges('0'),
+                    'Global BTTV Emotes': await getGlobalBTTVEmotes(),
+                    'Social Media Icons': await getFontAwesomeBrandingIcons(),
+                }
 
                 const pubSubClient = new PubSubClient()
                 await pubSubClient.registerUserListener(client, id)
@@ -599,7 +610,7 @@ async function run() {
                     })
                 }
 
-                const webHookClient = new WebHookClient(client, new ReverseProxyAdapter({
+                const webHookClient = new WebHookListener(client, new ReverseProxyAdapter({
                     hostName: 'cheers.hawk.bar',
                     pathPrefix: `/${name}/hooks`,
                     listenerPort: 60004,
@@ -984,8 +995,10 @@ async function run() {
                     }),
                     'controlpanel-app': (args, msg) => ({
                         username: msg.username,
-                        channelData: data.get(d => d),
+                        modules: data.get(d => d.modules),
                         channels: getChannelsForUser(msg.username).map(c => c.name),
+                        botAccess: data.get(d => d.bots),
+                        userAccess: data.get(d => d.users),
                         icons,
                         panels: MODULE_TYPES.map(type => ({ type, open: true })),
                         updateTime: new Date(),
@@ -996,7 +1009,7 @@ async function run() {
                         changelog,
                     }),
                     'overlay-app': (args, msg) => ({
-                        channelData: data.get(d => d),
+                        modules: data.get(d => d.modules),
                         modes: getDisplayModes(data.get(d => d.modules.modeQueue.state.modes), data.get(d => d.modules.modeQueue.config.modes)),
                         meta: msg,
                         channel: name,
@@ -1010,14 +1023,14 @@ async function run() {
                     router.post(`/actions/${path}/`, async (req, res) => {
                         if (!hasTwitchAuth(req)) return respondTwitchAuthJSON(res)
                         if (!hasChannelAuth(req, name)) return respondChannelAuthJSON(res)
-                        res.type('json').send(JSON.stringify(actions[path](req.body, getMessage(req))))
+                        res.type('json').send(JSON.stringify(actions[path](req.body, getMessage(req, name))))
                     })
                 }
 
                 const viewPaths = Object.keys(views) as (keyof ChannelViews)[]
                 for (const path of viewPaths) {
                     router.get(`/data/${path}/`, async (req, res) => {
-                        res.type('json').send(JSON.stringify(views[path](req.query as any, getMessage(req))))
+                        res.type('json').send(JSON.stringify(views[path](req.query as any, getMessage(req, name))))
                     })
                 }
 
@@ -1096,7 +1109,7 @@ async function run() {
     }))
 
     app.get('/favicon.ico', (req, res, next) => {
-        if (isGirlDm(getMessage(req))) {
+        if (isGirlDm(getMessage(req, ''))) {
             res.sendFile(workingDir + '/static/favicon-girldm.ico')
             return
         }
@@ -1119,7 +1132,7 @@ async function run() {
         cookie: {
             httpOnly: true,
             secure: false,
-            sameSite: 'strict',
+            sameSite: 'lax',
             maxAge: 30 * 24 * 60 * 60 * 1000,
         },
         proxy: true,
@@ -1152,6 +1165,61 @@ async function run() {
         req.session?.destroy(err => {
             res.redirect('/')
         })
+    })
+
+    app.get('/oauth/discord/', async (req, res) => {
+        if (!hasTwitchAuth(req)) {
+            return renderGlobalView(req, res, 'message', {
+                message: 'Unable to verify your Twitch credentials in order to link your Discord account. :(',
+            })
+        }
+        const redirectUri = `https://${req.hostname}/oauth/discord/`
+        const code = String(req.query.code ?? '')
+
+        const request = await fetch(`https://discord.com/api/oauth2/token`, {
+            method: 'POST',
+            body: new URLSearchParams({
+                client_id: secrets.discord.clientID,
+                client_secret: secrets.discord.clientSecret,
+                grant_type: 'authorization_code',
+                redirect_uri: redirectUri,
+                code,
+                scope: DISCORD_SCOPES.join(' '),
+            }),
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            }
+        })
+
+        const data = await request.json() as DiscordTokenResponse
+
+        const token: DiscordToken = {
+            accessToken: data.access_token,
+            refreshToken: data.refresh_token,
+            expiration: Date.now() + data.expires_in * 1000,
+            scope: data.scope.split(' '),
+        }
+
+        const username = req.session.twitchUserName!
+
+        if (channels[username]) {
+            channels[username].data.update(d => {
+                d.discord = token
+            })
+        }
+
+        res.status(200)
+        renderGlobalView(req, res, 'message', { message: `Successfully linked Discord account!`, redirect: '/' })
+    })
+
+    app.get('/authorize/discord/redirect/', (req, res) => {
+        if (!hasTwitchAuth(req)) return respondTwitchAuthRedirect(res)
+        const redirectUri = encodeURIComponent(`https://${req.hostname}/oauth/discord/`)
+        const scopes = encodeURIComponent(DISCORD_SCOPES.join(' '))
+        const f = Discord.Permissions.FLAGS
+        const permissions = encodeURIComponent([f.ADD_REACTIONS, f.VIEW_CHANNEL, f.SEND_MESSAGES, f.EMBED_LINKS, f.CONNECT, f.USE_VAD, f.CHANGE_NICKNAME, f.USE_EXTERNAL_EMOJIS].reduce((p, c) => p | c))
+        const url = `https://discord.com/api/oauth2/authorize?response_type=code&client_id=${secrets.discord.clientID}&scope=${scopes}&redirect_uri=${redirectUri}&prompt=consent&permissions=${permissions}`
+        res.redirect(url)
     })
 
     setupAuthWorkflow(AccountType.bot, BOT_SCOPES)
@@ -1222,7 +1290,7 @@ async function run() {
                 ...getGlobalViewData(msg),
                 ...args,
                 username: msg.username,
-                userData: user ? user.data.get(d => d) : null,
+                channelAccess: user ? user.data.get(d => d.channels) : null,
                 changelog,
             }
         },
@@ -1232,14 +1300,14 @@ async function run() {
     for (const path of actionPaths) {
         app.post(`/actions/${path}/`, async (req, res) => {
             if (!hasTwitchAuth(req)) return respondTwitchAuthJSON(res)
-            res.type('json').send(JSON.stringify(actions[path](req.body, getMessage(req))))
+            res.type('json').send(JSON.stringify(actions[path](req.body, getMessage(req, ''))))
         })
     }
 
     const viewPaths = Object.keys(views) as (keyof GlobalViews)[]
     for (const path of viewPaths) {
         app.get(`/data/${path}/`, async (req, res) => {
-            res.type('json').send(JSON.stringify(views[path](req.query as any, getMessage(req))))
+            res.type('json').send(JSON.stringify(views[path](req.query as any, getMessage(req, ''))))
         })
     }
 

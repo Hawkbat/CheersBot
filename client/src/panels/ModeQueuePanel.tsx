@@ -4,7 +4,7 @@ import { PanelField } from '../controls/PanelField'
 import { QueuedMode } from '../controls/QueuedMode'
 import { Button } from '../controls/Button'
 import { channelAction, classes } from '../utils'
-import { TwitchIconPicker } from '../controls/TwitchIconPicker'
+import { ExternalIconPicker } from '../controls/ExternalIconPicker'
 import { Toggle } from '../controls/Toggle'
 
 export function ModeQueuePanel(props: ControlPanelAppViewData & ModuleDataType<'modeQueue'> & { page: ControlPanelPage }) {
@@ -27,7 +27,7 @@ export function ModeQueuePanel(props: ControlPanelAppViewData & ModuleDataType<'
                         {props.state.modes.length ? props.state.modes.map(e => <QueuedMode key={e.id} mode={e} config={props.config.modes.find(m => m.id === e.configID)!} />) : <i>No modes currently queued</i>}
                     </div>
                 </PanelField>
-                {props.channelData.modules.debug.config.enabled ? <></> : <audio id="alarm" src="/alarm.wav" loop />}
+                {props.modules.debug.config.enabled ? <></> : <audio id="alarm" src="/alarm.wav" loop />}
             </>
         case ControlPanelPage.edit:
             return <>
@@ -39,7 +39,7 @@ export function ModeQueuePanel(props: ControlPanelAppViewData & ModuleDataType<'
                                 <input type="text" defaultValue={m.redeemName} onChange={e => channelAction('modequeue/edit-mode', { id: m.id, redeemName: e.target.value })} />
                             </PanelField>
                             <PanelField label="Emote" help="This emote is shown in the overlay when the mode is redeemed">
-                                <TwitchIconPicker selected={m.emote} options={props.icons} onSelect={v => channelAction('modequeue/edit-mode', { id: m.id, emote: v })} />
+                                <ExternalIconPicker selected={m.emote} options={props.icons} onSelect={v => channelAction('modequeue/edit-mode', { id: m.id, emote: v })} />
                             </PanelField>
                             <PanelField label="Show Username" help="Whether the username of the person who redeemed the mode should be displayed in the overlay before the rest of the text">
                                 <Toggle value={m.showUsername} onToggle={v => channelAction('modequeue/edit-mode', { id: m.id, showUsername: v })} />

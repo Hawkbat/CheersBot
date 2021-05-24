@@ -1,7 +1,8 @@
 import { Icon } from 'shared'
 import * as React from 'react'
+import { Icon as IconComponent } from './Icon'
 
-export function TwitchIcon(props: { icon: Icon, size: 1 | 2 | 3 }) {
+export function ExternalIcon(props: { icon: Icon, size: 1 | 2 | 3 }) {
     let src
     let type
     switch (props.icon.type) {
@@ -21,12 +22,20 @@ export function TwitchIcon(props: { icon: Icon, size: 1 | 2 | 3 }) {
             src = `https://cdn.betterttv.net/emote/${props.icon.id}/${props.size}x`
             type = 'BTTV Emote'
             break
+        case 'discord':
+            src = `https://cdn.discordapp.com/emojis/${props.icon.id}.png`
+            type = 'Discord'
+            break
         case 'logo':
             src = `/logos/${props.icon.id}-${props.size}.png`
             type = 'Logo'
             break
+        case 'fa-brand':
+            return <div className="ExternalIcon" data-size={props.size}>
+                <IconComponent data-size={props.size} fixedWidth icon={props.icon.id} style="brand" />
+            </div>
     }
-    return <div className="TwitchIcon" data-size={props.size}>
+    return <div className="ExternalIcon" data-size={props.size}>
         <img title={`${props.icon.name} (${type})`} src={src}></img>
     </div>
 }

@@ -25,14 +25,14 @@ export async function refresh() {
 const defaultEmote: Icon = { id: 'hawkbar', name: 'Hawkbar', type: 'logo' }
 
 export function OverlayApp(props: OverlayAppViewData) {
-    const headpats = props.channelData.modules.headpats
-    const evilDm = props.channelData.modules.evilDm
-    const winLoss = props.channelData.modules.winLoss
-    const modeQueue = props.channelData.modules.modeQueue
-    const customMessage = props.channelData.modules.customMessage
-    const counters = props.channelData.modules.counters
+    const headpats = props.modules.headpats
+    const evilDm = props.modules.evilDm
+    const winLoss = props.modules.winLoss
+    const modeQueue = props.modules.modeQueue
+    const customMessage = props.modules.customMessage
+    const counters = props.modules.counters
 
-    return <div className="Overlay" style={getChannelCSS(props.channelData)}>
+    return <div className="Overlay" style={getChannelCSS(props.modules.channelInfo.config)}>
         {customMessage.state.messages.map(m => <Bubble key={m.id} visible={m.visible} icon={m.emote ?? defaultEmote} msg={m.message} />)}
         <Bubble visible={headpats.config.enabled && headpats.state.count > 0} icon={headpats.config.emote ?? defaultEmote} username={'' + headpats.state.count} msg={'headpat' + (headpats.state.count !== 1 ? 's' : '') + ' redeemed!'} />
         <Bubble visible={evilDm.config.enabled && evilDm.state.count > 0 && (evilDm.state.time + 10000) > Date.now()} icon={evilDm.config.emote ?? defaultEmote} username={'evil_dm_'} msg={`has confessed to her crimes ${evilDm.state.count} time${evilDm.state.count === 1 ? '' : 's'}!`} />

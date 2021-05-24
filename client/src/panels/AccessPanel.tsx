@@ -1,4 +1,4 @@
-import { ChannelData, AccountType, Access, UserData, BotData } from 'shared'
+import { AccountType, Access, AccessMap } from 'shared'
 import * as React from 'react'
 import { channelAction, globalAction } from '../utils'
 import { PanelGroup } from '../controls/PanelGroup'
@@ -17,22 +17,9 @@ async function setAccess(type: AccountType, id: string, access: Access) {
     }
 }
 
-export function AccessPanel(props: { data: ChannelData | UserData | BotData, type: AccountType }) {
+export function AccessPanel(props: { access: AccessMap, type: AccountType }) {
 
     const label = AccountType[props.type].substr(0, 1).toUpperCase() + AccountType[props.type].substr(1)
-
-    let users: { [key: string]: Access }
-    switch (props.type) {
-        case AccountType.bot:
-            users = (props.data as ChannelData).bots
-            break
-        case AccountType.user:
-            users = (props.data as ChannelData).users
-            break
-        case AccountType.channel:
-            users = (props.data as UserData | BotData).channels
-            break
-    }
 
     const accessSort = (a: [string, Access], b: [string, Access]): number => {
         const order: Access[] = [Access.approved, Access.pending, Access.denied]
@@ -43,7 +30,7 @@ export function AccessPanel(props: { data: ChannelData | UserData | BotData, typ
 
     return <div className="draggable">
         <PanelGroup label={label + 's'} open={true}>
-            {Object.entries(users).sort(accessSort).map(e => <PanelField key={e[0]} label={e[0]}>
+            {Object.entries(props.access).sort(accessSort).map(e => <PanelField key={e[0]} label={e[0]}>
                 <Dropdown selected={e[1]} options={Object.keys(Access).map(o => ({ value: o, text: o.substr(0, 1).toUpperCase() + o.substr(1) }))} onSelect={async v => await setAccess(props.type, e[0], v as Access)} />
             </PanelField>)}
             <hr />

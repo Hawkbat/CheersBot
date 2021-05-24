@@ -23,7 +23,7 @@ export async function refresh() {
             ReactDOM.render(<ControlPanelApp {...data} updateTime={new Date()} />, document.getElementById('app'))
 
             const pingTime = Date.now()
-            if (data.channelData.modules.modeQueue.state.modes.some(m => m.startTime && lastPingTime < (m.startTime + (m.duration ?? 0)) && pingTime >= (m.startTime + (m.duration ?? 0)))) {
+            if (data.modules.modeQueue.state.modes.some(m => m.startTime && lastPingTime < (m.startTime + (m.duration ?? 0)) && pingTime >= (m.startTime + (m.duration ?? 0)))) {
                 try {
                     const alarm = document.getElementById('alarm') as HTMLAudioElement
                     alarm.play()
@@ -57,7 +57,7 @@ export function ControlPanelApp(props: ControlPanelAppViewData) {
         const module = getModule(p.type)
         switch (page) {
             case ControlPanelPage.edit: return module !== null
-            case ControlPanelPage.view: return !module || module.getData(props.channelData).config.enabled
+            case ControlPanelPage.view: return !module || module.getData(props.modules).config.enabled
             case ControlPanelPage.access: return false
         }
     })
@@ -81,7 +81,7 @@ export function ControlPanelApp(props: ControlPanelAppViewData) {
         })
     }
 
-    return <div className={classes('ControlPanel')} style={getChannelCSS(props.channelData)}>
+    return <div className={classes('ControlPanel')} style={getChannelCSS(props.modules.channelInfo.config)}>
         <DragDropContext onDragEnd={(result, provided) => {
             if (result.destination) movePanels(result.source.index, result.destination.index)
         }}>
@@ -94,14 +94,20 @@ export function ControlPanelApp(props: ControlPanelAppViewData) {
             <Droppable droppableId={'control-panel'}>
                 {(provided, snapshot) => <div className={classes("droppable", { dropping: snapshot.isDraggingOver })} ref={provided.innerRef} {...provided.droppableProps}>
                     {page === ControlPanelPage.access
-                        ? [AccountType.bot, AccountType.user].map((type, i) =>
-                            <Draggable key={type} draggableId={type} index={i}>
+                        ? <>
+                            <Draggable key={AccountType.bot} draggableId={AccountType.bot} index={0}>
                                 {(provided, snapshot) => <div className={classes('draggable', { dragging: snapshot.isDragging })} {...provided.draggableProps} ref={provided.innerRef}>
-                                    <AccessPanel type={type} data={props.channelData} />
+                                    <AccessPanel type={AccountType.bot} access={props.botAccess} />
                                     <div className="dragger" {...provided.dragHandleProps}></div>
                                 </div>}
                             </Draggable>
-                        )
+                            <Draggable key={AccountType.user} draggableId={AccountType.user} index={1}>
+                                {(provided, snapshot) => <div className={classes('draggable', { dragging: snapshot.isDragging })} {...provided.draggableProps} ref={provided.innerRef}>
+                                    <AccessPanel type={AccountType.user} access={props.userAccess} />
+                                    <div className="dragger" {...provided.dragHandleProps}></div>
+                                </div>}
+                            </Draggable>
+                        </>
                         : sortedPanels.map((p, i) =>
                             <Draggable key={p.type} draggableId={p.type} index={i}>
                                 {(provided, snapshot) => <div className={classes('draggable', { dragging: snapshot.isDragging })} {...provided.draggableProps} ref={provided.innerRef}>

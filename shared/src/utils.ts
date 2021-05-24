@@ -41,7 +41,7 @@ export function debounce(ms: number, token: WaitToken): Promise<void> {
     })
 }
 
-export function mergePartials<T extends { [key: string]: any }>(base: T, ...targets: DeepPartial<T>[]) {
+export function mergePartials<T extends { [key: string]: any }>(base: T, ...targets: { [key: string]: any }[]) : T {
     let data: any = { ...base }
     for (const target of targets) {
         for (const key of Object.keys(target)) {
@@ -66,7 +66,8 @@ export type DeepPartial<T> =
     T extends Array<infer U> ? T :
     T extends Map<infer K, infer V> ? T :
     T extends Set<infer S> ? T :
-    { [P in keyof T]?: DeepPartial<T[P]> }
+    T extends object ? { [P in keyof T]?: DeepPartial<T[P]> } :
+    T
 
 export type Immutable<T> =
     T extends Function | boolean | number | string | null | undefined ? T :

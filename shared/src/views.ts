@@ -1,5 +1,6 @@
-import { Icon, ChannelData, AccountType, Access, UserData, Changelog } from './data'
-import { ModuleType, ModeQueueModeConfig, VodQueueConfigData, RedeemModeDisplay, CustomMessage, CounterConfig, Counter } from './modules'
+import { AccessMap, IconMap } from './data'
+import { Icon, AccountType, Access, Changelog } from './data'
+import { ModuleType, ModeQueueModeConfig, VodQueueConfigData, RedeemModeDisplay, CustomMessage, CounterConfig, Counter, ModuleDataType } from './modules'
 
 export interface BaseViewData {
     meta: MessageMeta
@@ -48,9 +49,11 @@ export interface PanelViewData {
 export interface ControlPanelAppViewData extends ChannelBaseViewData {
     username: string
     channel: string
-    channelData: ChannelData
+    modules: { [key in ModuleType]: ModuleDataType<key> }
+    userAccess: AccessMap
+    botAccess: AccessMap
     channels: string[]
-    icons: Icon[]
+    icons: IconMap
     panels: PanelViewData[]
     updateTime: Date
     changelog: Changelog
@@ -58,13 +61,13 @@ export interface ControlPanelAppViewData extends ChannelBaseViewData {
 
 export interface OverlayAppViewData extends ChannelBaseViewData {
     channel: string
-    channelData: ChannelData
+    modules: { [key in ModuleType]: ModuleDataType<key> }
     modes: RedeemModeDisplay[]
 }
 
 export interface LandingAppViewData extends GlobalBaseViewData {
     username: string
-    userData: UserData | null
+    channelAccess: AccessMap | null
     changelog: Changelog
 }
 

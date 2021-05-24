@@ -1,5 +1,5 @@
-import { Icon, ChannelData, ModuleVersion } from '../data'
-import { ModuleStateData, ModuleConfigData, Module } from './common'
+import { Icon, ModuleVersion } from '../data'
+import { ModuleStateData, ModuleConfigData, Module, ModuleMap } from './common'
 
 export interface EvilDmStateData extends ModuleStateData {
     count: number
@@ -14,5 +14,5 @@ export const EvilDmModule: Module<EvilDmStateData, EvilDmConfigData> = {
     name: 'Evil DM',
     description: 'Keeps an overlay counter of how many times a certain channel point reward is redeemed with certain keywords in the message.',
     version: ModuleVersion.girldm,
-    getData: (data: ChannelData) => data.modules.evilDm,
+    getData: (modules: ModuleMap) => modules.evilDm,
 }

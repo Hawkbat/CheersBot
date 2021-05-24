@@ -1,5 +1,5 @@
-import { ChannelData, ModuleVersion } from '../'
-import { ModuleStateData, ModuleConfigData, Module } from './common'
+import { ModuleVersion } from '../'
+import { ModuleStateData, ModuleConfigData, Module, ModuleMap } from './common'
 
 export interface UserQueueEntry {
     id: string
@@ -33,5 +33,5 @@ export const UserQueueModule: Module<UserQueueStateData, UserQueueConfigData> = 
     name: 'User Queue',
     description: 'Allows Twitch chat to submit entries into a queue the streamer can then draw from. Could be used for raffles, viewer game drafting, and similar events.',
     version: ModuleVersion.preAlpha,
-    getData: (data: ChannelData) => data.modules.userQueue,
+    getData: (modules: ModuleMap) => modules.userQueue,
 }

@@ -3,7 +3,7 @@ import { ControlPanelAppViewData, ModuleDataType, ControlPanelPage } from 'share
 import { Button } from '../controls/Button'
 import { PanelField } from '../controls/PanelField'
 import { Toggle } from '../controls/Toggle'
-import { TwitchIconPicker } from '../controls/TwitchIconPicker'
+import { ExternalIconPicker } from '../controls/ExternalIconPicker'
 import { channelAction, classes } from '../utils'
 
 
@@ -18,7 +18,7 @@ export function CustomMessagePanel(props: ControlPanelAppViewData & ModuleDataTy
                                 <Toggle value={m.visible} onToggle={v => channelAction('custommessage/edit-message', { id: m.id, visible: v })} />
                             </PanelField>
                             <PanelField label="Emote" help="The emote shown in the overlay">
-                                <TwitchIconPicker selected={m.emote} options={props.icons} onSelect={v => channelAction('custommessage/edit-message', { id: m.id, emote: v })} />
+                                <ExternalIconPicker selected={m.emote} options={props.icons} onSelect={v => channelAction('custommessage/edit-message', { id: m.id, emote: v })} />
                             </PanelField>
                             <PanelField label="Message" help="The text displayed in the overlay">
                                 <input type="text" defaultValue={m.message} onChange={e => channelAction('custommessage/edit-message', { id: m.id, message: e.target.value })} />

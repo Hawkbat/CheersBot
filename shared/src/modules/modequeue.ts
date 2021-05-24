@@ -1,5 +1,5 @@
-import { Icon, ChannelData, ModuleVersion } from '../'
-import { ModuleStateData, ModuleConfigData, Module } from './common'
+import { Icon, ModuleVersion } from '../'
+import { ModuleStateData, ModuleConfigData, Module, ModuleMap } from './common'
 
 export interface RedeemMode {
     id: string
@@ -43,5 +43,5 @@ export const ModeQueueModule: Module<ModeQueueStateData, ModeQueueConfigData> = 
     name: 'Mode Queue',
     description: 'Displays "modes" in the overlay that can be controlled with timers, when certain channel point rewards are redeemed.',
     version: ModuleVersion.released,
-    getData: (data: ChannelData) => data.modules.modeQueue,
+    getData: (modules: ModuleMap) => modules.modeQueue,
 }

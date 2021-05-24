@@ -3,7 +3,7 @@ import { ControlPanelAppViewData, ModuleDataType, ControlPanelPage, CounterVisib
 import { Dropdown } from '../controls/Dropdown'
 import { Button } from '../controls/Button'
 import { PanelField } from '../controls/PanelField'
-import { TwitchIconPicker } from '../controls/TwitchIconPicker'
+import { ExternalIconPicker } from '../controls/ExternalIconPicker'
 import { channelAction, classes } from '../utils'
 import { CounterEntry } from 'src/controls/CounterEntry'
 
@@ -13,7 +13,7 @@ export function CountersPanel(props: ControlPanelAppViewData & ModuleDataType<'c
         case ControlPanelPage.view:
             return <>
                 <PanelField>
-                    <div id="modes">
+                    <div id="counters">
                         {props.config.configs.map(c => <CounterEntry key={c.id} config={c} value={{ count: 0, ...props.state.counters[c.id] }} />)}
                     </div>
                 </PanelField>
@@ -22,13 +22,13 @@ export function CountersPanel(props: ControlPanelAppViewData & ModuleDataType<'c
             return <>
                 <hr />
                 <PanelField>
-                    <div id="modes">
+                    <div id="counters">
                         {props.config.configs.map(c => <div key={c.id} className={classes('QueuedEvent')}>
                             <PanelField label="Reward Name" help="This should be the exact name displayed for the channel point reward in Twitch">
                                 <input type="text" defaultValue={c.redeemName} onChange={e => channelAction('counters/edit-config', { id: c.id, redeemName: e.target.value })} />
                             </PanelField>
                             <PanelField label="Emote" help="This emote is shown in the overlay when the counter changes">
-                                <TwitchIconPicker selected={c.emote} options={props.icons} onSelect={v => channelAction('counters/edit-config', { id: c.id, emote: v })} />
+                                <ExternalIconPicker selected={c.emote} options={props.icons} onSelect={v => channelAction('counters/edit-config', { id: c.id, emote: v })} />
                             </PanelField>
                             <PanelField label="Message" help="The text displayed while the counter is visible. You can use [maximum] to stand for the configured maximum count, if applicable">
                                 <input type="text" defaultValue={c.message} onChange={e => channelAction('counters/edit-config', { id: c.id, message: e.target.value })} />

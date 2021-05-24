@@ -1,33 +1,8 @@
-import { ModuleType, ModuleDataType } from './modules'
 
 export enum AccountType {
     bot = 'bot',
     channel = 'channel',
     user = 'user',
-}
-
-export interface Token {
-    accessToken: string
-    refreshToken: string
-    scope: string[]
-}
-
-export interface AccountData {
-    token: Token
-}
-
-export interface BotData extends AccountData {
-    channels: { [key: string]: Access }
-}
-
-export interface ChannelData extends AccountData {
-    bots: { [key: string]: Access }
-    users: { [key: string]: Access }
-    modules: { [key in ModuleType]: ModuleDataType<key> }
-}
-
-export interface UserData extends AccountData {
-    channels: { [key: string]: Access }
 }
 
 export enum Access {
@@ -36,10 +11,18 @@ export enum Access {
     approved = 'approved',
 }
 
+export interface AccessMap {
+    [key: string]: Access
+}
+
 export interface Icon {
-    type: 'emote' | 'badge' | 'ffz' | 'bttv' | 'logo'
+    type: 'emote' | 'badge' | 'ffz' | 'bttv' | 'discord' | 'logo' | 'fa-brand'
     id: string
     name: string
+}
+
+export interface IconMap {
+    [key: string]: Icon[]
 }
 
 export interface Changelog {

@@ -1,5 +1,5 @@
-import { ChannelData, ModuleVersion } from '../data'
-import { ModuleStateData, ModuleConfigData, Module } from './common'
+import { ModuleVersion } from '../data'
+import { ModuleStateData, ModuleConfigData, Module, ModuleMap } from './common'
 
 export enum TwitchSubTypes {
     tier1 = 'Tier 1',
@@ -159,5 +159,5 @@ export const EventQueueModule: Module<EventQueueStateData, EventQueueConfigData>
     name: 'Event Queue',
     description: 'Generic notification/alert system for various Twitch events, including channel point redemptions.',
     version: ModuleVersion.preAlpha,
-    getData: (data: ChannelData) => data.modules.eventQueue,
+    getData: (modules: ModuleMap) => modules.eventQueue,
 }

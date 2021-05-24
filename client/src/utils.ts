@@ -1,4 +1,4 @@
-import { parseJSON, ChannelActions, ChannelViews, GlobalActions, GlobalViews, ChannelData } from 'shared'
+import { parseJSON, ChannelActions, ChannelViews, GlobalActions, GlobalViews, ChannelInfoConfigData } from 'shared'
 
 export function classes(...args: (string | string[] | { [key: string]: boolean })[]): string {
     const list = []
@@ -128,9 +128,9 @@ export async function globalView<K extends keyof GlobalViews>(view: K): Promise<
     }
 }
 
-export function getChannelCSS(data: ChannelData): React.CSSProperties {
+export function getChannelCSS(config: ChannelInfoConfigData): React.CSSProperties {
     return {
-        '--accent-color': data.modules.channelInfo.config.accentColor,
-        '--muted-color': data.modules.channelInfo.config.mutedColor,
+        '--accent-color': config.accentColor,
+        '--muted-color': config.mutedColor,
     } as React.CSSProperties
 }

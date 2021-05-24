@@ -3,7 +3,7 @@ import { ControlPanelAppViewData, ControlPanelPage, ModuleDataType } from 'share
 import { PanelField } from '../controls/PanelField'
 import { getNumberValue, setNumberValue, channelAction } from '../utils'
 import { Button } from '../controls/Button'
-import { TwitchIconPicker } from '../controls/TwitchIconPicker'
+import { ExternalIconPicker } from '../controls/ExternalIconPicker'
 
 async function clearEvil() {
     try {
@@ -44,7 +44,7 @@ export function EvilDmPanel(props: ControlPanelAppViewData & ModuleDataType<'evi
             return <>
                 <hr />
                 <PanelField label="Emote" help="The emote displayed in the overlay when an evil say-something redeem happens">
-                    <TwitchIconPicker selected={props.config.emote} options={props.icons} onSelect={v => channelAction('evildm/set-emote', { emote: v })} />
+                    <ExternalIconPicker selected={props.config.emote} options={props.icons} onSelect={v => channelAction('evildm/set-emote', { emote: v })} />
                 </PanelField>
             </>
         default:

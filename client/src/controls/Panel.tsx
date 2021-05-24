@@ -23,32 +23,32 @@ export function Panel(props: { page: ControlPanelPage, panel: PanelViewData, dat
             ? <>
                 <PanelField><span>{module.version ? <><Info text={module.version} tooltip={VERSION_TOOLTIPS[module.version]} />&nbsp;</> : <></>}{module.description}</span></PanelField>
                 <hr />
-                <PanelField label="Enabled"><Toggle value={module.getData(props.data.channelData).config.enabled} onToggle={async v => await channelAction('config/enable-module', { type: props.panel.type, enabled: v })} /></PanelField>
+                <PanelField label="Enabled"><Toggle value={module.getData(props.data.modules).config.enabled} onToggle={async v => await channelAction('config/enable-module', { type: props.panel.type, enabled: v })} /></PanelField>
             </>
             : <></>}
         {(() => {
-            if (props.page === ControlPanelPage.edit && !module.getData(props.data.channelData).config.enabled) return <></>
+            if (props.page === ControlPanelPage.edit && !module.getData(props.data.modules).config.enabled) return <></>
             switch (props.panel.type) {
                 case 'headpats':
-                    return <HeadpatsPanel page={props.page} {...props.data} {...getModule(props.panel.type).getData(props.data.channelData)} />
+                    return <HeadpatsPanel page={props.page} {...props.data} {...getModule(props.panel.type).getData(props.data.modules)} />
                 case 'evilDm':
-                    return <EvilDmPanel page={props.page} {...props.data} {...getModule(props.panel.type).getData(props.data.channelData)} />
+                    return <EvilDmPanel page={props.page} {...props.data} {...getModule(props.panel.type).getData(props.data.modules)} />
                 case 'modeQueue':
-                    return <ModeQueuePanel page={props.page} {...props.data} {...getModule(props.panel.type).getData(props.data.channelData)} />
+                    return <ModeQueuePanel page={props.page} {...props.data} {...getModule(props.panel.type).getData(props.data.modules)} />
                 case 'winLoss':
-                    return <WinLossPanel page={props.page} {...props.data} {...getModule(props.panel.type).getData(props.data.channelData)} />
+                    return <WinLossPanel page={props.page} {...props.data} {...getModule(props.panel.type).getData(props.data.modules)} />
                 case 'userQueue':
-                    return <UserQueuePanel page={props.page} {...props.data} {...getModule(props.panel.type).getData(props.data.channelData)} />
+                    return <UserQueuePanel page={props.page} {...props.data} {...getModule(props.panel.type).getData(props.data.modules)} />
                 case 'vodQueue':
-                    return <VodQueuePanel page={props.page} {...props.data} {...getModule(props.panel.type).getData(props.data.channelData)} />
+                    return <VodQueuePanel page={props.page} {...props.data} {...getModule(props.panel.type).getData(props.data.modules)} />
                 case 'customMessage':
-                    return <CustomMessagePanel page={props.page} {...props.data} {...getModule(props.panel.type).getData(props.data.channelData)} />
+                    return <CustomMessagePanel page={props.page} {...props.data} {...getModule(props.panel.type).getData(props.data.modules)} />
                 case 'counters':
-                    return <CountersPanel page={props.page} {...props.data} {...getModule(props.panel.type).getData(props.data.channelData)} />
+                    return <CountersPanel page={props.page} {...props.data} {...getModule(props.panel.type).getData(props.data.modules)} />
                 case 'channelInfo':
-                    return <ChannelInfoPanel page={props.page} {...props.data} {...getModule(props.panel.type).getData(props.data.channelData)} />
+                    return <ChannelInfoPanel page={props.page} {...props.data} {...getModule(props.panel.type).getData(props.data.modules)} />
                 case 'debug':
-                    return <DebugPanel page={props.page} {...props.data} {...getModule(props.panel.type).getData(props.data.channelData)} />
+                    return <DebugPanel page={props.page} {...props.data} {...getModule(props.panel.type).getData(props.data.modules)} />
             }
         })()}
     </PanelGroup>

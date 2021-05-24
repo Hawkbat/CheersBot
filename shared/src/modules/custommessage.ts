@@ -1,5 +1,5 @@
-import { Icon, ChannelData, ModuleVersion } from '../data'
-import { ModuleStateData, ModuleConfigData, Module } from './common'
+import { Icon, ModuleVersion } from '../data'
+import { ModuleStateData, ModuleConfigData, Module, ModuleMap } from './common'
 
 export interface CustomMessage {
     id: string
@@ -20,5 +20,5 @@ export const CustomMessageModule: Module<CustomMessageStateData, CustomMessageCo
     name: 'Custom Messages',
     description: 'Displays custom overlay messages similar to the ones used by other features.',
     version: ModuleVersion.beta,
-    getData: (data: ChannelData) => data.modules.customMessage,
+    getData: (modules: ModuleMap) => modules.customMessage,
 }

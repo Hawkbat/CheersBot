@@ -29,13 +29,13 @@ export async function refresh() {
 export function LandingApp(props: LandingAppViewData) {
     return <div className="Landing">
         <Changelog changelog={props.changelog.changelog} />
-        {props.userData ? <>
+        {props.channelAccess ? <>
             <div className="draggable">
                 <PanelGroup label="Your Control Panels">
                     <PanelField>Select a channel from the list below to access the corresponding control panel!</PanelField>
                     <PanelField>
                         <div className="list">
-                            {Object.keys(props.userData.channels).map(c => <React.Fragment key={c}><Button href={`/${c}/`}>{c}</Button>&nbsp;</React.Fragment>)}
+                            {Object.keys(props.channelAccess).map(c => <React.Fragment key={c}><Button href={`/${c}/`}>{c}</Button>&nbsp;</React.Fragment>)}
                         </div>
                     </PanelField>
                     <hr />
@@ -46,13 +46,13 @@ export function LandingApp(props: LandingAppViewData) {
                     </PanelField>
                 </PanelGroup>
             </div>
-            <AccessPanel type={AccountType.channel} data={props.userData} />
+            <AccessPanel type={AccountType.channel} access={props.channelAccess} />
         </> : <>
                 <section>
                     <p>
                         The Heccin Cheers Bot is a streaming platform integration similar to Streamlabs that provides various functionality for your live broadcasts! Features include:
                         <ul>
-                            {Object.values(MODULES).filter(m => m.version === ModuleVersion.beta || m.version === ModuleVersion.released).map(m => <li>{m.name}</li>)}
+                            {Object.values(MODULES).filter(m => m.version === ModuleVersion.beta || m.version === ModuleVersion.released).map((m, i) => <li key={i}>{m.name}</li>)}
                             <li>And more to come!</li>
                         </ul>
                     </p>

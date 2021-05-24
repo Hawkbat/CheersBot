@@ -3,7 +3,7 @@ import { ControlPanelAppViewData, ControlPanelPage, ModuleDataType } from 'share
 import { PanelField } from '../controls/PanelField'
 import { getNumberValue, setNumberValue, channelAction } from '../utils'
 import { Button } from '../controls/Button'
-import { TwitchIconPicker } from '../controls/TwitchIconPicker'
+import { ExternalIconPicker } from '../controls/ExternalIconPicker'
 
 async function clearHeadpats() {
     try {
@@ -44,7 +44,7 @@ export function HeadpatsPanel(props: ControlPanelAppViewData & ModuleDataType<'h
             return <>
                 <hr />
                 <PanelField label="Emote" help="The emote displayed in the overlay when there are pending headpats">
-                    <TwitchIconPicker selected={props.config.emote} options={props.icons} onSelect={v => channelAction('headpats/set-emote', { emote: v })} />
+                    <ExternalIconPicker selected={props.config.emote} options={props.icons} onSelect={v => channelAction('headpats/set-emote', { emote: v })} />
                 </PanelField>
             </>
         default:
