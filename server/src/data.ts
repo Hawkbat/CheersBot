@@ -15,6 +15,10 @@ export interface Secrets {
         clientSecret: string
         botToken: string
     }
+    azure: {
+        speechSubKey: string
+        speechRegion: string
+    }
     session: {
         secret: string
     }
@@ -35,7 +39,6 @@ export interface Bot extends Account<BotData> {
 
 export interface Channel extends Account<ChannelData> {
     pubSubClient: PubSubClient
-    webHookClient: WebHookListener
     router: Router
 }
 

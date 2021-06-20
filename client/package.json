@@ -6,15 +6,19 @@
   "scripts": {
     "prebuild": "rimraf out tsconfig.tsbuildinfo",
     "build": "npm i && tsc -b ./ && npx webpack",
+    "postbuild": "npm i",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
   "license": "NO-LICENSE",
   "dependencies": {
+    "@types/react-transition-group": "^4.4.1",
     "react": "^16.13.1",
     "react-beautiful-dnd": "^13.0.0",
     "react-dom": "^16.13.1",
-    "shared": "file:../shared"
+    "react-transition-group": "^4.4.2",
+    "shared": "file:../shared",
+    "tone": "^14.7.77"
   },
   "private": true,
   "devDependencies": {

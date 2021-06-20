@@ -1,12 +1,13 @@
 import * as React from 'react'
-import { ControlPanelAppViewData, ControlPanelPage, ModuleDataType, VodQueueGame } from 'shared'
+import { ControlPanelAppViewData, ControlPanelPage, ModuleDataType, PanelViewDataProps, VodQueueGame } from 'shared'
 import { PanelField } from '../controls/PanelField'
 import { channelAction } from '../utils'
 import { Dropdown } from '../controls/Dropdown'
 import { QueuedVod } from '../controls/QueuedVod'
 import { Button } from '../controls/Button'
+import { TwitchRewardDropdown } from '../controls/TwitchRewardDropdown'
 
-export function VodQueuePanel(props: ControlPanelAppViewData & ModuleDataType<'vodQueue'> & { page: ControlPanelPage }) {
+export function VodQueuePanel(props: ControlPanelAppViewData & ModuleDataType<'vodQueue'> & PanelViewDataProps) {
     const [tested, setTested] = React.useState(false)
 
     const mockVod = async () => {
@@ -37,8 +38,8 @@ export function VodQueuePanel(props: ControlPanelAppViewData & ModuleDataType<'v
         case ControlPanelPage.edit:
             return <>
                 <hr />
-                <PanelField label="Reward Name" help="This should be exactly the same as the name displayed for the channel point reward in Twitch">
-                    <input type="text" defaultValue={props.config.redeemName} onChange={e => channelAction('vodqueue/set-config', { redeemName: e.target.value })} />
+                <PanelField label="Reward" help="This is the channel point reward in Twitch that will add an entry to the queue">
+                    <TwitchRewardDropdown nullable selectedID={props.config.redeemID} selectedName={props.config.redeemName} onSelect={(id, name) => channelAction('vodqueue/set-config', { redeemID: id, redeemName: name })} />
                 </PanelField>
                 <PanelField label="Game" help="The game this queue is configured for; provides additional functionality">
                     <Dropdown options={Object.values(VodQueueGame).map(e => ({ value: e }))} selected={props.config.game} onSelect={v => channelAction('vodqueue/set-config', { game: v as VodQueueGame })} />

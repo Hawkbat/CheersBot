@@ -25,6 +25,19 @@ export interface IconMap {
     [key: string]: Icon[]
 }
 
+export interface TtsMessage {
+    id: string
+    text: string
+    voice: string
+    style: string
+    pitch: number
+}
+
+export interface TwitchReward {
+    id: string
+    name: string
+}
+
 export interface Changelog {
     changelog: ChangelogVersion[]
 }

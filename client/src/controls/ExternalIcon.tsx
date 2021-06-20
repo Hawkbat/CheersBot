@@ -31,7 +31,7 @@ export function ExternalIcon(props: { icon: Icon, size: 1 | 2 | 3 }) {
             type = 'Logo'
             break
         case 'fa-brand':
-            return <div className="ExternalIcon" data-size={props.size}>
+            return <div className="ExternalIcon" data-size={props.size} title={`${props.icon.name} (Brand Logo)`}>
                 <IconComponent data-size={props.size} fixedWidth icon={props.icon.id} style="brand" />
             </div>
     }

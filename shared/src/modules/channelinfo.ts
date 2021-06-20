@@ -9,6 +9,8 @@ export interface ChannelInfoConfigData extends ModuleConfigData {
     accentColor: string
     mutedColor: string
     commandPrefix: string
+    overlayCorner?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
+    experimentalModules?: boolean
 }
 
 export const ChannelInfoModule: Module<ChannelInfoStateData, ChannelInfoConfigData> = {

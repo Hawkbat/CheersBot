@@ -1,12 +1,12 @@
 import * as React from 'react'
-import { ControlPanelAppViewData, ControlPanelPage, ModuleDataType } from 'shared'
+import { ControlPanelAppViewData, ControlPanelPage, ModuleDataType, PanelViewDataProps } from 'shared'
 import { PanelField } from '../controls/PanelField'
 import { channelAction } from '../utils'
 import { Button } from '../controls/Button'
 import { Toggle } from '../controls/Toggle'
 import { ExternalIconPicker } from '../controls/ExternalIconPicker'
 
-export function WinLossPanel(props: ControlPanelAppViewData & ModuleDataType<'winLoss'> & { page: ControlPanelPage }) {
+export function WinLossPanel(props: ControlPanelAppViewData & ModuleDataType<'winLoss'> & PanelViewDataProps) {
     const setDisplayed = async (display: boolean) => await channelAction('winloss/set-displayed', { display })
     const adjustWins = async (delta: number) => await channelAction('winloss/adjust-wins', { delta })
     const adjustLosses = async (delta: number) => await channelAction('winloss/adjust-losses', { delta })
@@ -50,16 +50,16 @@ export function WinLossPanel(props: ControlPanelAppViewData & ModuleDataType<'wi
             return <>
                 <hr />
                 <PanelField label="Winning Emote" help="The emote displayed in the overlay when you have more wins than losses">
-                    <ExternalIconPicker selected={props.config.winningEmote} options={props.icons} onSelect={v => channelAction('winloss/set-winning-emote', { emote: v })} />
+                    <ExternalIconPicker selected={props.config.winningEmote} onSelect={v => channelAction('winloss/set-winning-emote', { emote: v })} />
                 </PanelField>
                 <PanelField label="Losing Emote" help="The emote displayed in the overlay when you have more losses than wins">
-                    <ExternalIconPicker selected={props.config.losingEmote} options={props.icons} onSelect={v => channelAction('winloss/set-losing-emote', { emote: v })} />
+                    <ExternalIconPicker selected={props.config.losingEmote} onSelect={v => channelAction('winloss/set-losing-emote', { emote: v })} />
                 </PanelField>
                 <PanelField label="Tied Emote" help="The emote displayed in the overlay when you have the same number of wins and losses">
-                    <ExternalIconPicker selected={props.config.tiedEmote} options={props.icons} onSelect={v => channelAction('winloss/set-tied-emote', { emote: v })} />
+                    <ExternalIconPicker selected={props.config.tiedEmote} onSelect={v => channelAction('winloss/set-tied-emote', { emote: v })} />
                 </PanelField>
                 <PanelField label="Death Emote" help="The emote displayed in the overlay when your death counter increases">
-                    <ExternalIconPicker selected={props.config.deathEmote} options={props.icons} onSelect={v => channelAction('winloss/set-death-emote', { emote: v })} />
+                    <ExternalIconPicker selected={props.config.deathEmote} onSelect={v => channelAction('winloss/set-death-emote', { emote: v })} />
                 </PanelField>
             </>
         default:

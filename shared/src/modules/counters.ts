@@ -3,10 +3,11 @@ import { ModuleStateData, ModuleConfigData, Module, ModuleMap } from './common'
 
 export interface CounterConfig {
     id: string
+    redeemID: string
     redeemName: string
     emote: Icon | null
     message: string
-    visibility: CounterVisibility 
+    visibility: CounterVisibility
     duration: number
     maximum: number | null
 }
@@ -34,6 +35,6 @@ export interface CountersConfigData extends ModuleConfigData {
 export const CountersModule: Module<CountersStateData, CountersConfigData> = {
     name: 'Redemption Counters',
     description: 'Tracks the number of times certain channel point rewards are redeemed.',
-    version: ModuleVersion.beta,
+    version: ModuleVersion.released,
     getData: (modules: ModuleMap) => modules.counters,
 }

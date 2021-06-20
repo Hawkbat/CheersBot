@@ -1,8 +1,7 @@
-import { RedeemMode, Icon, generateID, Store, mergePartials, AccountType, ChannelActions, ChannelViews, MODULE_TYPES, Access, GlobalActions, GlobalViews, MessageMeta, parseJSON, GlobalBaseViewData, ChannelBaseViewData, VodQueueGame, Changelog, CounterVisibility, IconMap } from 'shared'
+import { RedeemMode, generateID, Store, mergePartials, AccountType, ChannelActions, ChannelViews, MODULE_TYPES, Access, GlobalActions, GlobalViews, MessageMeta, parseJSON, GlobalBaseViewData, ChannelBaseViewData, VodQueueGame, Changelog, CounterVisibility, IconMap } from 'shared'
 import { ApiClient as TwitchClient, RefreshableAuthProvider, StaticAuthProvider } from 'twitch'
-import { ChatClient, PrivateMessage, LogLevel } from 'twitch-chat-client'
+import { ChatClient, PrivateMessage } from 'twitch-chat-client'
 import { PubSubClient } from 'twitch-pubsub-client'
-import { WebHookListener, ReverseProxyAdapter } from 'twitch-webhooks'
 import * as Discord from 'discord.js'
 import * as express from 'express'
 import * as session from 'express-session'
@@ -13,16 +12,15 @@ import * as cheerio from 'cheerio'
 import fetch from 'node-fetch'
 import { readJSON, writeJSON } from './utils'
 import { SessionStore } from './SessionStore'
-import { getDisplayModes, removeModeDelayed, addModeDelayed, EVIL_PATTERN, isGirlDm } from './girldm'
+import { getDisplayModes, EVIL_PATTERN, isGirlDm } from './girldm'
 import { Bot, Channel, User, Secrets, AccountData, BotData, TwitchToken, UserData, ChannelData, DiscordToken } from './data'
-import { getTwitchEmotes, getTwitchBadges } from './twitchemotes'
-import { getFFZEmoteURL, getFFZEmotes } from './frankerfacez'
-import { getBTTVEmotes, getGlobalBTTVEmotes } from './betterttv'
+import { getFFZEmoteURL } from './frankerfacez'
 import { TwitchTokenResponse } from './twitch'
 import { DiscordTokenResponse } from './discord'
 import expressWs = require('express-ws')
 import WebSocket = require('ws')
-import { getFontAwesomeBrandingIcons } from './icons'
+import { getAllIcons } from './icons'
+import { textToSpeech } from './tts'
 
 const workingDir = process.cwd()
 
@@ -179,6 +177,7 @@ async function run() {
                     config: {
                         enabled: false,
                         game: VodQueueGame.generic,
+                        redeemID: '',
                         redeemName: '',
                     },
                     state: {
@@ -209,6 +208,16 @@ async function run() {
                     },
                     state: {
                         counters: {},
+                    },
+                },
+                sounds: {
+                    config: {
+                        enabled: false,
+                        sounds: [],
+                        uploads: [],
+                    },
+                    state: {
+                        sounds: [],
                     },
                 },
                 eventQueue: {
@@ -509,19 +518,10 @@ async function run() {
 
                 const sockets: WebSocket[] = []
 
-                const icons: IconMap = {
-                    'Channel Emotes': await getTwitchEmotes(id),
-                    'Channel Badges': await getTwitchBadges(id),
-                    'FFZ Channel Emotes': await getFFZEmotes(id),
-                    'BTTV Channel Emotes': await getBTTVEmotes(id),
-                    'Global Twitch Emotes': await getTwitchEmotes('0'),
-                    'Global Twitch Badges': await getTwitchBadges('0'),
-                    'Global BTTV Emotes': await getGlobalBTTVEmotes(),
-                    'Social Media Icons': await getFontAwesomeBrandingIcons(),
-                }
-
                 const pubSubClient = new PubSubClient()
                 await pubSubClient.registerUserListener(client, id)
+
+                let icons: IconMap = await getAllIcons(client, id)
 
                 if (data.get(d => d.token.scope.includes('channel:read:redemptions'))) {
                     pubSubClient.onRedemption(id, msg => {
@@ -546,24 +546,33 @@ async function run() {
                                     })
                                 }
                                 break
-                            default:
-                                console.log(msg)
-                                break
                         }
-                        const modeConfig = data.get(d => d.modules.modeQueue.config.modes.find(m => m.redeemName.trim() === msg.rewardName.trim()))
+                        const modeConfig = data.get(d => d.modules.modeQueue.config.modes.find(m => m.redeemID === msg.rewardId || m.redeemName.trim() === msg.rewardName.trim()))
                         if (modeConfig) {
-                            addModeDelayed(data, {
-                                id: generateID(),
-                                configID: modeConfig.id,
-                                userID: msg.userId,
-                                userName: msg.userDisplayName,
-                                message: '',
-                                amount: 1,
-                                redeemTime: Date.now(),
-                                visible: true,
+                            const id = generateID()
+                            data.update(d => {
+                                d.modules.modeQueue.state.modes.push({
+                                    id,
+                                    configID: modeConfig.id,
+                                    userID: msg.userId,
+                                    userName: msg.userDisplayName,
+                                    message: '',
+                                    amount: 1,
+                                    redeemTime: Date.now(),
+                                    visible: true,
+                                    startTime: modeConfig.autoStart ? Date.now() : undefined,
+                                    duration: modeConfig.autoStart ? modeConfig.duration * 60 * 1000 : undefined,
+                                })
                             })
+                            if (modeConfig.autoStart && modeConfig.autoEnd) {
+                                setTimeout(() => {
+                                    data.update(d => {
+                                        d.modules.modeQueue.state.modes = d.modules.modeQueue.state.modes.filter(m => m.id !== id)
+                                    })
+                                }, modeConfig.duration * 60 * 1000)
+                            }
                         }
-                        const isVodConfig = data.get(d => d.modules.vodQueue.config.redeemName.trim() === msg.rewardName.trim())
+                        const isVodConfig = data.get(d => d.modules.vodQueue.config.redeemID === msg.rewardId || d.modules.vodQueue.config.redeemName.trim() === msg.rewardName.trim())
                         if (isVodConfig) {
                             data.update(d => d.modules.vodQueue.state.entries.push({
                                 id: generateID(),
@@ -572,7 +581,7 @@ async function run() {
                                 context: msg.message,
                             }))
                         }
-                        const counterConfig = data.get(d => d.modules.counters.config.configs.find(c => c.redeemName.trim() === msg.rewardName.trim()))
+                        const counterConfig = data.get(d => d.modules.counters.config.configs.find(c => c.redeemID === msg.rewardId || c.redeemName.trim() === msg.rewardName.trim()))
                         if (counterConfig) {
                             const counter = data.get(d => d.modules.counters.state.counters[counterConfig.id])
                             data.update(d => d.modules.counters.state.counters[counterConfig.id] = {
@@ -580,6 +589,16 @@ async function run() {
                                 count: (counter?.count ?? 0) + 1,
                                 time: Date.now(),
                             })
+                        }
+                        const soundConfig = data.get(d => d.modules.sounds.config.sounds.find(c => c.redeemID === msg.rewardId || c.redeemName.trim() === msg.rewardName.trim()))
+                        if (soundConfig) {
+                            data.update(d => d.modules.sounds.state.sounds.push({
+                                id: generateID(),
+                                userID: msg.userId,
+                                userName: msg.userDisplayName,
+                                configID: soundConfig.id,
+                                redeemTime: Date.now(),
+                            }))
                         }
                     })
                 }
@@ -604,27 +623,11 @@ async function run() {
                                 for (const bot of getBotsForChannel(name)) {
                                     bot.chatClient.action(name, `Welcome back, @${username}! girldmCheer`)
                                 }
-                                removeModeDelayed(data, ban)
+                                data.update(d => {
+                                    d.modules.modeQueue.state.modes = d.modules.modeQueue.state.modes.filter(m => m.id !== ban.id)
+                                })
                             }
                         }
-                    })
-                }
-
-                const webHookClient = new WebHookListener(client, new ReverseProxyAdapter({
-                    hostName: 'cheers.hawk.bar',
-                    pathPrefix: `/${name}/hooks`,
-                    listenerPort: 60004,
-                    port: 443,
-                    ssl: true,
-                }), { logger: { minLevel: LogLevel.TRACE } })
-
-                await webHookClient.subscribeToFollowsToUser('71092938', follow => {
-                    console.log(`${follow.userDisplayName} is following ${name}`)
-                })
-
-                if (data.get(d => d.token.scope.includes('channel:read:subscriptions'))) {
-                    await webHookClient.subscribeToSubscriptionEvents(id, sub => {
-                        console.log(`${sub.userDisplayName} subscribed to ${name}`)
                     })
                 }
 
@@ -632,14 +635,14 @@ async function run() {
                     if (data.get(d => d.modules.vodQueue.config.enabled && d.modules.vodQueue.config.game === VodQueueGame.overwatch)) {
                         const html = await (await fetch('https://playoverwatch.com/en-us/news/patch-notes/')).text()
                         const $ = cheerio.load(html)
-                        const latestPatchDate = $('.PatchNotes-labels').first().text()
+                        const latestPatchDate = $('.PatchNotes-patch').first().attr('id')
                         if (latestPatchDate) {
                             data.update(d => {
-                                d.modules.vodQueue.state.patchDate = latestPatchDate
+                                d.modules.vodQueue.state.patchDate = latestPatchDate.substr('patch-'.length)
                             })
                         }
                     }
-                }, 60 * 1000)
+                }, 10 * 60 * 1000)
 
                 const actions: ChannelActions = {
                     'headpats/adjust': args => {
@@ -684,6 +687,15 @@ async function run() {
                                 if (m) {
                                     m.startTime = Date.now()
                                     m.duration = args.duration
+
+                                    const config = d.modules.modeQueue.config.modes.find(c => c.id === m.configID)
+                                    if (config?.autoEnd) {
+                                        setTimeout(() => {
+                                            data.update(d => {
+                                                d.modules.modeQueue.state.modes = d.modules.modeQueue.state.modes.filter(m => m.id !== id)
+                                            })
+                                        }, args.duration)
+                                    }
                                 }
                             })
                         }
@@ -692,7 +704,9 @@ async function run() {
                     'modequeue/clear': args => {
                         const mode = data.get(d => d.modules.modeQueue.state.modes.find(m => m.id === args.id))
                         if (mode) {
-                            removeModeDelayed(data, mode)
+                            data.update(d => {
+                                d.modules.modeQueue.state.modes = d.modules.modeQueue.state.modes.filter(m => m.id !== mode.id)
+                            })
                         }
                         return true
                     },
@@ -700,6 +714,7 @@ async function run() {
                         data.update(d => {
                             d.modules.modeQueue.config.modes.push({
                                 id: generateID(),
+                                redeemID: '',
                                 redeemName: '',
                                 emote: null,
                                 showUsername: false,
@@ -735,6 +750,41 @@ async function run() {
                             d.modules.modeQueue.state.modes = d.modules.modeQueue.state.modes.filter(m => m.configID !== args.id)
                         })
                         return true
+                    },
+                    'modequeue/set-alarm-volume': args => {
+                        data.update(d => {
+                            d.modules.modeQueue.config.alarmVolume = args.volume
+                        })
+                        return true
+                    },
+                    'modequeue/mock': args => {
+                        const config = data.get(d => d.modules.modeQueue.config.modes.find(c => c.id === args.configID))
+                        if (config) {
+                            const id = generateID()
+                            data.update(d => {
+                                d.modules.modeQueue.state.modes.push({
+                                    id,
+                                    configID: config.id,
+                                    userID: '',
+                                    userName: args.username,
+                                    message: '',
+                                    amount: 1,
+                                    redeemTime: Date.now(),
+                                    visible: true,
+                                    startTime: config.autoStart ? Date.now() : undefined,
+                                    duration: config.autoStart ? config.duration * 60 * 1000 : undefined,
+                                })
+                            })
+                            if (config.autoStart && config.autoEnd) {
+                                setTimeout(() => {
+                                    data.update(d => {
+                                        d.modules.modeQueue.state.modes = d.modules.modeQueue.state.modes.filter(m => m.id !== id)
+                                    })
+                                }, config.duration * 60 * 1000)
+                            }
+                            return true
+                        }
+                        return false
                     },
                     'winloss/set-displayed': args => {
                         data.update(d => {
@@ -878,6 +928,7 @@ async function run() {
                         data.update(d => {
                             d.modules.counters.config.configs.push({
                                 id: generateID(),
+                                redeemID: '',
                                 redeemName: '',
                                 emote: null,
                                 message: 'redeemed',
@@ -914,37 +965,111 @@ async function run() {
                         })
                         return true
                     },
-                    'channelinfo/set-accent-color': args => {
+                    'sounds/remove-redeem': args => {
+                        setTimeout(() => {
+                            data.update(d => {
+                                d.modules.sounds.state.sounds = d.modules.sounds.state.sounds.filter(s => s.id !== args.id)
+                            })
+                        }, 1000)
+                        return true
+                    },
+                    'sounds/add-config': args => {
                         data.update(d => {
-                            d.modules.channelInfo.config.accentColor = args.color
+                            d.modules.sounds.config.sounds.push({
+                                id: generateID(),
+                                redeemID: '',
+                                redeemName: '',
+                                emote: null,
+                                showUsername: true,
+                                displayName: '',
+                                volume: 1,
+                                fileName: '',
+                            })
                         })
                         return true
                     },
-                    'channelinfo/set-muted-color': args => {
+                    'sounds/edit-config': args => {
+                        let updated = false
                         data.update(d => {
-                            d.modules.channelInfo.config.mutedColor = args.color
+                            d.modules.sounds.config.sounds = d.modules.sounds.config.sounds.map(c => {
+                                if (c.id === args.id) {
+                                    updated = true
+                                    return {
+                                        ...c,
+                                        ...args,
+                                    }
+                                } else {
+                                    return c
+                                }
+                            })
+                        })
+                        return updated
+                    },
+                    'sounds/delete-config': args => {
+                        data.update(d => {
+                            d.modules.sounds.config.sounds = d.modules.sounds.config.sounds.filter(c => c.id !== args.id)
+                            d.modules.sounds.state.sounds = d.modules.sounds.state.sounds.filter(s => s.configID !== args.id)
                         })
                         return true
                     },
-                    'channelinfo/set-command-prefix': args => {
-                        data.update(d => {
-                            d.modules.channelInfo.config.commandPrefix = args.commandPrefix
+                    'sounds/upload': args => {
+                        const buffer = Buffer.from(args.data, 'base64')
+                        const filePath = `${workingDir}/data/uploads/${name}/${args.fileName}`
+                        fs.mkdir(path.dirname(filePath), { recursive: true }, err => {
+                            if (err) console.error(err)
+                            else {
+                                fs.writeFile(filePath, buffer, err => {
+                                    if (err) console.error(err)
+                                    else {
+                                        data.update(d => {
+                                            d.modules.sounds.config.uploads.push(args.fileName)
+                                        })
+                                    }
+                                })
+                            }
                         })
                         return true
                     },
-                    'debug/mock': args => {
-                        const mode: RedeemMode = {
-                            id: generateID(),
-                            configID: args.configID,
-                            userID: '',
-                            userName: args.username,
-                            message: args.message,
-                            amount: args.amount,
-                            redeemTime: Date.now(),
-                            visible: true,
+                    'sounds/mock': args => {
+                        data.update(d => {
+                            d.modules.sounds.state.sounds.push({
+                                id: generateID(),
+                                configID: args.configID,
+                                userID: '',
+                                userName: args.username,
+                                redeemTime: Date.now(),
+                            })
+                        })
+                        return true
+                    },
+                    'channelinfo/set-config': args => {
+                        data.update(d => {
+                            d.modules.channelInfo.config = {
+                                ...d.modules.channelInfo.config,
+                                ...args,
+                            }
+                        })
+                        return true
+                    },
+                    'channelinfo/get-icons': () => {
+                        getAllIcons(client, id).then(r => {
+                            icons = r
+                        })
+                        return icons
+                    },
+                    'tts/speak': async args => {
+                        try {
+                            const buffer = await textToSpeech({ id: generateID(), ...args, }, secrets!.azure.speechSubKey, secrets!.azure.speechRegion)
+                            const base64 = Buffer.from(buffer).toString('base64')
+                            return base64
+                        } catch (e) {
+                            console.error(e)
+                            return ''
                         }
-                        addModeDelayed(data, mode)
-                        return true
+                    },
+                    'twitch/rewards': async args => {
+                        const rewards = await client.helix.channelPoints.getCustomRewards(id, false)
+                        return rewards.map(r => ({ id: r.id, name: r.title }))
                     },
                     'debug/reload': args => {
                         refreshTime = Date.now()
@@ -999,8 +1124,7 @@ async function run() {
                         channels: getChannelsForUser(msg.username).map(c => c.name),
                         botAccess: data.get(d => d.bots),
                         userAccess: data.get(d => d.users),
-                        icons,
-                        panels: MODULE_TYPES.map(type => ({ type, open: true })),
+                        panels: MODULE_TYPES,
                         updateTime: new Date(),
                         meta: msg,
                         refreshTime,
@@ -1023,14 +1147,14 @@ async function run() {
                     router.post(`/actions/${path}/`, async (req, res) => {
                         if (!hasTwitchAuth(req)) return respondTwitchAuthJSON(res)
                         if (!hasChannelAuth(req, name)) return respondChannelAuthJSON(res)
-                        res.type('json').send(JSON.stringify(actions[path](req.body, getMessage(req, name))))
+                        res.type('json').send(JSON.stringify(await actions[path](req.body, getMessage(req, name))))
                     })
                 }
 
                 const viewPaths = Object.keys(views) as (keyof ChannelViews)[]
                 for (const path of viewPaths) {
                     router.get(`/data/${path}/`, async (req, res) => {
-                        res.type('json').send(JSON.stringify(views[path](req.query as any, getMessage(req, name))))
+                        res.type('json').send(JSON.stringify(await views[path](req.query as any, getMessage(req, name))))
                     })
                 }
 
@@ -1044,6 +1168,32 @@ async function run() {
                     renderChannelView(req, res, 'overlay', {})
                 })
 
+                router.get('/sse/', (req, res) => {
+                    res.status(200).set({
+                        'Cache-Control': 'no-cache',
+                        'Content-Type': 'text/event-stream',
+                        'Connection': 'keep-alive',
+                    })
+                    res.flushHeaders()
+                    res.socket?.setTimeout(0)
+
+                    res.write(`data: ${JSON.stringify({ type: 'ping' })}\n\n`)
+
+                    const keepalive = setInterval(() => {
+                        res.write(`data: ${JSON.stringify({ type: 'ping' })}\n\n`)
+                    }, 60 * 1000)
+
+                    const handler = (d: ChannelData) => {
+                        res.write(`data: ${JSON.stringify({ type: 'refresh' })}\n\n`)
+                        return d
+                    }
+                    data.onWrite(handler)
+                    req.on('close', () => {
+                        data.offWrite(handler)
+                        clearInterval(keepalive)
+                    })
+                })
+
                 router.ws('/ws/', (ws, req) => {
                     sockets.push(ws)
                     ws.on('message', msg => {
@@ -1054,13 +1204,13 @@ async function run() {
                     console.log(`[${name}] sock: ${req.header('forwarded') ?? req.header('x-forwarded-for') ?? req.header('true-client-ip') ?? req.ip}`)
                 })
 
+                router.use('/uploads/', express.static(`${workingDir}/data/uploads/${name}/`))
+
                 if (!channels[name]) {
                     app.use(`/${name}`, (req, res, next) => {
                         channels[name].router(req, res, next)
                     })
                 }
-
-                webHookClient.applyMiddleware(router)
 
                 return channels[name] = {
                     id,
@@ -1068,7 +1218,6 @@ async function run() {
                     data,
                     client,
                     pubSubClient,
-                    webHookClient,
                     router,
                 }
             }
@@ -1096,7 +1245,7 @@ async function run() {
         return null
     }
 
-    app.use(express.json())
+    app.use(express.json({ limit: '256mb' }))
 
     app.set('view engine', 'pug')
     app.set('views', workingDir + '/views/')
@@ -1300,16 +1449,49 @@ async function run() {
     for (const path of actionPaths) {
         app.post(`/actions/${path}/`, async (req, res) => {
             if (!hasTwitchAuth(req)) return respondTwitchAuthJSON(res)
-            res.type('json').send(JSON.stringify(actions[path](req.body, getMessage(req, ''))))
+            res.type('json').send(JSON.stringify(await actions[path](req.body, getMessage(req, ''))))
         })
     }
 
     const viewPaths = Object.keys(views) as (keyof GlobalViews)[]
     for (const path of viewPaths) {
         app.get(`/data/${path}/`, async (req, res) => {
-            res.type('json').send(JSON.stringify(views[path](req.query as any, getMessage(req, ''))))
+            res.type('json').send(JSON.stringify(await views[path](req.query as any, getMessage(req, ''))))
         })
     }
+
+    app.get('/sse/', (req, res) => {
+        res.set({
+            'Cache-Control': 'no-cache',
+            'Content-Type': 'text/event-stream',
+            'Connection': 'keep-alive',
+        })
+        res.flushHeaders()
+        res.socket?.setTimeout(0)
+
+        const msg = getMessage(req, '')
+        const user = users[msg.username]
+        if (!user) {
+            res.sendStatus(204)
+            return
+        }
+
+        res.write(`data: ${JSON.stringify({ type: 'ping' })}\n\n`)
+
+        const keepalive = setInterval(() => {
+            res.write(`data: ${JSON.stringify({ type: 'ping' })}\n\n`)
+        }, 10 * 1000)
+
+        const handler = (d: UserData) => {
+            res.write(`data: ${JSON.stringify({ type: 'refresh' })}\n\n`)
+            return d
+        }
+        user.data.onWrite(handler)
+        req.on('close', () => {
+            user.data.offWrite(handler)
+            clearInterval(keepalive)
+        })
+    })
 
     const promises: Promise<void>[] = []
 

@@ -8,6 +8,7 @@ import { EventQueueModule } from './eventqueue'
 import { EvilDmModule } from './evildm'
 import { HeadpatsModule } from './headpat'
 import { ModeQueueModule } from './modequeue'
+import { SoundsModule } from './sounds'
 import { UserQueueModule } from './userqueue'
 import { VodQueueModule } from './vodqueue'
 import { WinLossModule } from './winloss'
@@ -43,6 +44,7 @@ export const MODULES = {
     vodQueue: VodQueueModule,
     customMessage: CustomMessageModule,
     counters: CountersModule,
+    sounds: SoundsModule,
     eventQueue: EventQueueModule,
     channelInfo: ChannelInfoModule,
     debug: DebugModule,

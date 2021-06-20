@@ -41,7 +41,7 @@ export function debounce(ms: number, token: WaitToken): Promise<void> {
     })
 }
 
-export function mergePartials<T extends { [key: string]: any }>(base: T, ...targets: { [key: string]: any }[]) : T {
+export function mergePartials<T extends { [key: string]: any }>(base: T, ...targets: { [key: string]: any }[]): T {
     let data: any = { ...base }
     for (const target of targets) {
         for (const key of Object.keys(target)) {
@@ -59,6 +59,17 @@ export function mergePartials<T extends { [key: string]: any }>(base: T, ...targ
 
 function isObject(item: any): item is { [key: string]: any } {
     return item !== null && typeof item === 'object' && !Array.isArray(item)
+}
+
+type UnresolvedObject<T> = { [K in keyof T]: T[K] extends Promise<infer U> ? T[K] : never }
+type ResolvedObject<T> = { [K in keyof T]: T[K] extends Promise<infer U> ? U : never }
+
+export async function resolveObject<T>(object: UnresolvedObject<T>): Promise<ResolvedObject<T>> {
+    const keys = Object.keys(object) as any as (keyof T)[]
+    const results = await Promise.all(keys.map(k => object[k]))
+    const result = {} as any
+    results.forEach((r, i) => result[keys[i]] = r)
+    return result as ResolvedObject<T>
 }
 
 export type DeepPartial<T> =
@@ -91,6 +102,16 @@ export class Store<T> {
 
     onWrite(cb: (data: T) => T | Promise<T>): this {
         this.setCallbacks.unshift(cb)
+        return this
+    }
+
+    offRead(cb: (data: T) => T | Promise<T>): this {
+        this.getCallbacks = this.getCallbacks.filter(c => c === cb)
+        return this
+    }
+
+    offWrite(cb: (data: T) => T | Promise<T>): this {
+        this.setCallbacks = this.setCallbacks.filter(c => c !== cb)
         return this
     }
 

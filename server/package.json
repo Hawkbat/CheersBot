@@ -13,31 +13,31 @@
   "dependencies": {
     "@discordjs/opus": "^0.3.3",
     "bufferutil": "^4.0.3",
-    "cheerio": "^1.0.0-rc.5",
-    "discord.js": "^12.5.1",
+    "cheerio": "^1.0.0-rc.9",
+    "discord.js": "^12.5.3",
     "express": "^4.17.1",
-    "express-session": "^1.17.1",
+    "express-session": "^1.17.2",
     "express-ws": "^4.0.0",
-    "libsodium-wrappers": "^0.7.8",
+    "libsodium-wrappers": "^0.7.9",
     "node-fetch": "^2.6.1",
-    "pug": "^3.0.1",
+    "pug": "^3.0.2",
     "shared": "file:../shared",
     "stylus": "^0.54.8",
-    "twitch": "^4.4.5",
-    "twitch-chat-client": "^4.4.5",
-    "twitch-pubsub-client": "^4.4.5",
-    "twitch-webhooks": "^4.4.5",
-    "utf-8-validate": "^5.0.4"
+    "twitch": "^4.5.5",
+    "twitch-chat-client": "^4.5.5",
+    "twitch-pubsub-client": "^4.5.5",
+    "twitch-webhooks": "^4.5.5",
+    "utf-8-validate": "^5.0.5"
   },
   "private": true,
   "devDependencies": {
-    "@types/cheerio": "^0.22.23",
-    "@types/express": "^4.17.11",
+    "@types/cheerio": "^0.22.29",
+    "@types/express": "^4.17.12",
     "@types/express-session": "^1.17.3",
     "@types/express-ws": "^3.0.0",
-    "@types/node": "^14.14.22",
-    "@types/node-fetch": "^2.5.8",
-    "@types/stylus": "^0.48.33",
-    "@types/ws": "^7.4.0"
+    "@types/node": "^14.17.1",
+    "@types/node-fetch": "^2.5.10",
+    "@types/stylus": "^0.48.34",
+    "@types/ws": "^7.4.4"
   }
 }

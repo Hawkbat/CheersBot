@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { ControlPanelAppViewData, PanelViewData, ControlPanelPage, getModule, VERSION_TOOLTIPS } from 'shared'
+import { ControlPanelAppViewData, PanelViewData, ControlPanelPage, getModule, VERSION_TOOLTIPS, PanelViewDataProps } from 'shared'
 import { HeadpatsPanel } from '../panels/HeadpatsPanel'
 import { ModeQueuePanel } from '../panels/ModeQueuePanel'
 import { ChannelInfoPanel } from '../panels/ChannelInfoPanel'
@@ -15,9 +15,11 @@ import { PanelGroup } from './PanelGroup'
 import { PanelField } from './PanelField'
 import { Toggle } from './Toggle'
 import { Info } from './Info'
+import { SoundsPanel } from '../panels/SoundsPanel'
 
-export function Panel(props: { page: ControlPanelPage, panel: PanelViewData, data: ControlPanelAppViewData, onToggle: (open: boolean) => void }) {
+export function Panel(props: { page: ControlPanelPage, panel: PanelViewData, data: ControlPanelAppViewData, onToggle: (open: boolean) => void, onToggleItem: (id: string, open: boolean) => void }) {
     const module = getModule(props.panel.type)
+    const panelProps: PanelViewDataProps = { page: props.page, panel: props.panel, onToggleItem: props.onToggleItem }
     return <PanelGroup open={props.panel.open} onToggle={open => props.onToggle(open)} label={module.name}>
         {props.page === ControlPanelPage.edit
             ? <>
@@ -30,25 +32,27 @@ export function Panel(props: { page: ControlPanelPage, panel: PanelViewData, dat
             if (props.page === ControlPanelPage.edit && !module.getData(props.data.modules).config.enabled) return <></>
             switch (props.panel.type) {
                 case 'headpats':
-                    return <HeadpatsPanel page={props.page} {...props.data} {...getModule(props.panel.type).getData(props.data.modules)} />
+                    return <HeadpatsPanel {...panelProps} {...props.data} {...getModule(props.panel.type).getData(props.data.modules)} />
                 case 'evilDm':
-                    return <EvilDmPanel page={props.page} {...props.data} {...getModule(props.panel.type).getData(props.data.modules)} />
+                    return <EvilDmPanel {...panelProps} {...props.data} {...getModule(props.panel.type).getData(props.data.modules)} />
                 case 'modeQueue':
-                    return <ModeQueuePanel page={props.page} {...props.data} {...getModule(props.panel.type).getData(props.data.modules)} />
+                    return <ModeQueuePanel {...panelProps} {...props.data} {...getModule(props.panel.type).getData(props.data.modules)} />
                 case 'winLoss':
-                    return <WinLossPanel page={props.page} {...props.data} {...getModule(props.panel.type).getData(props.data.modules)} />
+                    return <WinLossPanel {...panelProps} {...props.data} {...getModule(props.panel.type).getData(props.data.modules)} />
                 case 'userQueue':
-                    return <UserQueuePanel page={props.page} {...props.data} {...getModule(props.panel.type).getData(props.data.modules)} />
+                    return <UserQueuePanel {...panelProps} {...props.data} {...getModule(props.panel.type).getData(props.data.modules)} />
                 case 'vodQueue':
-                    return <VodQueuePanel page={props.page} {...props.data} {...getModule(props.panel.type).getData(props.data.modules)} />
+                    return <VodQueuePanel {...panelProps} {...props.data} {...getModule(props.panel.type).getData(props.data.modules)} />
                 case 'customMessage':
-                    return <CustomMessagePanel page={props.page} {...props.data} {...getModule(props.panel.type).getData(props.data.modules)} />
+                    return <CustomMessagePanel {...panelProps} {...props.data} {...getModule(props.panel.type).getData(props.data.modules)} />
                 case 'counters':
-                    return <CountersPanel page={props.page} {...props.data} {...getModule(props.panel.type).getData(props.data.modules)} />
+                    return <CountersPanel {...panelProps} {...props.data} {...getModule(props.panel.type).getData(props.data.modules)} />
+                case 'sounds':
+                    return <SoundsPanel {...panelProps} {...props.data} {...getModule(props.panel.type).getData(props.data.modules)} />
                 case 'channelInfo':
-                    return <ChannelInfoPanel page={props.page} {...props.data} {...getModule(props.panel.type).getData(props.data.modules)} />
+                    return <ChannelInfoPanel {...panelProps} {...props.data} {...getModule(props.panel.type).getData(props.data.modules)} />
                 case 'debug':
-                    return <DebugPanel page={props.page} {...props.data} {...getModule(props.panel.type).getData(props.data.modules)} />
+                    return <DebugPanel {...panelProps} {...props.data} {...getModule(props.panel.type).getData(props.data.modules)} />
             }
         })()}
     </PanelGroup>

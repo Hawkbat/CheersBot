@@ -1,7 +1,10 @@
 
 Architecture
-    Change to an event-stream model piped over server-side events
     Hydrate users on-demand to reduce memory overhead (bots and channels need to always be running to listen for events)
+    Log client-side errors by building a buffer of log messages and sending them on an interval, silently requeuing them if the server was not accessible
+        Filter out server unavailable errors from CloudFlare since those are frequent
+    Temporarily disable action buttons when firing off an async process, showing a spinner while the async function runs and then reenabling when the function returns. If an error occurs, show an error icon in the button which shows the error message on mouse over
+    Add Discord integration for emotes and then for reactive PNG support
 
 Channel Features
     Non-channel-point notifications
@@ -23,10 +26,6 @@ Channel Features
         Configure which bot is primary via dropdown
         Configure which bots have access via UI
 
-    Configure Users
-        Allow multiple users to be given access to the channel control panel (e.g. moderators, trusted users, alt accounts)
-        Configure which users have access via UI
-
     Notification settings
         Trigger-via-timeout (mostly done)
             Still need configurable timer
@@ -34,6 +33,7 @@ Channel Features
         Auto-expire timer
         Custom notification messages
         Custom emote icon (chosen from streamer icons via twitchemotes API)
+        Timer combination modes (replace, extend)
 
     Channel Point rewards
         Configure rewards in UI
@@ -52,17 +52,20 @@ Other Features (Long-Term)
     Twitch-integrated VRM-compatible games
     Integrations for posting and deleting go-live posts on Twitter and Discord
     Reactive PNG browser source that the other streamers can add when doing a collab with this streamer
+    Pred system
+        Visualize by adding a rectangular box under a bubble
+        Submit preds with `!pred X-Y` or 'guest' preds can be added directly through the control panel
+        Maybe include Discord bot integration to automatically populate guests? If so, do not automatically remove guests if they have input a prediction for the current match
+        Button to clear out all teams and preds
+    Channel point redemption analytics
+        Add tracking on how many times any channel point reward is redeemed, and by who
+        Consider storing this data in a separate store, since it's effectively logging and is a lot of data to be updating continuously; maybe some kind of cloud-based store?
+    NEED GUIDES on how to set things up! Inside the app itself if possible so it can't go horribly out of date
+    
+Miscellaneous features
+    Make it easier to copy usernames of ban-redeemed people (clipboard copy button maybe?)
+    Add option to emit timer sounds to separate browser source that can have its audio monitored separately so it doesn't go to desktop audio
+    Add Text-To-Speech for redeems and subscriptions
 
 Bugs
     Hitting "Complete" and then "Thoroughly patted" in short succession causes the counter to go negative
-
-Add timer combination modes (replace, extend)
-
-Log client-side errors by building a buffer of log messages and sending them on an interval, silently requeuing them if the server was not accessible
-Filter out server unavailable errors from CloudFlare since those are frequent
-
-Temporarily disable action buttons when firing off an async process, showing a spinner while the async function runs and then reenabling when the function returns. If an error occurs, show an error icon in the button which shows the error message on mouse over.
-
-NEED GUIDES on how to set things up! Inside the app itself if possible so it can't go horribly out of date
-
-Make it easier to copy usernames of ban-redeemed people (clipboard copy button maybe?)

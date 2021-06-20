@@ -64,6 +64,9 @@ input[type='number']
 input[type='color']
     padding 0 5px
 
+input[type='range']
+    padding 0
+
 input:active
 input:focus
 select:active
@@ -152,7 +155,7 @@ a
 .field
     display flex
     margin-bottom 4px
-    align-items baseline
+    align-items center
     flex-wrap wrap
 
 .PanelField > .label
@@ -252,6 +255,7 @@ button.primary:hover
 .QueuedEvent
 .QueuedMode
 .QueuedVod
+.QueuedSound
     margin-bottom 5px
     padding 5px
     background #3a3a3d
@@ -261,7 +265,25 @@ button.primary:hover
 .QueuedEvent:last-child
 .QueuedMode:last-child
 .QueuedVod:last-child
+.QueuedSound:last-child
     margin-bottom 0
+
+.Expander
+    display flex
+    justify-content center
+    align-items center
+    border-radius 4px
+    background rgba(255, 255, 255, 0.15)
+    font-weight bold
+    font-size 11px
+    cursor pointer
+
+.Fold
+    display flex
+    justify-content center
+    align-items center
+    background linear-gradient(rgba(0, 0, 0, 0.1), transparent 50%, rgba(0, 0, 0, 0.1))
+    height 12px
 
 .TagList
     display flex
@@ -271,6 +293,10 @@ button.primary:hover
 .list
     display flex
     flex-wrap wrap
+
+.list > *
+    margin-right 4px
+    margin-bottom 4px
 
 .Tag
     display flex
@@ -325,7 +351,13 @@ button.primary:hover
 .Overlay
     display flex
     flex-direction column
-    align-items flex-start
+    position absolute
+    left 0
+    right 0
+    top 0
+    bottom 0
+    padding 5px
+    overflow hidden
 
 .ExternalIcon
     display inline-flex
@@ -373,6 +405,28 @@ button.primary:hover
     display flex
     flex 1 0 auto
 
+.ExternalIconGroup
+    display flex
+    flex-wrap wrap
+    margin-bottom 8px
+    gap 3px
+
+.ExternalIconGroup > b
+    display block
+    width 100%
+
+.ExternalIconButton
+    display flex
+    justify-content center
+    align-items center
+    overflow hidden
+    border-radius 6px
+    cursor pointer
+    background-color rgba(255, 255, 255, 0.15)
+
+.ExternalIconButton:hover
+    background-color rgba(255, 255, 255, 0.2)
+
 .ChangelogOpener
     position fixed
     top 0
@@ -383,7 +437,7 @@ button.primary:hover
 .ChangelogOpener:hover
     background-color hsla(0, 0, 100%, 0.2)
 
-.ChangelogCloser
+.ModalCloser
     cursor pointer
     position absolute
     width 30px
@@ -392,7 +446,7 @@ button.primary:hover
     top 8px
     right 10px
 
-.ChangelogOverlay
+.ModalOverlay
     display flex
     position fixed
     left 0
@@ -400,9 +454,10 @@ button.primary:hover
     top 0
     bottom 0
     background-color rgba(0, 0, 0, 0.5)
+    overflow auto
     z-index 99999
 
-.Changelog
+.Modal
     margin auto
     position relative
     border 1px solid #303032
@@ -410,8 +465,14 @@ button.primary:hover
     background #18181b
     width 320px
 
-.Changelog > h1
+.ExternalIconWindow
+    padding 4px
+
+.Modal > h1
     margin 0
+    padding 8px
+
+.Modal > aside
     padding 8px
 
 .ChangelogVersion

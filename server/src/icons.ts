@@ -1,4 +1,8 @@
-import { Icon } from 'shared'
+import { ApiClient as TwitchClient } from 'twitch'
+import { Icon, IconMap, resolveObject } from 'shared'
+import { getBTTVEmotes, getGlobalBTTVEmotes } from './betterttv'
+import { getFFZEmotes } from './frankerfacez'
+import { getTwitchChannelBadges, getTwitchChannelEmotes, getTwitchGlobalBadges, getTwitchGlobalEmotes } from './twitch'
 
 export async function getFontAwesomeBrandingIcons(): Promise<Icon[]> {
     return [
@@ -27,4 +31,52 @@ export async function getFontAwesomeBrandingIcons(): Promise<Icon[]> {
         { id: 'vimeo', type: 'fa-brand', name: 'Vimeo' },
         { id: 'youtube', type: 'fa-brand', name: 'YouTube' },
     ]
+}
+
+const GLOBAL_CACHE_EXPIRY = 1000 * 60 * 60 * 8
+const CHANNEL_CACHE_EXPIRY = 1000 * 60 * 60 * 2
+
+let globalCache: { timestamp: number, icons: IconMap } | null = null
+
+const channelCache: Map<string, { timestamp: number, icons: IconMap }> = new Map()
+
+export async function getChannelIcons(client: TwitchClient, twitchChannelId: string): Promise<IconMap> {
+    const cached = channelCache.get(twitchChannelId)
+    if (cached && Date.now() < cached.timestamp + CHANNEL_CACHE_EXPIRY) {
+        return cached.icons
+    }
+
+    await getTwitchChannelEmotes(client, twitchChannelId)
+
+    const icons = await resolveObject({
+        'Channel Emotes': getTwitchChannelEmotes(client, twitchChannelId),
+        'Channel Badges': getTwitchChannelBadges(client, twitchChannelId),
+        'FFZ Channel Emotes': getFFZEmotes(twitchChannelId),
+        'BTTV Channel Emotes': getBTTVEmotes(twitchChannelId),
+    })
+    channelCache.set(twitchChannelId, { timestamp: Date.now(), icons })
+    return icons
+}
+
+export async function getGlobalIcons(client: TwitchClient): Promise<IconMap> {
+    const cached = globalCache
+    if (cached && Date.now() < cached.timestamp + GLOBAL_CACHE_EXPIRY) {
+        return cached.icons
+    }
+
+    const icons = await resolveObject({
+        'Global BTTV Emotes': getGlobalBTTVEmotes(),
+        'Global Twitch Emotes': getTwitchGlobalEmotes(client),
+        'Global Twitch Badges': getTwitchGlobalBadges(client),
+        'Social Media Icons': getFontAwesomeBrandingIcons(),
+    })
+    globalCache = { timestamp: Date.now(), icons }
+    return icons
+}
+
+export async function getAllIcons(client: TwitchClient, twitchChannelId: string): Promise<IconMap> {
+    return {
+        ...await getChannelIcons(client, twitchChannelId),
+        ...await getGlobalIcons(client),
+    }
 }

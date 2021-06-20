@@ -1,13 +1,5 @@
 
 import { refresh } from './apps/LandingApp'
+import { setRefreshCallback } from './utils'
 
-function tryRefresh() {
-    try {
-        refresh()
-    } catch (e) {
-        console.error(e)
-    }
-}
-
-setInterval(tryRefresh, 10000)
-tryRefresh()
+setRefreshCallback(refresh, false)

@@ -26,6 +26,7 @@ export interface ModeQueueStateData extends ModuleStateData {
 
 export interface ModeQueueModeConfig {
     id: string
+    redeemID: string
     redeemName: string
     emote: Icon | null
     showUsername: boolean
@@ -33,10 +34,13 @@ export interface ModeQueueModeConfig {
     runningText: string
     endText: string
     duration: number
+    autoStart?: boolean
+    autoEnd?: boolean
 }
 
 export interface ModeQueueConfigData extends ModuleConfigData {
     modes: ModeQueueModeConfig[]
+    alarmVolume?: number
 }
 
 export const ModeQueueModule: Module<ModeQueueStateData, ModeQueueConfigData> = {

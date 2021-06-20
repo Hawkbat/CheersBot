@@ -10,13 +10,16 @@ import { Changelog } from '../controls/Changelog'
 
 declare const REFRESH_TIME: number
 
+let cachedData: LandingAppViewData | undefined
+
 let debounce = false
-export async function refresh() {
+export async function refresh(reloadData: boolean) {
     if (debounce) return
     debounce = true
     try {
-        const data = await globalView('landing-app')
+        const data = reloadData || !cachedData ? await globalView('landing-app') : cachedData
         if (data) {
+            cachedData = data
             if (data.refreshTime !== REFRESH_TIME) location.reload()
             ReactDOM.render(<LandingApp {...data} />, document.getElementById('app'))
         }
@@ -35,7 +38,7 @@ export function LandingApp(props: LandingAppViewData) {
                     <PanelField>Select a channel from the list below to access the corresponding control panel!</PanelField>
                     <PanelField>
                         <div className="list">
-                            {Object.keys(props.channelAccess).map(c => <React.Fragment key={c}><Button href={`/${c}/`}>{c}</Button>&nbsp;</React.Fragment>)}
+                            {Object.keys(props.channelAccess).map(c => <Button key={c} href={`/${c}/`}>{c}</Button>)}
                         </div>
                     </PanelField>
                     <hr />
@@ -48,23 +51,23 @@ export function LandingApp(props: LandingAppViewData) {
             </div>
             <AccessPanel type={AccountType.channel} access={props.channelAccess} />
         </> : <>
-                <section>
-                    <p>
-                        The Heccin Cheers Bot is a streaming platform integration similar to Streamlabs that provides various functionality for your live broadcasts! Features include:
+            <section>
+                <p>
+                    The Heccin Cheers Bot is a streaming platform integration similar to Streamlabs that provides various functionality for your live broadcasts! Features include:
                         <ul>
-                            {Object.values(MODULES).filter(m => m.version === ModuleVersion.beta || m.version === ModuleVersion.released).map((m, i) => <li key={i}>{m.name}</li>)}
-                            <li>And more to come!</li>
-                        </ul>
+                        {Object.values(MODULES).filter(m => m.version === ModuleVersion.beta || m.version === ModuleVersion.released).map((m, i) => <li key={i}>{m.name}</li>)}
+                        <li>And more to come!</li>
+                    </ul>
+                </p>
+                <p>
+                    All features are driven through a mobile-friendly web-based control panel you can customize for your needs. You can grant acess to your control panel to moderators and alt accounts to help manage your stream for you, or control it yourself from a PC or mobile device!
                     </p>
-                    <p>
-                        All features are driven through a mobile-friendly web-based control panel you can customize for your needs. You can grant acess to your control panel to moderators and alt accounts to help manage your stream for you, or control it yourself from a PC or mobile device!
-                    </p>
-                    <p>
-                        For a demonstration of features and help setting things up on your stream, check out this how-to video:
+                <p>
+                    For a demonstration of features and help setting things up on your stream, check out this how-to video:
                         <iframe width="320" height="180" src="https://www.youtube.com/embed/7qQL3YtycBw" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
-                    </p>
-                </section>
-            </>}
+                </p>
+            </section>
+        </>}
         <div className="draggable">
             <PanelGroup label="Log In or Register">
                 <PanelField>To connect as a user account in order to access the control panel of your channel, or channels you moderate:</PanelField>

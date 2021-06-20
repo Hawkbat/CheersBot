@@ -4,6 +4,7 @@
   "description": "Heccin cheers bot!",
   "main": "index.js",
   "dependencies": {
+    "microsoft-cognitiveservices-speech-sdk": "^1.17.0",
     "open-cli": "^6.0.1",
     "rimraf": "^3.0.2"
   },
@@ -11,7 +12,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "prebuild": "cd client && npm run prebuild && cd ../server && npm run prebuild && cd ../shared && npm run prebuild",
-    "build": "npm i && cd client && npm run build && cd ../server && npm run build",
+    "build": "npm i && cd client && npm run build && cd ../server && npm run build && cd ../client && npm run postbuild",
     "build:local": "npm run build && open-cli https://cheers-dev.hawk.bar/"
   },
   "author": "Hawkbat",

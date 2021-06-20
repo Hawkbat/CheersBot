@@ -22,6 +22,7 @@ export interface VodQueueStateData extends ModuleStateData {
 }
 
 export interface VodQueueConfigData extends ModuleConfigData {
+    redeemID: string
     redeemName: string
     game: VodQueueGame
 }

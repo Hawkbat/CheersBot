@@ -1,6 +1,6 @@
-import { AccessMap, IconMap } from './data'
+import { AccessMap, IconMap, TwitchReward } from './data'
 import { Icon, AccountType, Access, Changelog } from './data'
-import { ModuleType, ModeQueueModeConfig, VodQueueConfigData, RedeemModeDisplay, CustomMessage, CounterConfig, Counter, ModuleDataType } from './modules'
+import { ModuleType, ModeQueueModeConfig, VodQueueConfigData, RedeemModeDisplay, CustomMessage, CounterConfig, Counter, ModuleDataType, SoundConfig, ChannelInfoConfigData } from './modules'
 
 export interface BaseViewData {
     meta: MessageMeta
@@ -44,6 +44,7 @@ export interface OverlayViewData extends ChannelBaseViewData {
 export interface PanelViewData {
     type: ModuleType
     open: boolean
+    items?: { [key: string]: boolean }
 }
 
 export interface ControlPanelAppViewData extends ChannelBaseViewData {
@@ -53,8 +54,7 @@ export interface ControlPanelAppViewData extends ChannelBaseViewData {
     userAccess: AccessMap
     botAccess: AccessMap
     channels: string[]
-    icons: IconMap
-    panels: PanelViewData[]
+    panels: ModuleType[]
     updateTime: Date
     changelog: Changelog
 }
@@ -69,6 +69,12 @@ export interface LandingAppViewData extends GlobalBaseViewData {
     username: string
     channelAccess: AccessMap | null
     changelog: Changelog
+}
+
+export interface PanelViewDataProps {
+    page: ControlPanelPage
+    panel: PanelViewData
+    onToggleItem: (id: string, open: boolean) => void
 }
 
 export enum ControlPanelPage {
@@ -100,6 +106,8 @@ export interface ChannelActions {
     'modequeue/add-mode': (args: Partial<ModeQueueModeConfig>, msg: MessageMeta) => boolean
     'modequeue/edit-mode': (args: { id: string } & Partial<ModeQueueModeConfig>, msg: MessageMeta) => boolean
     'modequeue/delete-mode': (args: { id: string }, msg: MessageMeta) => boolean
+    'modequeue/set-alarm-volume': (args: { volume: number }, msg: MessageMeta) => boolean
+    'modequeue/mock': (args: { configID: string, username: string }) => boolean
     'winloss/set-displayed': (args: { display: boolean }, msg: MessageMeta) => boolean
     'winloss/adjust-wins': (args: { delta: number }, msg: MessageMeta) => boolean
     'winloss/adjust-losses': (args: { delta: number }, msg: MessageMeta) => boolean
@@ -122,10 +130,16 @@ export interface ChannelActions {
     'counters/add-config': (args: Partial<CounterConfig>, msg: MessageMeta) => boolean
     'counters/edit-config': (args: { id: string } & Partial<CounterConfig>, msg: MessageMeta) => boolean
     'counters/delete-config': (args: { id: string }, msg: MessageMeta) => boolean
-    'channelinfo/set-accent-color': (args: { color: string }, msg: MessageMeta) => boolean
-    'channelinfo/set-muted-color': (args: { color: string }, msg: MessageMeta) => boolean
-    'channelinfo/set-command-prefix': (args: { commandPrefix: string }, msg: MessageMeta) => boolean
-    'debug/mock': (args: { configID: string, username: string, message: string, amount: number }, msg: MessageMeta) => boolean
+    'sounds/remove-redeem': (args: { id: string }, msg: MessageMeta) => boolean
+    'sounds/add-config': (args: Partial<SoundConfig>, msg: MessageMeta) => boolean
+    'sounds/edit-config': (args: { id: string } & Partial<SoundConfig>, msg: MessageMeta) => boolean
+    'sounds/delete-config': (args: { id: string }, msg: MessageMeta) => boolean
+    'sounds/upload': (args: { fileName: string, data: string }, msg: MessageMeta) => boolean
+    'sounds/mock': (args: { configID: string, username: string }, msg: MessageMeta) => boolean
+    'channelinfo/set-config': (args: Partial<ChannelInfoConfigData>, msg: MessageMeta) => boolean
+    'channelinfo/get-icons': (args: {}, msg: MessageMeta) => IconMap
+    'tts/speak': (args: { voice: string, text: string, style: string, pitch: number }, msg: MessageMeta) => Promise<string>
+    'twitch/rewards': (args: {}, msg: MessageMeta) => Promise<TwitchReward[]>
     'debug/reload': (args: {}, msg: MessageMeta) => boolean
     'config/enable-module': (args: { type: ModuleType, enabled: boolean }, msg: MessageMeta) => boolean
     'access/set': (args: { type: AccountType, id: string, access: Access }, msg: MessageMeta) => boolean

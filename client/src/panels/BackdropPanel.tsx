@@ -1,10 +1,10 @@
 import * as React from 'react'
-import { ControlPanelAppViewData, ControlPanelPage, ModuleDataType } from 'shared'
+import { ControlPanelAppViewData, ControlPanelPage, ModuleDataType, PanelViewDataProps } from 'shared'
 import { PanelField } from '../controls/PanelField'
 import { channelAction } from '../utils'
 import { Button } from '../controls/Button'
 
-export function BackdropPanel(props: ControlPanelAppViewData & ModuleDataType<'backdrop'> & { page: ControlPanelPage }) {
+export function BackdropPanel(props: ControlPanelAppViewData & ModuleDataType<'backdrop'> & PanelViewDataProps) {
     const [cannonText, setCannonText] = React.useState('')
 
     const swapCamera = async (name: string) => {

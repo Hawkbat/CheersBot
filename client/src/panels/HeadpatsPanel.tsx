@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { ControlPanelAppViewData, ControlPanelPage, ModuleDataType } from 'shared'
+import { ControlPanelAppViewData, ControlPanelPage, ModuleDataType, PanelViewDataProps } from 'shared'
 import { PanelField } from '../controls/PanelField'
 import { getNumberValue, setNumberValue, channelAction } from '../utils'
 import { Button } from '../controls/Button'
@@ -26,7 +26,7 @@ async function completeHeadpats() {
     }
 }
 
-export function HeadpatsPanel(props: ControlPanelAppViewData & ModuleDataType<'headpats'> & { page: ControlPanelPage }) {
+export function HeadpatsPanel(props: ControlPanelAppViewData & ModuleDataType<'headpats'> & PanelViewDataProps) {
     switch (props.page) {
         case ControlPanelPage.view:
             return <>
@@ -44,7 +44,7 @@ export function HeadpatsPanel(props: ControlPanelAppViewData & ModuleDataType<'h
             return <>
                 <hr />
                 <PanelField label="Emote" help="The emote displayed in the overlay when there are pending headpats">
-                    <ExternalIconPicker selected={props.config.emote} options={props.icons} onSelect={v => channelAction('headpats/set-emote', { emote: v })} />
+                    <ExternalIconPicker selected={props.config.emote} onSelect={v => channelAction('headpats/set-emote', { emote: v })} />
                 </PanelField>
             </>
         default:

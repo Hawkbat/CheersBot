@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { Counter, CounterConfig } from 'shared'
-import { channelAction } from 'src/utils'
+import { channelAction } from '../utils'
 import { Button } from './Button'
 import { PanelField } from './PanelField'
 

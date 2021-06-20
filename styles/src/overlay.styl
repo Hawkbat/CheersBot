@@ -21,18 +21,28 @@ main
     padding-left 5px
     padding-right 15px
     overflow hidden
-    height 56px
-    transform translate(-200px)
+    margin 0
+
+.Mode.t-enter
+html .Mode.t-exit-active
+.Mode.t-exit-done
     opacity 0
     height 0
-    margin 0
-    transition all 0.5s ease-in-out
+    margin-bottom 0
+    transform translate(-200px)
 
-.Mode.visible
-    transform translate(0)
+.Mode
+html .Mode.t-enter-active
+.Mode.t-enter-done
+.Mode.t-exit
     opacity 1
     height 56px
     margin-bottom 5px
+    transform translate(0)
+
+.Mode.t-enter-active
+.Mode.t-exit-active
+    transition all 500ms ease-in-out
 
 b
     font-size 32px

@@ -19,6 +19,6 @@ export interface CustomMessageConfigData extends ModuleConfigData {
 export const CustomMessageModule: Module<CustomMessageStateData, CustomMessageConfigData> = {
     name: 'Custom Messages',
     description: 'Displays custom overlay messages similar to the ones used by other features.',
-    version: ModuleVersion.beta,
+    version: ModuleVersion.released,
     getData: (modules: ModuleMap) => modules.customMessage,
 }

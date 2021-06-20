@@ -36,10 +36,10 @@ export function Changelog(props: Changelog) {
             <Icon icon="sparkles" />&nbsp;
             <span>What's New</span>
         </div>
-        {visible ? <div className="ChangelogOverlay" onClick={onClose}>
-            <div className="Changelog" onClick={stopBubble}>
+        {visible ? <div className="ModalOverlay" onClick={onClose}>
+            <div className="Modal Changelog" onClick={stopBubble}>
                 <h1>What's New</h1>
-                <span className="ChangelogCloser" onClick={onClose}><Icon icon="times" fixedWidth /></span>
+                <span className="ModalCloser" onClick={onClose}><Icon icon="times" fixedWidth /></span>
                 {props.changelog.slice().reverse().map(v => <div className={classes("ChangelogVersion", { new: parseDate(v.released) > lastVersionDate })} key={v.version}>
                     <div><b>Version {v.version}</b></div>
                     <div>Released: {parseDate(v.released).toLocaleDateString()}</div>

@@ -1,8 +1,8 @@
 import * as React from 'react'
-import { ControlPanelAppViewData, ControlPanelPage, ModuleDataType } from 'shared'
+import { ControlPanelAppViewData, ControlPanelPage, ModuleDataType, PanelViewDataProps } from 'shared'
 import { PanelField } from '../controls/PanelField'
 
-export function UserQueuePanel(props: ControlPanelAppViewData & ModuleDataType<'userQueue'> & { page: ControlPanelPage }) {
+export function UserQueuePanel(props: ControlPanelAppViewData & ModuleDataType<'userQueue'> & PanelViewDataProps) {
     switch (props.page) {
         case ControlPanelPage.view:
             return <>

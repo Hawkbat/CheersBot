@@ -1,12 +1,4 @@
 import { refresh } from './apps/ControlPanelApp'
+import { setRefreshCallback } from './utils'
 
-function tryRefresh() {
-    try {
-        refresh()
-    } catch (e) {
-        console.error(e)
-    }
-}
-
-setInterval(tryRefresh, 1000)
-tryRefresh()
+setRefreshCallback(refresh, true)
