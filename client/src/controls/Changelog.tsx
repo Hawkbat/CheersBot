@@ -40,6 +40,7 @@ export function Changelog(props: Changelog) {
             <div className="Modal Changelog" onClick={stopBubble}>
                 <h1>What's New</h1>
                 <span className="ModalCloser" onClick={onClose}><Icon icon="times" fixedWidth /></span>
+                <aside>If you encounter any issues with the new release, or have any questions about new features, please message <a href="https://twitter.com/HawkbarGaming">Hawkbar</a>!</aside>
                 {props.changelog.slice().reverse().map(v => <div className={classes("ChangelogVersion", { new: parseDate(v.released) > lastVersionDate })} key={v.version}>
                     <div><b>Version {v.version}</b></div>
                     <div>Released: {parseDate(v.released).toLocaleDateString()}</div>
