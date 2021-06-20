@@ -31,6 +31,22 @@
                 "Added additional debugging tools",
                 "Applied minor fixes and improvements"
             ]
+        },
+        {
+            "version": "1.3.0",
+            "released": "2021-06-20",
+            "changes": [
+                "Added redemption sound effect module",
+                "Added visual emoji picker",
+                "Added dropdown for selecting channel point rewards",
+                "Added option for selecting which corner of overlay to place items in",
+                "Added option for setting timer alarm volume",
+                "Added popup when clicking on info bubbles",
+                "Added collapse/expand button to lengthy config items",
+                "Reduced bandwidth usage significantly",
+                "Removed dependency on deprecated Twitch emote APIs",
+                "Applied minor fixes and improvements"
+            ]
         }
     ]
 }
