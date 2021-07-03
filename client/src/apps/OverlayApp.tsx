@@ -1,11 +1,10 @@
-import { OverlayAppViewData, Icon, Counter, CounterVisibility } from 'shared'
+import { OverlayAppViewData, Icon, Counter, CounterVisibility, RedeemModeDisplay } from 'shared'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
 import { Bubble } from '../controls/Bubble'
 import { channelAction, channelView, getChannelCSS } from '../utils'
 import { Sound } from '../controls/Sound'
 import { CSSTransition, TransitionGroup } from 'react-transition-group'
-import { CSSTransitionProps } from 'react-transition-group/CSSTransition'
 
 declare const REFRESH_TIME: number
 declare const CHANNEL_NAME: string
@@ -41,6 +40,30 @@ export function OverlayApp(props: OverlayAppViewData) {
     const sounds = props.modules.sounds
 
     const [finishedSounds, setFinishedSounds] = React.useState<Record<string, boolean>>({})
+
+    const displayModes: RedeemModeDisplay[] = modeQueue.state.modes.map(mode => {
+        const config = modeQueue.config.modes.find(c => c.id === mode.configID)!
+        const inModePeriod = mode.startTime && mode.duration && (Date.now() - mode.startTime) < mode.duration
+        let msg = ''
+        if (!mode.startTime) {
+            msg = config.startText
+        } else if (inModePeriod && mode.startTime && mode.duration) {
+            const minutesLeft = Math.ceil((mode.duration - (Date.now() - mode.startTime)) / (60 * 1000))
+            const minuteText = minutesLeft === 1 ? 'minute' : 'minutes'
+            msg = config.runningText
+                .replace('[minutesLeft]', minutesLeft.toString())
+                .replace('[minutes]', minuteText)
+        } else {
+            msg = config.endText
+        }
+        let icon: Icon = config.emote ?? { type: 'logo', id: 'hawkbar', name: 'Hawkbar' }
+        return {
+            ...mode,
+            icon,
+            msg,
+            showName: config.showUsername,
+        }
+    })
 
     const alignItems = props.modules.channelInfo.config.overlayCorner?.includes('right') ? 'flex-end' : 'flex-start'
     const justifyContent = props.modules.channelInfo.config.overlayCorner?.includes('bottom') ? 'flex-end' : 'flex-start'
@@ -106,14 +129,16 @@ export function OverlayApp(props: OverlayAppViewData) {
             {sounds.config.enabled ? sounds.state.sounds.filter(s => !finishedSounds[s.id]).map(s => {
                 const config = sounds.config.sounds.find(c => c.id === s.configID)
                 return <CSSTransition key={s.id} {...transitionProps}>
-                    <Bubble icon={config?.emote ?? defaultEmote} username={config?.showUsername ? s.userName : ''} msg={config?.showUsername ? `played ${config?.displayName}` : `Playing ${config?.displayName}`} />
-                    <Sound url={`/${CHANNEL_NAME}/uploads/${config?.fileName}`} volume={config?.volume ?? 1} onEnd={() => {
-                        setFinishedSounds(v => ({ ...v, [s.id]: true }))
-                        channelAction('sounds/remove-redeem', { id: s.id })
-                    }} />
+                    <>
+                        <Bubble icon={config?.emote ?? defaultEmote} username={config?.showUsername ? s.userName : ''} msg={config?.showUsername ? `played ${config?.displayName}` : `Playing ${config?.displayName}`} />
+                        <Sound url={`/${CHANNEL_NAME}/uploads/${config?.fileName}`} volume={config?.volume ?? 1} onEnd={() => {
+                            setFinishedSounds(v => ({ ...v, [s.id]: true }))
+                            channelAction('sounds/remove-redeem', { id: s.id })
+                        }} />
+                    </>
                 </CSSTransition>
             }) : null}
-            {modeQueue.config.enabled ? props.modes.filter(m => m.visible).map(m => <CSSTransition key={m.id} {...transitionProps}>
+            {modeQueue.config.enabled ? displayModes.filter(m => m.visible).map(m => <CSSTransition key={m.id} {...transitionProps}>
                 <Bubble icon={m.icon} username={m.showName ? m.userName : ''} msg={m.msg} />
             </CSSTransition>) : null}
         </TransitionGroup>
