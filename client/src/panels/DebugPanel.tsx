@@ -28,7 +28,7 @@ export function DebugPanel(props: ControlPanelAppViewData & ModuleDataType<'debu
         case ControlPanelPage.view:
             return <>
                 <PanelField label="Last Updated">
-                    {props.updateTime.toLocaleTimeString()}
+                    {new Date(props.updateTime).toLocaleTimeString()}
                 </PanelField>
                 <hr />
                 <PanelField label="TTS Voice">

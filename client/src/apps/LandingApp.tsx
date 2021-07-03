@@ -21,7 +21,7 @@ export async function refresh(reloadData: boolean) {
         if (data) {
             cachedData = data
             if (data.refreshTime !== REFRESH_TIME) location.reload()
-            ReactDOM.render(<LandingApp {...data} />, document.getElementById('app'))
+            ReactDOM.render(<LandingApp {...data} updateTime={Date.now()} />, document.getElementById('app'))
         }
     } catch (e) {
         console.error(e)

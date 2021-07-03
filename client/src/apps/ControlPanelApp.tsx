@@ -24,7 +24,7 @@ export async function refresh(reloadData: boolean) {
         if (data) {
             cachedData = data
             if (data.refreshTime !== REFRESH_TIME) location.reload()
-            ReactDOM.render(<ControlPanelApp {...data} updateTime={new Date()} />, document.getElementById('app'))
+            ReactDOM.render(<ControlPanelApp {...data} updateTime={Date.now()} />, document.getElementById('app'))
 
             const pingTime = Date.now()
 

@@ -90,6 +90,7 @@ async function run() {
         return {
             meta: msg,
             refreshTime,
+            updateTime: refreshTime,
             isGirlDm: isGirlDm(msg),
         }
     }
@@ -497,6 +498,7 @@ async function run() {
                         channel: name,
                         meta: msg,
                         refreshTime,
+                        updateTime: refreshTime,
                         isGirlDm: isGirlDm(msg),
                     }
                 }
@@ -1103,18 +1105,21 @@ async function run() {
                     'access-denied': (args, msg) => ({
                         meta: msg,
                         refreshTime,
+                        updateTime: refreshTime,
                         channel: name,
                         isGirlDm: isGirlDm(msg),
                     }),
                     'channel': (args, msg) => ({
                         meta: msg,
                         refreshTime,
+                        updateTime: refreshTime,
                         channel: name,
                         isGirlDm: isGirlDm(msg),
                     }),
                     'overlay': (args, msg) => ({
                         meta: msg,
                         refreshTime,
+                        updateTime: refreshTime,
                         channel: name,
                         isGirlDm: isGirlDm(msg),
                     }),
@@ -1125,7 +1130,7 @@ async function run() {
                         botAccess: data.get(d => d.bots),
                         userAccess: data.get(d => d.users),
                         panels: MODULE_TYPES,
-                        updateTime: new Date(),
+                        updateTime: Date.now(),
                         meta: msg,
                         refreshTime,
                         channel: name,
@@ -1138,6 +1143,7 @@ async function run() {
                         meta: msg,
                         channel: name,
                         refreshTime,
+                        updateTime: refreshTime,
                         isGirlDm: isGirlDm(msg),
                     }),
                 }

@@ -5,6 +5,7 @@ import { ModuleType, ModeQueueModeConfig, VodQueueConfigData, RedeemModeDisplay,
 export interface BaseViewData {
     meta: MessageMeta
     refreshTime: number
+    updateTime: number
     isGirlDm: boolean
 }
 
@@ -49,20 +50,16 @@ export interface PanelViewData {
 
 export interface ControlPanelAppViewData extends ChannelBaseViewData {
     username: string
-    channel: string
     modules: { [key in ModuleType]: ModuleDataType<key> }
     userAccess: AccessMap
     botAccess: AccessMap
     channels: string[]
     panels: ModuleType[]
-    updateTime: Date
     changelog: Changelog
 }
 
 export interface OverlayAppViewData extends ChannelBaseViewData {
-    channel: string
     modules: { [key in ModuleType]: ModuleDataType<key> }
-    modes: RedeemModeDisplay[]
 }
 
 export interface LandingAppViewData extends GlobalBaseViewData {
