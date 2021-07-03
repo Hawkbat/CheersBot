@@ -12,7 +12,7 @@ import * as cheerio from 'cheerio'
 import fetch from 'node-fetch'
 import { readJSON, writeJSON } from './utils'
 import { SessionStore } from './SessionStore'
-import { getDisplayModes, EVIL_PATTERN, isGirlDm } from './girldm'
+import { EVIL_PATTERN, isGirlDm } from './girldm'
 import { Bot, Channel, User, Secrets, AccountData, BotData, TwitchToken, UserData, ChannelData, DiscordToken } from './data'
 import { getFFZEmoteURL } from './frankerfacez'
 import { TwitchTokenResponse } from './twitch'
@@ -1103,21 +1103,18 @@ async function run() {
                     'access-denied': (args, msg) => ({
                         meta: msg,
                         refreshTime,
-                        updateTime: refreshTime,
                         channel: name,
                         isGirlDm: isGirlDm(msg),
                     }),
                     'channel': (args, msg) => ({
                         meta: msg,
                         refreshTime,
-                        updateTime: refreshTime,
                         channel: name,
                         isGirlDm: isGirlDm(msg),
                     }),
                     'overlay': (args, msg) => ({
                         meta: msg,
                         refreshTime,
-                        updateTime: refreshTime,
                         channel: name,
                         isGirlDm: isGirlDm(msg),
                     }),
@@ -1136,7 +1133,6 @@ async function run() {
                     }),
                     'overlay-app': (args, msg) => ({
                         modules: data.get(d => d.modules),
-                        modes: getDisplayModes(data.get(d => d.modules.modeQueue.state.modes), data.get(d => d.modules.modeQueue.config.modes)),
                         meta: msg,
                         channel: name,
                         refreshTime,
