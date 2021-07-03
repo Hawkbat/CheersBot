@@ -7,7 +7,10 @@ export function ExternalIcon(props: { icon: Icon, size: 1 | 2 | 3 }) {
     let type
     switch (props.icon.type) {
         case 'emote':
-            src = `https://static-cdn.jtvnw.net/emoticons/v1/${props.icon.id}/${props.size}.0`
+            if (props.icon.id.startsWith('emotesv2_'))
+                src = `https://static-cdn.jtvnw.net/emoticons/v2/${props.icon.id}/default/dark/${props.size}.0`
+            else
+                src = `https://static-cdn.jtvnw.net/emoticons/v1/${props.icon.id}/${props.size}.0`
             type = 'Twitch Emote'
             break
         case 'badge':
