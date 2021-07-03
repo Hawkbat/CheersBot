@@ -90,7 +90,6 @@ async function run() {
         return {
             meta: msg,
             refreshTime,
-            updateTime: refreshTime,
             isGirlDm: isGirlDm(msg),
         }
     }
@@ -498,7 +497,6 @@ async function run() {
                         channel: name,
                         meta: msg,
                         refreshTime,
-                        updateTime: refreshTime,
                         isGirlDm: isGirlDm(msg),
                     }
                 }
@@ -1130,7 +1128,6 @@ async function run() {
                         botAccess: data.get(d => d.bots),
                         userAccess: data.get(d => d.users),
                         panels: MODULE_TYPES,
-                        updateTime: Date.now(),
                         meta: msg,
                         refreshTime,
                         channel: name,
@@ -1143,7 +1140,6 @@ async function run() {
                         meta: msg,
                         channel: name,
                         refreshTime,
-                        updateTime: refreshTime,
                         isGirlDm: isGirlDm(msg),
                     }),
                 }
@@ -1486,7 +1482,7 @@ async function run() {
 
         const keepalive = setInterval(() => {
             res.write(`data: ${JSON.stringify({ type: 'ping' })}\n\n`)
-        }, 10 * 1000)
+        }, 60 * 1000)
 
         const handler = (d: UserData) => {
             res.write(`data: ${JSON.stringify({ type: 'refresh' })}\n\n`)

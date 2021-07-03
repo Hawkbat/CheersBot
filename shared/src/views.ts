@@ -5,7 +5,6 @@ import { ModuleType, ModeQueueModeConfig, VodQueueConfigData, RedeemModeDisplay,
 export interface BaseViewData {
     meta: MessageMeta
     refreshTime: number
-    updateTime: number
     isGirlDm: boolean
 }
 

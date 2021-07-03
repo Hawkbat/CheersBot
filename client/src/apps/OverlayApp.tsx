@@ -20,7 +20,7 @@ export async function refresh(reloadData: boolean) {
         if (data) {
             cachedData = data
             if (data.refreshTime !== REFRESH_TIME) location.reload()
-            ReactDOM.render(<OverlayApp {...data} updateTime={Date.now()} />, document.getElementById('app'))
+            ReactDOM.render(<OverlayApp {...data} />, document.getElementById('app'))
         }
     } catch (e) {
         console.error(e)

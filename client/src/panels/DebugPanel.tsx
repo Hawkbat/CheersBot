@@ -27,10 +27,6 @@ export function DebugPanel(props: ControlPanelAppViewData & ModuleDataType<'debu
     switch (props.page) {
         case ControlPanelPage.view:
             return <>
-                <PanelField label="Last Updated">
-                    {new Date(props.updateTime).toLocaleTimeString()}
-                </PanelField>
-                <hr />
                 <PanelField label="TTS Voice">
                     <input type="text" value={ttsVoice} onChange={e => setTtsVoice(e.target.value)} />
                 </PanelField>
