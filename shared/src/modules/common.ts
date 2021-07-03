@@ -11,6 +11,7 @@ import { ModeQueueModule } from './modequeue'
 import { SoundsModule } from './sounds'
 import { UserQueueModule } from './userqueue'
 import { VodQueueModule } from './vodqueue'
+import { VTubeStudioModule } from './vtstudio'
 import { WinLossModule } from './winloss'
 
 export interface ModuleStateData {
@@ -45,6 +46,7 @@ export const MODULES = {
     customMessage: CustomMessageModule,
     counters: CountersModule,
     sounds: SoundsModule,
+    vtubeStudio: VTubeStudioModule,
     eventQueue: EventQueueModule,
     channelInfo: ChannelInfoModule,
     debug: DebugModule,

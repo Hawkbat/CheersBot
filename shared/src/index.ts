@@ -1,4 +1,5 @@
 export * from './data'
 export * from './modules'
-export * from './views'
 export * from './utils'
+export * from './views'
+export * as vts from './vtstudio'

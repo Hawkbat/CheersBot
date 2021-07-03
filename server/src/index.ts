@@ -220,6 +220,14 @@ async function run() {
                         sounds: [],
                     },
                 },
+                vtubeStudio: {
+                    config: {
+                        enabled: false,
+                    },
+                    state: {
+
+                    },
+                },
                 eventQueue: {
                     config: {
                         enabled: false,
