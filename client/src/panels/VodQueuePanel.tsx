@@ -28,9 +28,9 @@ export function VodQueuePanel(props: ControlPanelAppViewData & ModuleDataType<'v
                     <i>{isNaN(patchDate.getTime()) ? 'Unknown' : patchDate.toDateString()}</i>
                 </PanelField> : <></>}
                 <PanelField>
-                    <div id="vods">
+                    <div className="QueuedItemList">
                         {props.state.entries.length
-                            ? props.state.entries.map(e => <QueuedVod vod={e} patchDate={patchDate.getTime()} config={props.config} />)
+                            ? props.state.entries.map(e => <QueuedVod key={e.id} vod={e} patchDate={patchDate.getTime()} config={props.config} />)
                             : <i>No VOD entries submitted</i>}
                     </div>
                 </PanelField>
@@ -38,14 +38,14 @@ export function VodQueuePanel(props: ControlPanelAppViewData & ModuleDataType<'v
         case ControlPanelPage.edit:
             return <>
                 <hr />
-                <PanelField label="Reward" help="This is the channel point reward in Twitch that will add an entry to the queue">
+                <PanelField label="Reward" help="This is the channel point reward in Twitch that will add an entry to the queue.">
                     <TwitchRewardDropdown nullable selectedID={props.config.redeemID} selectedName={props.config.redeemName} onSelect={(id, name) => channelAction('vodqueue/set-config', { redeemID: id, redeemName: name })} />
                 </PanelField>
-                <PanelField label="Game" help="The game this queue is configured for; provides additional functionality">
+                <PanelField label="Game" help="The game this queue is configured for; provides additional functionality.">
                     <Dropdown options={Object.values(VodQueueGame).map(e => ({ value: e }))} selected={props.config.game} onSelect={v => channelAction('vodqueue/set-config', { game: v as VodQueueGame })} />
                 </PanelField>
                 <PanelField>
-                    <Button onClick={() => mockVod()}>Test mode</Button>
+                    <Button onClick={() => mockVod()}>Test VOD</Button>
                     {tested ? <>&nbsp;<span>Success! Check the main tab!</span></> : <></>}
                 </PanelField>
             </>

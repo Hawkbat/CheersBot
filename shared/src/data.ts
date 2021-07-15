@@ -53,6 +53,7 @@ export enum ModuleVersion {
     preAlpha = 'PRE-ALPHA',
     alpha = 'ALPHA',
     beta = 'BETA',
+    preRelease = 'PRE-RELEASE',
     girldm = 'GIRLDM ONLY',
     deprecated = 'DEPRECATED',
 }
@@ -61,7 +62,8 @@ export const VERSION_TOOLTIPS: { [key in ModuleVersion]: string } = {
     [ModuleVersion.released]: '',
     [ModuleVersion.preAlpha]: 'Functionality is in development and not ready for streamer use.',
     [ModuleVersion.alpha]: 'Functionality is in development and available for testing offline.',
-    [ModuleVersion.beta]: 'Functionality is ready for live testing but may have bugs or minor changes.',
+    [ModuleVersion.beta]: 'Functionality is ready for live testing but may have major bugs or changes.',
+    [ModuleVersion.preRelease]: 'Functionality is ready to be used live but may have minor bugs or changes.',
     [ModuleVersion.girldm]: 'Only available on the girl_dm_ channel; it will not function elsewhere!',
     [ModuleVersion.deprecated]: 'Functionality is superceded by another module and will not be updated.',
 }

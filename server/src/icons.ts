@@ -40,9 +40,9 @@ let globalCache: { timestamp: number, icons: IconMap } | null = null
 
 const channelCache: Map<string, { timestamp: number, icons: IconMap }> = new Map()
 
-export async function getChannelIcons(client: TwitchClient, twitchChannelId: string): Promise<IconMap> {
+export async function getChannelIcons(client: TwitchClient, twitchChannelId: string, forceReload: boolean): Promise<IconMap> {
     const cached = channelCache.get(twitchChannelId)
-    if (cached && Date.now() < cached.timestamp + CHANNEL_CACHE_EXPIRY) {
+    if (cached && Date.now() < cached.timestamp + CHANNEL_CACHE_EXPIRY && !forceReload) {
         return cached.icons
     }
 
@@ -58,9 +58,9 @@ export async function getChannelIcons(client: TwitchClient, twitchChannelId: str
     return icons
 }
 
-export async function getGlobalIcons(client: TwitchClient): Promise<IconMap> {
+export async function getGlobalIcons(client: TwitchClient, forceReload: boolean): Promise<IconMap> {
     const cached = globalCache
-    if (cached && Date.now() < cached.timestamp + GLOBAL_CACHE_EXPIRY) {
+    if (cached && Date.now() < cached.timestamp + GLOBAL_CACHE_EXPIRY && !forceReload) {
         return cached.icons
     }
 
@@ -74,9 +74,9 @@ export async function getGlobalIcons(client: TwitchClient): Promise<IconMap> {
     return icons
 }
 
-export async function getAllIcons(client: TwitchClient, twitchChannelId: string): Promise<IconMap> {
+export async function getAllIcons(client: TwitchClient, twitchChannelId: string, forceReload: boolean): Promise<IconMap> {
     return {
-        ...await getChannelIcons(client, twitchChannelId),
-        ...await getGlobalIcons(client),
+        ...await getChannelIcons(client, twitchChannelId, forceReload),
+        ...await getGlobalIcons(client, forceReload),
     }
 }

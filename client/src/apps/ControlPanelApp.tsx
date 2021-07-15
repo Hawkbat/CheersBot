@@ -15,15 +15,17 @@ let lastPingTime = Date.now()
 let debounce = false
 
 let cachedData: ControlPanelAppViewData | undefined
+let pendingViewPromise: Promise<ControlPanelAppViewData | undefined> | undefined
 
 export async function refresh(reloadData: boolean) {
     if (debounce) return
     debounce = true
     try {
-        const data = reloadData || !cachedData ? await channelView('controlpanel-app') : cachedData
+        const data = reloadData || !cachedData ? await (pendingViewPromise ?? (pendingViewPromise = channelView('controlpanel-app'))) : cachedData
+        pendingViewPromise = undefined
         if (data) {
             cachedData = data
-            if (data.refreshTime !== REFRESH_TIME) location.reload()
+            if (reloadData && data.refreshTime !== REFRESH_TIME) location.reload()
             ReactDOM.render(<ControlPanelApp {...data} />, document.getElementById('app'))
 
             const pingTime = Date.now()
@@ -48,11 +50,20 @@ export async function refresh(reloadData: boolean) {
 }
 
 export function ControlPanelApp(props: ControlPanelAppViewData) {
-    const [page, setPage] = React.useState(ControlPanelPage.view)
+    const initialPage = location.hash ? (ControlPanelPage as any)[location.hash.substr(1)] as ControlPanelPage : undefined
+    const [page, setPage] = React.useState(initialPage ?? ControlPanelPage.view)
 
     const PANEL_STATE_KEY = `cheers-bot/${props.username}/${props.channel}/panels/${page}`
 
     const [panels, setPanels] = React.useState<PanelViewData[]>([])
+
+    React.useEffect(() => {
+        location.hash = {
+            [ControlPanelPage.view]: 'view',
+            [ControlPanelPage.edit]: 'edit',
+            [ControlPanelPage.access]: 'access',
+        }[page]
+    }, [page])
 
     React.useEffect(() => {
         const savedPanels = localRetrieveJSON<PanelViewData[]>(PANEL_STATE_KEY, [])
@@ -70,7 +81,8 @@ export function ControlPanelApp(props: ControlPanelAppViewData) {
 
     const visiblePanels = panels.filter(p => {
         const module = getModule(p.type)
-        const isExperimental = [ModuleVersion.preAlpha, ModuleVersion.alpha, ModuleVersion.girldm].includes(module.version)
+        if (module.version === ModuleVersion.girldm && !props.isGirlDm && props.channel.toLowerCase() !== 'girl_dm_') return false
+        const isExperimental = [ModuleVersion.preAlpha, ModuleVersion.alpha].includes(module.version)
         if (isExperimental && !props.modules.channelInfo.config.experimentalModules) return false
         switch (page) {
             case ControlPanelPage.edit: return module !== null
@@ -117,7 +129,6 @@ export function ControlPanelApp(props: ControlPanelAppViewData) {
             <DragDropContext onDragEnd={(result, provided) => {
                 if (result.destination) movePanels(result.source.index, result.destination.index)
             }}>
-                <Changelog changelog={props.changelog.changelog} />
                 <TabSet selected={page} options={[
                     { value: ControlPanelPage.view, icon: 'sliders-h' },
                     { value: ControlPanelPage.edit, icon: 'cogs' },
@@ -129,13 +140,13 @@ export function ControlPanelApp(props: ControlPanelAppViewData) {
                             ? <>
                                 <Draggable key={AccountType.bot} draggableId={AccountType.bot} index={0}>
                                     {(provided, snapshot) => <div className={classes('draggable', { dragging: snapshot.isDragging })} {...provided.draggableProps} ref={provided.innerRef}>
-                                        <AccessPanel type={AccountType.bot} access={props.botAccess} />
+                                        <AccessPanel userType={AccountType.channel} targetType={AccountType.bot} access={props.botAccess} />
                                         <div className="dragger" {...provided.dragHandleProps}></div>
                                     </div>}
                                 </Draggable>
                                 <Draggable key={AccountType.user} draggableId={AccountType.user} index={1}>
                                     {(provided, snapshot) => <div className={classes('draggable', { dragging: snapshot.isDragging })} {...provided.draggableProps} ref={provided.innerRef}>
-                                        <AccessPanel type={AccountType.user} access={props.userAccess} />
+                                        <AccessPanel userType={AccountType.channel} targetType={AccountType.user} access={props.userAccess} />
                                         <div className="dragger" {...provided.dragHandleProps}></div>
                                     </div>}
                                 </Draggable>
@@ -153,5 +164,6 @@ export function ControlPanelApp(props: ControlPanelAppViewData) {
                 </Droppable>
             </DragDropContext>
         </InfoPopupProvider>
+        <Changelog changelog={props.changelog.changelog} />
     </div>
 }

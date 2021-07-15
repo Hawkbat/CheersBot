@@ -1,4 +1,4 @@
-import { RedeemMode, generateID, Store, mergePartials, AccountType, ChannelActions, ChannelViews, MODULE_TYPES, Access, GlobalActions, GlobalViews, MessageMeta, parseJSON, GlobalBaseViewData, ChannelBaseViewData, VodQueueGame, Changelog, CounterVisibility, IconMap } from 'shared'
+import { generateID, Store, mergePartials, AccountType, ChannelActions, ChannelViews, MODULE_TYPES, Access, GlobalActions, GlobalViews, MessageMeta, GlobalBaseViewData, ChannelBaseViewData, VodQueueGame, Changelog, CounterVisibility, vts, filterFalsy, LandingAppViewData } from 'shared'
 import { ApiClient as TwitchClient, RefreshableAuthProvider, StaticAuthProvider } from 'twitch'
 import { ChatClient, PrivateMessage } from 'twitch-chat-client'
 import { PubSubClient } from 'twitch-pubsub-client'
@@ -6,7 +6,7 @@ import * as Discord from 'discord.js'
 import * as express from 'express'
 import * as session from 'express-session'
 import * as stylus from 'stylus'
-import * as fs from 'fs'
+import * as fs from 'fs/promises'
 import * as path from 'path'
 import * as cheerio from 'cheerio'
 import fetch from 'node-fetch'
@@ -17,8 +17,6 @@ import { Bot, Channel, User, Secrets, AccountData, BotData, TwitchToken, UserDat
 import { getFFZEmoteURL } from './frankerfacez'
 import { TwitchTokenResponse } from './twitch'
 import { DiscordTokenResponse } from './discord'
-import expressWs = require('express-ws')
-import WebSocket = require('ws')
 import { getAllIcons } from './icons'
 import { textToSpeech } from './tts'
 
@@ -49,7 +47,6 @@ async function run() {
     let users: { [key: string]: User } = {}
 
     const app = express()
-    const wsApp = expressWs(app)
 
     function hasTwitchAuth(req: express.Request): boolean {
         return !!req.session?.twitchUserName
@@ -153,6 +150,7 @@ async function run() {
                         tiedEmote: null,
                         losingEmote: null,
                         deathEmote: null,
+                        deathDuration: 0,
                     },
                     state: {
                         display: true,
@@ -223,9 +221,15 @@ async function run() {
                 vtubeStudio: {
                     config: {
                         enabled: false,
+                        apiHost: 'localhost',
+                        apiPort: 8001,
+                        apiSecure: false,
+                        swaps: [],
+                        triggers: [],
                     },
                     state: {
-
+                        swaps: [],
+                        triggers: [],
                     },
                 },
                 eventQueue: {
@@ -242,6 +246,7 @@ async function run() {
                         accentColor: '#00aaff',
                         mutedColor: '#006699',
                         commandPrefix: '!',
+                        activeBot: secrets?.superBot ?? '',
                     },
                     state: {
 
@@ -417,68 +422,132 @@ async function run() {
         return u ? Object.values(channels).filter(c => c.data.get(d => d.users[u.name] === Access.approved) && u.data.get(d => d.channels[c.name] === Access.approved)) : []
     }
 
+    function getChannelsForBot(bot: string): Channel[] {
+        const b = bots[bot]
+        return b ? Object.values(channels).filter(c => c.data.get(d => d.bots[b.name] === Access.approved) && b.data.get(d => d.channels[c.name] === Access.approved)) : []
+    }
+
     async function setupBot(name: string): Promise<Bot | null> {
         const { data, client } = await generateClient(AccountType.bot, name)
         try {
             if (data && client) {
                 const id = (await client.helix.users.getMe()).id
 
-                const chatChannels = data.get(d => Object.keys(d.channels).filter(c => d.channels[c] === Access.approved))
-                const chatClient = new ChatClient(client, { channels: chatChannels, requestMembershipEvents: true })
+                const chatClient = new ChatClient(client, { botLevel: name === secrets?.superBot ? 'verified' : 'none', requestMembershipEvents: true })
                 await chatClient.connect()
 
-                chatClient.onPrivmsg(async (channel: string, user: string, message: string, msg: PrivateMessage) => {
+                const joined: Record<string, boolean> = {}
+
+                for (const channel of getChannelsForBot(name)) {
+                    try {
+                        await chatClient.join(channel.name)
+                        joined[channel.name] = true
+                        console.log(`${name} joined #${channel.name}`)
+                    } catch (e) {
+                        console.error(e)
+                    }
+                }
+
+                setInterval(async () => {
+                    const validChannels = getChannelsForBot(name)
+                    for (const channel in joined) {
+                        if (!validChannels.find(c => c.name === channel)) {
+                            chatClient.part(channel)
+                            delete joined[channel]
+                            console.log(`${name} left #${channel}`)
+                        }
+                    }
+                    for (const channel of validChannels) {
+                        if (!joined[channel.name]) {
+                            try {
+                                await chatClient.join(channel.name)
+                                joined[channel.name] = true
+                                console.log(`${name} joined #${channel.name}`)
+                            } catch (e) {
+                                console.error(e)
+                            }
+                        }
+                    }
+                }, 60 * 1000)
+
+                chatClient.onMessage(async (channel: string, user: string, message: string, msg: PrivateMessage) => {
                     const c = channels[channel.substr(1)]
                     if (!c) return
-                    const isUser = getUsersForChannel(c.name).some(u => u.name === user) || msg.userInfo.isBroadcaster || msg.userInfo.isMod
-                    if (isUser) {
-                        const parts = message.split(/\b/g).map(p => p.trim()).filter(p => p.length)
-                        const prefix = parts.shift()
-                        const command = parts.shift()
-                        const args = parts
 
-                        switch (prefix) {
-                            case 'girldmCheer':
-                                switch (command) {
-                                    case undefined:
-                                        chatClient?.say(channel, 'girldmCheer girldmCheer girldmCheer girldmCheer')
-                                        break
-                                }
-                                break
-                            case c.data.get(d => d.modules.channelInfo.config.commandPrefix):
-                                switch (command) {
-                                    case 'win':
-                                        c.data.update(d => {
-                                            d.modules.winLoss.state.wins++
-                                        })
-                                        break
-                                    case 'loss':
-                                        c.data.update(d => {
-                                            d.modules.winLoss.state.losses++
-                                        })
-                                        break
-                                    case 'draw':
-                                        c.data.update(d => {
-                                            d.modules.winLoss.state.draws++
-                                        })
-                                        break
-                                    case 'death':
-                                        c.data.update(d => {
-                                            d.modules.winLoss.state.deaths++
-                                            d.modules.winLoss.state.deathTime = Date.now()
-                                        })
-                                        break
-                                    case 'reset':
-                                        c.data.update(d => {
-                                            d.modules.winLoss.state.wins = 0
-                                            d.modules.winLoss.state.losses = 0
-                                            d.modules.winLoss.state.draws = 0
-                                            d.modules.winLoss.state.deaths = 0
-                                        })
-                                        break
-                                }
-                                break
-                        }
+                    const isActiveBot = c.data.get(d => d.modules.channelInfo.config.activeBot === name)
+                    if (!isActiveBot) return
+
+                    const isUser = getUsersForChannel(c.name).some(u => u.name === user) || msg.userInfo.isBroadcaster || msg.userInfo.isMod
+                    if (!isUser) return
+
+                    const commandPrefix = c.data.get(d => d.modules.channelInfo.config.commandPrefix)
+
+                    const parts = message.split(/\b/g).map(p => p.trim()).filter(p => p.length)
+                    const prefix = parts.shift()
+                    const command = parts.shift()
+                    const args = parts
+
+                    switch (prefix) {
+                        case 'girldmCheer':
+                            switch (command) {
+                                case 'girldmHeadpat':
+                                    chatClient?.say(channel, 'girldmCheer')
+                                    break
+                            }
+                            break
+                        case commandPrefix:
+                            const hasOperator = args[0] === '+' || args[0] === '-' || args[0] === '='
+                            const operator = hasOperator ? args[0] : '+'
+                            const parsedAmount = hasOperator ? parseInt(args[1], 10) : parseInt(args[0], 10)
+                            const hasAmount = !Number.isNaN(parsedAmount)
+                            const amount = hasAmount ? parsedAmount : 1
+                            switch (command) {
+                                case 'cheersbot':
+                                    chatClient?.say(channel, 'girldmCheer')
+                                    break
+                                case 'win':
+                                case 'wins':
+                                    c.data.update(d => {
+                                        if (operator === '+') d.modules.winLoss.state.wins += amount
+                                        if (operator === '-') d.modules.winLoss.state.wins -= amount
+                                        if (operator === '=' && hasAmount) d.modules.winLoss.state.wins = amount
+                                    })
+                                    break
+                                case 'loss':
+                                case 'losses':
+                                    c.data.update(d => {
+                                        if (operator === '+') d.modules.winLoss.state.losses += amount
+                                        if (operator === '-') d.modules.winLoss.state.losses -= amount
+                                        if (operator === '=' && hasAmount) d.modules.winLoss.state.losses = amount
+                                    })
+                                    break
+                                case 'draw':
+                                case 'draws':
+                                    c.data.update(d => {
+                                        if (operator === '+') d.modules.winLoss.state.draws += amount
+                                        if (operator === '-') d.modules.winLoss.state.draws -= amount
+                                        if (operator === '=' && hasAmount) d.modules.winLoss.state.draws = amount
+                                    })
+                                    break
+                                case 'death':
+                                case 'deaths':
+                                    c.data.update(d => {
+                                        if (operator === '+') d.modules.winLoss.state.deaths += amount
+                                        if (operator === '-') d.modules.winLoss.state.deaths -= amount
+                                        if (operator === '=' && hasAmount) d.modules.winLoss.state.deaths = amount
+                                        d.modules.winLoss.state.deathTime = Date.now()
+                                    })
+                                    break
+                                case 'reset':
+                                    c.data.update(d => {
+                                        d.modules.winLoss.state.wins = 0
+                                        d.modules.winLoss.state.losses = 0
+                                        d.modules.winLoss.state.draws = 0
+                                        d.modules.winLoss.state.deaths = 0
+                                    })
+                                    break
+                            }
+                            break
                     }
                 })
 
@@ -487,7 +556,8 @@ async function run() {
                     name,
                     data,
                     client,
-                    chatClient
+                    chatClient,
+                    joined,
                 }
             }
         } catch (e) {
@@ -524,12 +594,8 @@ async function run() {
                 const router = express.Router()
                 router.use(express.json())
 
-                const sockets: WebSocket[] = []
-
                 const pubSubClient = new PubSubClient()
                 await pubSubClient.registerUserListener(client, id)
-
-                let icons: IconMap = await getAllIcons(client, id)
 
                 if (data.get(d => d.token.scope.includes('channel:read:redemptions'))) {
                     pubSubClient.onRedemption(id, msg => {
@@ -542,7 +608,9 @@ async function run() {
 
                                 if (!msg['_data'].data.redemption.reward.is_in_stock) {
                                     for (const bot of getBotsForChannel(name)) {
-                                        bot.chatClient.action(name, 'Out of headpats because dm is dented! girldmHeadpat girldmHeadpat girldmHeadpat girldmHeadpat')
+                                        if (data.get(d => d.modules.channelInfo.config.activeBot === bot.name)) {
+                                            bot.chatClient.action(name, 'Out of headpats because dm is dented! girldmHeadpat girldmHeadpat girldmHeadpat girldmHeadpat')
+                                        }
                                     }
                                 }
                                 break
@@ -608,6 +676,26 @@ async function run() {
                                 redeemTime: Date.now(),
                             }))
                         }
+                        const modelSwapConfig = data.get(d => d.modules.vtubeStudio.config.swaps.find(c => c.redeemID === msg.rewardId || c.redeemName.trim() === msg.rewardName.trim()))
+                        if (modelSwapConfig) {
+                            data.update(d => d.modules.vtubeStudio.state.swaps.push({
+                                id: generateID(),
+                                userID: msg.userId,
+                                userName: msg.userDisplayName,
+                                configID: modelSwapConfig.id,
+                                redeemTime: Date.now(),
+                            }))
+                        }
+                        const hotkeyTriggerConfig = data.get(d => d.modules.vtubeStudio.config.triggers.find(c => c.redeemID === msg.rewardId || c.redeemName.trim() === msg.rewardName.trim()))
+                        if (hotkeyTriggerConfig) {
+                            data.update(d => d.modules.vtubeStudio.state.triggers.push({
+                                id: generateID(),
+                                userID: msg.userId,
+                                userName: msg.userDisplayName,
+                                configID: hotkeyTriggerConfig.id,
+                                redeemTime: Date.now(),
+                            }))
+                        }
                     })
                 }
 
@@ -621,7 +709,9 @@ async function run() {
                                 ban.startTime = Date.now()
                                 ban.duration = BAN_TIMEOUT
                                 for (const bot of getBotsForChannel(name)) {
-                                    bot.chatClient.action(name, `Goodbye, @${username}! Have a nice heccin time while being banned girldmCheer`)
+                                    if (data.get(d => d.modules.channelInfo.config.activeBot === bot.name)) {
+                                        bot.chatClient.action(name, `Goodbye, @${username}! Have a nice heccin time while being banned girldmCheer`)
+                                    }
                                 }
                             }
                         } else if (msg.action === 'untimeout') {
@@ -629,7 +719,9 @@ async function run() {
                             const ban = data.get(d => d.modules.modeQueue.state.modes.find(b => d.modules.modeQueue.config.modes.some(m => b.configID === m.id && m.redeemName === 'girldm heccin ban me') && b.userName.toLowerCase() === username.toLowerCase()))
                             if (ban) {
                                 for (const bot of getBotsForChannel(name)) {
-                                    bot.chatClient.action(name, `Welcome back, @${username}! girldmCheer`)
+                                    if (data.get(d => d.modules.channelInfo.config.activeBot === bot.name)) {
+                                        bot.chatClient.action(name, `Welcome back, @${username}! girldmCheer`)
+                                    }
                                 }
                                 data.update(d => {
                                     d.modules.modeQueue.state.modes = d.modules.modeQueue.state.modes.filter(m => m.id !== ban.id)
@@ -660,7 +752,9 @@ async function run() {
                         })
                         if (data.get(d => d.modules.headpats.state.count) === 0 && data.get(d => d.modules.headpats.state.streak) > 1) {
                             for (const bot of getBotsForChannel(name)) {
-                                bot.chatClient.action(name, `${data.get(d => d.modules.headpats.state.streak)} headpat streak! girldmCheer girldmCheer girldmCheer girldmHeadpat girldmHeadpat girldmHeadpat`)
+                                if (data.get(d => d.modules.channelInfo.config.activeBot === bot.name)) {
+                                    bot.chatClient.action(name, `${data.get(d => d.modules.headpats.state.streak)} headpat streak! girldmCheer girldmCheer girldmCheer girldmHeadpat girldmHeadpat girldmHeadpat`)
+                                }
                             }
                             data.update(d => {
                                 d.modules.headpats.state.streak = 0
@@ -834,27 +928,12 @@ async function run() {
                         })
                         return true
                     },
-                    'winloss/set-winning-emote': args => {
+                    'winloss/set-config': args => {
                         data.update(d => {
-                            d.modules.winLoss.config.winningEmote = args.emote
-                        })
-                        return true
-                    },
-                    'winloss/set-losing-emote': args => {
-                        data.update(d => {
-                            d.modules.winLoss.config.losingEmote = args.emote
-                        })
-                        return true
-                    },
-                    'winloss/set-tied-emote': args => {
-                        data.update(d => {
-                            d.modules.winLoss.config.tiedEmote = args.emote
-                        })
-                        return true
-                    },
-                    'winloss/set-death-emote': args => {
-                        data.update(d => {
-                            d.modules.winLoss.config.deathEmote = args.emote
+                            d.modules.winLoss.config = {
+                                ...d.modules.winLoss.config,
+                                ...args,
+                            }
                         })
                         return true
                     },
@@ -992,6 +1071,7 @@ async function run() {
                                 displayName: '',
                                 volume: 1,
                                 fileName: '',
+                                ...args,
                             })
                         })
                         return true
@@ -1020,23 +1100,33 @@ async function run() {
                         })
                         return true
                     },
-                    'sounds/upload': args => {
-                        const buffer = Buffer.from(args.data, 'base64')
-                        const filePath = `${workingDir}/data/uploads/${name}/${args.fileName}`
-                        fs.mkdir(path.dirname(filePath), { recursive: true }, err => {
-                            if (err) console.error(err)
-                            else {
-                                fs.writeFile(filePath, buffer, err => {
-                                    if (err) console.error(err)
-                                    else {
-                                        data.update(d => {
-                                            d.modules.sounds.config.uploads.push(args.fileName)
-                                        })
-                                    }
-                                })
-                            }
-                        })
-                        return true
+                    'sounds/add-upload': async args => {
+                        try {
+                            const buffer = Buffer.from(args.data, 'base64')
+                            const filePath = `${workingDir}/data/uploads/${name}/${args.fileName}`
+                            await fs.mkdir(path.dirname(filePath), { recursive: true })
+                            await fs.writeFile(filePath, buffer)
+                            data.update(d => {
+                                d.modules.sounds.config.uploads.push(args.fileName)
+                            })
+                            return true
+                        } catch (e) {
+                            console.error(e)
+                            return false
+                        }
+                    },
+                    'sounds/delete-upload': async args => {
+                        try {
+                            const filePath = `${workingDir}/data/uploads/${name}/${args.fileName}`
+                            await fs.unlink(filePath)
+                            data.update(d => {
+                                d.modules.sounds.config.uploads = d.modules.sounds.config.uploads.filter(s => s !== args.fileName)
+                            })
+                            return true
+                        } catch (e) {
+                            console.error(e)
+                            return false
+                        }
                     },
                     'sounds/mock': args => {
                         data.update(d => {
@@ -1050,6 +1140,133 @@ async function run() {
                         })
                         return true
                     },
+                    'vtstudio/complete-model-swap': args => {
+                        data.update(d => {
+                            d.modules.vtubeStudio.state.swaps = d.modules.vtubeStudio.state.swaps.filter(s => s.id !== args.id)
+                        })
+                        return true
+                    },
+                    'vtstudio/add-model-swap': args => {
+                        data.update(d => {
+                            d.modules.vtubeStudio.config.swaps.push({
+                                id: generateID(),
+                                redeemID: '',
+                                redeemName: '',
+                                emote: null,
+                                showUsername: false,
+                                message: '',
+                                duration: 2,
+                                type: 'one',
+                                models: [],
+                                ...args,
+                            })
+                        })
+                        return true
+                    },
+                    'vtstudio/edit-model-swap': args => {
+                        let updated = false
+                        data.update(d => {
+                            d.modules.vtubeStudio.config.swaps = d.modules.vtubeStudio.config.swaps.map(c => {
+                                if (c.id === args.id) {
+                                    updated = true
+                                    return {
+                                        ...c,
+                                        ...args,
+                                    }
+                                } else {
+                                    return c
+                                }
+                            })
+                        })
+                        return updated
+                    },
+                    'vtstudio/delete-model-swap': args => {
+                        data.update(d => {
+                            d.modules.vtubeStudio.config.swaps = d.modules.vtubeStudio.config.swaps.filter(c => c.id !== args.id)
+                            d.modules.vtubeStudio.state.swaps = d.modules.vtubeStudio.state.swaps.filter(c => c.configID !== args.id)
+                        })
+                        return true
+                    },
+                    'vtstudio/mock-model-swap': args => {
+                        data.update(d => {
+                            d.modules.vtubeStudio.state.swaps.push({
+                                id: generateID(),
+                                configID: args.configID,
+                                userID: '',
+                                userName: 'Anonymous',
+                                redeemTime: Date.now(),
+                            })
+                        })
+                        return true
+                    },
+                    'vtstudio/complete-hotkey-trigger': args => {
+                        data.update(d => {
+                            d.modules.vtubeStudio.state.triggers = d.modules.vtubeStudio.state.triggers.filter(s => s.id !== args.id)
+                        })
+                        return true
+                    },
+                    'vtstudio/add-hotkey-trigger': args => {
+                        data.update(d => {
+                            d.modules.vtubeStudio.config.triggers.push({
+                                id: generateID(),
+                                redeemID: '',
+                                redeemName: '',
+                                emote: null,
+                                showUsername: false,
+                                message: '',
+                                duration: 2,
+                                type: 'one',
+                                hotkeys: [],
+                                ...args,
+                            })
+                        })
+                        return true
+                    },
+                    'vtstudio/edit-hotkey-trigger': args => {
+                        let updated = false
+                        data.update(d => {
+                            d.modules.vtubeStudio.config.triggers = d.modules.vtubeStudio.config.triggers.map(c => {
+                                if (c.id === args.id) {
+                                    updated = true
+                                    return {
+                                        ...c,
+                                        ...args,
+                                    }
+                                } else {
+                                    return c
+                                }
+                            })
+                        })
+                        return updated
+                    },
+                    'vtstudio/delete-hotkey-trigger': args => {
+                        data.update(d => {
+                            d.modules.vtubeStudio.config.triggers = d.modules.vtubeStudio.config.triggers.filter(c => c.id !== args.id)
+                            d.modules.vtubeStudio.state.triggers = d.modules.vtubeStudio.state.triggers.filter(c => c.configID !== args.id)
+                        })
+                        return true
+                    },
+                    'vtstudio/mock-hotkey-trigger': args => {
+                        data.update(d => {
+                            d.modules.vtubeStudio.state.triggers.push({
+                                id: generateID(),
+                                configID: args.configID,
+                                userID: '',
+                                userName: 'Anonymous',
+                                redeemTime: Date.now(),
+                            })
+                        })
+                        return true
+                    },
+                    'vtstudio/edit-config': args => {
+                        data.update(d => {
+                            d.modules.vtubeStudio.config = {
+                                ...d.modules.vtubeStudio.config,
+                                ...args,
+                            }
+                        })
+                        return true
+                    },
                     'channelinfo/set-config': args => {
                         data.update(d => {
                             d.modules.channelInfo.config = {
@@ -1059,11 +1276,8 @@ async function run() {
                         })
                         return true
                     },
-                    'channelinfo/get-icons': () => {
-                        getAllIcons(client, id).then(r => {
-                            icons = r
-                        })
-                        return icons
+                    'channelinfo/get-icons': async args => {
+                        return await getAllIcons(client, id, args.forceReload)
                     },
                     'tts/speak': async args => {
                         try {
@@ -1090,43 +1304,45 @@ async function run() {
                         return true
                     },
                     'access/set': args => {
-                        switch (args.type) {
-                            case AccountType.bot:
-                                data.update(d => {
-                                    d.bots[args.id] = args.access
-                                })
-                                return true
-                            case AccountType.user:
-                                data.update(d => {
-                                    d.users[args.id] = args.access
-                                })
-                                return true
-                            default:
-                                return false
+                        switch (args.userType) {
+                            case AccountType.channel:
+                                switch (args.targetType) {
+                                    case AccountType.bot:
+                                        data.update(d => {
+                                            d.bots[args.id] = args.access
+                                        })
+                                        return true
+                                    case AccountType.user:
+                                        data.update(d => {
+                                            d.users[args.id] = args.access
+                                        })
+                                        return true
+                                }
                         }
+                        return false
                     }
                 }
 
                 const views: ChannelViews = {
-                    'access-denied': (args, msg) => ({
+                    'access-denied': async (args, msg) => ({
                         meta: msg,
                         refreshTime,
                         channel: name,
                         isGirlDm: isGirlDm(msg),
                     }),
-                    'channel': (args, msg) => ({
+                    'channel': async (args, msg) => ({
                         meta: msg,
                         refreshTime,
                         channel: name,
                         isGirlDm: isGirlDm(msg),
                     }),
-                    'overlay': (args, msg) => ({
+                    'overlay': async (args, msg) => ({
                         meta: msg,
                         refreshTime,
                         channel: name,
                         isGirlDm: isGirlDm(msg),
                     }),
-                    'controlpanel-app': (args, msg) => ({
+                    'controlpanel-app': async (args, msg) => ({
                         username: msg.username,
                         modules: data.get(d => d.modules),
                         channels: getChannelsForUser(msg.username).map(c => c.name),
@@ -1139,7 +1355,7 @@ async function run() {
                         isGirlDm: isGirlDm(msg),
                         changelog,
                     }),
-                    'overlay-app': (args, msg) => ({
+                    'overlay-app': async (args, msg) => ({
                         modules: data.get(d => d.modules),
                         meta: msg,
                         channel: name,
@@ -1198,16 +1414,6 @@ async function run() {
                         data.offWrite(handler)
                         clearInterval(keepalive)
                     })
-                })
-
-                router.ws('/ws/', (ws, req) => {
-                    sockets.push(ws)
-                    ws.on('message', msg => {
-                        console.log(`[${name}] msg: ${msg}`)
-                        parseJSON(msg.toString())
-
-                    })
-                    console.log(`[${name}] sock: ${req.header('forwarded') ?? req.header('x-forwarded-for') ?? req.header('true-client-ip') ?? req.ip}`)
                 })
 
                 router.use('/uploads/', express.static(`${workingDir}/data/uploads/${name}/`))
@@ -1395,42 +1601,63 @@ async function run() {
             return true
         },
         'access/set': (args, msg) => {
-            switch (args.type) {
+            switch (args.targetType) {
                 case AccountType.channel:
-                    users[msg.username].data.update(d => {
-                        d.channels[args.id] = args.access
-                    })
-                    return true
-                default:
-                    return false
+                    switch (args.userType) {
+                        case AccountType.user:
+                            users[msg.username].data.update(d => {
+                                d.channels[args.id] = args.access
+                            })
+                            return true
+                        case AccountType.bot:
+                            bots[msg.username].data.update(d => {
+                                d.channels[args.id] = args.access
+                            })
+                            return true
+                    }
             }
+            return false
         },
     }
 
     const views: GlobalViews = {
-        'authorize': (args, msg) => ({
+        'authorize': async (args, msg) => ({
             ...getGlobalViewData(msg),
             ...args,
         }),
-        'message': (args, msg) => ({
+        'message': async (args, msg) => ({
             ...getGlobalViewData(msg),
             ...args,
         }),
-        'landing': (args, msg) => ({
+        'landing': async (args, msg) => ({
             ...getGlobalViewData(msg),
             ...args,
         }),
-        'landing-app': (args, msg) => {
+        'landing-app': async (args, msg) => {
             const user = users[msg.username]
-            if (user && channels[user.name]) {
-                if (channels[user.name].data.get(d => d.users[user.name]) !== Access.approved) {
-                    channels[user.name].data.update(d => {
+            const channel = channels[msg.username]
+            const bot = bots[msg.username]
+            if (user && channel) {
+                if (channel.data.get(d => d.users[user.name]) !== Access.approved) {
+                    channel.data.update(d => {
                         d.users[user.name] = Access.approved
                     })
                 }
                 if (user.data.get(d => d.channels[user.name] !== Access.approved)) {
                     user.data.update(d => {
                         d.channels[user.name] = Access.approved
+                    })
+                }
+            }
+            if (bot && channel) {
+                if (channel.data.get(d => d.bots[bot.name]) !== Access.approved) {
+                    channel.data.update(d => {
+                        d.bots[bot.name] = Access.approved
+                    })
+                }
+                if (bot.data.get(d => d.channels[bot.name] !== Access.approved)) {
+                    bot.data.update(d => {
+                        d.channels[bot.name] = Access.approved
                     })
                 }
             }
@@ -1443,12 +1670,37 @@ async function run() {
                     }
                 }
             }
+            const superBot = bots[secrets.superBot]
+            if (channel && superBot) {
+                if (!channel.data.get(d => d.bots[superBot.name] !== Access.approved)) {
+                    channel.data.update(d => {
+                        d.bots[secrets.superBot] = Access.approved
+                    })
+                }
+                if (!superBot.data.get(d => d.channels[channel.name] !== Access.approved)) {
+                    superBot.data.update(d => {
+                        d.channels[channel.name] = Access.approved
+                    })
+                }
+            }
+
+            let streams: LandingAppViewData['streams'] = []
+
+            try {
+                const allStreams = await Promise.all(Object.values(channels).map(c => c.client.helix.streams.getStreamByUserId(c.id)))
+                streams = allStreams.filter(filterFalsy).map(s => ({ channel: s.userDisplayName, game: s.gameName, viewCount: s.viewers }))
+            } catch (e) {
+                console.error(e)
+            }
+
             return {
                 ...getGlobalViewData(msg),
                 ...args,
                 username: msg.username,
-                channelAccess: user ? user.data.get(d => d.channels) : null,
+                userChannelAccess: user ? user.data.get(d => d.channels) : null,
+                botChannelAccess: bot ? bot.data.get(d => d.channels) : null,
                 changelog,
+                streams,
             }
         },
     }
@@ -1474,8 +1726,6 @@ async function run() {
             'Content-Type': 'text/event-stream',
             'Connection': 'keep-alive',
         })
-        res.flushHeaders()
-        res.socket?.setTimeout(0)
 
         const msg = getMessage(req, '')
         const user = users[msg.username]
@@ -1483,6 +1733,9 @@ async function run() {
             res.sendStatus(204)
             return
         }
+
+        res.flushHeaders()
+        res.socket?.setTimeout(0)
 
         res.write(`data: ${JSON.stringify({ type: 'ping' })}\n\n`)
 
@@ -1503,22 +1756,46 @@ async function run() {
 
     const promises: Promise<void>[] = []
 
-    const botNames = fs.readdirSync(workingDir + '/data/bot/').map(p => path.basename(p, path.extname(p)))
+    const botNames = (await fs.readdir(workingDir + '/data/bot/')).map(p => path.basename(p, path.extname(p)))
     for (const bot of botNames) {
         promises.push((async () => void await setupBot(bot))())
     }
 
-    const channelNames = fs.readdirSync(workingDir + '/data/channel/').map(p => path.basename(p, path.extname(p)))
+    const channelNames = (await fs.readdir(workingDir + '/data/channel/')).map(p => path.basename(p, path.extname(p)))
     for (const channel of channelNames) {
         promises.push((async () => void await setupChannel(channel))())
     }
 
-    const userNames = fs.readdirSync(workingDir + '/data/user/').map(p => path.basename(p, path.extname(p)))
+    const userNames = (await fs.readdir(workingDir + '/data/user/')).map(p => path.basename(p, path.extname(p)))
     for (const user of userNames) {
         promises.push((async () => void await setupUser(user))())
     }
 
     await Promise.all(promises)
+
+    /*const wss = new WebSocket.Server({ port: 8001 })
+    wss.on('connection', ws => {
+        console.log('Websocket connection established')
+
+        const handlers: vts.MessageHandler[] = []
+
+        const bus: vts.MessageBus = {
+            on: handler => handlers.push(handler),
+            off: handler => handlers.splice(handlers.findIndex(h => h === handler), 1),
+            send: msg => ws.send(JSON.stringify(msg)),
+        }
+
+        ws.addEventListener('message', e => {
+            const msg = JSON.parse(e.data)
+            for (const handler of [...handlers]) handler(msg)
+        })
+
+        ws.addEventListener('close', e => {
+            console.log('Websocket connection closed: ', e.code, e.reason)
+        })
+
+        const mockVTS = new vts.MockApiServer(bus)
+    })*/
 
     app.listen(60004, () => console.log('Web server running!'))
 }

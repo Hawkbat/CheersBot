@@ -16,6 +16,8 @@ import { PanelField } from './PanelField'
 import { Toggle } from './Toggle'
 import { Info } from './Info'
 import { SoundsPanel } from '../panels/SoundsPanel'
+import { VTubeStudioPanel } from '../panels/VTubeStudioPanel'
+import { Warning } from './Warning'
 
 export function Panel(props: { page: ControlPanelPage, panel: PanelViewData, data: ControlPanelAppViewData, onToggle: (open: boolean) => void, onToggleItem: (id: string, open: boolean) => void }) {
     const module = getModule(props.panel.type)
@@ -49,10 +51,14 @@ export function Panel(props: { page: ControlPanelPage, panel: PanelViewData, dat
                     return <CountersPanel {...panelProps} {...props.data} {...getModule(props.panel.type).getData(props.data.modules)} />
                 case 'sounds':
                     return <SoundsPanel {...panelProps} {...props.data} {...getModule(props.panel.type).getData(props.data.modules)} />
+                case 'vtubeStudio':
+                    return <VTubeStudioPanel {...panelProps} {...props.data} {...getModule(props.panel.type).getData(props.data.modules)} />
                 case 'channelInfo':
                     return <ChannelInfoPanel {...panelProps} {...props.data} {...getModule(props.panel.type).getData(props.data.modules)} />
                 case 'debug':
                     return <DebugPanel {...panelProps} {...props.data} {...getModule(props.panel.type).getData(props.data.modules)} />
+                default:
+                    return <div><Warning />Unknown panel type: {props.panel.type}</div>
             }
         })()}
     </PanelGroup>

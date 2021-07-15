@@ -57,6 +57,10 @@ export function mergePartials<T extends { [key: string]: any }>(base: T, ...targ
     return data
 }
 
+export function filterFalsy<T>(v: T | null | undefined | false): v is T {
+    return !!v
+}
+
 function isObject(item: any): item is { [key: string]: any } {
     return item !== null && typeof item === 'object' && !Array.isArray(item)
 }

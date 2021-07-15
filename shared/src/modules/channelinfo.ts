@@ -11,6 +11,7 @@ export interface ChannelInfoConfigData extends ModuleConfigData {
     commandPrefix: string
     overlayCorner?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
     experimentalModules?: boolean
+    activeBot: string
 }
 
 export const ChannelInfoModule: Module<ChannelInfoStateData, ChannelInfoConfigData> = {

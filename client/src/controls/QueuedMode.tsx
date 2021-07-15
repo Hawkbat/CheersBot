@@ -54,7 +54,7 @@ export function QueuedMode(props: { mode: RedeemMode, config: ModeQueueModeConfi
 
     const [duration, setDuration] = React.useState(props.config.duration)
 
-    return <div className="QueuedEvent">
+    return <div className="QueuedItem">
         <PanelField>
             <i>{props.config.redeemName}</i>
             <div className="spacer" />

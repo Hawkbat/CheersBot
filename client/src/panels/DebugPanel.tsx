@@ -51,7 +51,7 @@ export function DebugPanel(props: ControlPanelAppViewData & ModuleDataType<'debu
                 <hr />
                 <PanelField>
                     <Button onClick={e => reload()}>Force reload</Button>&nbsp;all control panels and overlays
-        </PanelField>
+                </PanelField>
             </>
         default:
             return <></>

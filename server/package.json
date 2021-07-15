@@ -19,6 +19,7 @@
     "express-session": "^1.17.2",
     "express-ws": "^4.0.0",
     "libsodium-wrappers": "^0.7.9",
+    "microsoft-cognitiveservices-speech-sdk": "^1.17.0",
     "node-fetch": "^2.6.1",
     "pug": "^3.0.2",
     "shared": "file:../shared",
@@ -27,7 +28,9 @@
     "twitch-chat-client": "^4.5.5",
     "twitch-pubsub-client": "^4.5.5",
     "twitch-webhooks": "^4.5.5",
-    "utf-8-validate": "^5.0.5"
+    "typescript": "^4.3.5",
+    "utf-8-validate": "^5.0.5",
+    "ws": "^7.5.2"
   },
   "private": true,
   "devDependencies": {
@@ -38,6 +41,6 @@
     "@types/node": "^14.17.1",
     "@types/node-fetch": "^2.5.10",
     "@types/stylus": "^0.48.34",
-    "@types/ws": "^7.4.4"
+    "@types/ws": "^7.4.6"
   }
 }

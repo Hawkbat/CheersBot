@@ -1,4 +1,4 @@
-import { ModuleVersion } from '../'
+import { ModuleVersion } from '../data'
 import { ModuleStateData, ModuleConfigData, Module, ModuleMap } from './common'
 
 export interface UserQueueEntry {

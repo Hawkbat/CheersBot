@@ -14,16 +14,16 @@ export function CustomMessagePanel(props: ControlPanelAppViewData & ModuleDataTy
         case ControlPanelPage.view:
             return <>
                 <PanelField>
-                    <div id="messages">
-                        {props.state.messages.length ? props.state.messages.map(m => <div key={m.id} className={classes('QueuedEvent')}>
-                            <PanelField label="Visible" help="Whether the message should be displayed in the overlay">
+                    <div className="QueuedItemList">
+                        {props.state.messages.length ? props.state.messages.map(m => <div key={m.id} className="QueuedItem">
+                            <PanelField label="Visible" help="Whether the message should be displayed in the overlay.">
                                 <Toggle value={m.visible} onToggle={v => channelAction('custommessage/edit-message', { id: m.id, visible: v })} />
                             </PanelField>
                             {(props.panel.items?.[m.id] ?? true) ? <>
-                                <PanelField label="Emote" help="The emote shown in the overlay">
+                                <PanelField label="Emote" help="The emote shown in the overlay.">
                                     <ExternalIconPicker selected={m.emote} onSelect={v => channelAction('custommessage/edit-message', { id: m.id, emote: v })} />
                                 </PanelField>
-                                <PanelField label="Message" help="The text displayed in the overlay">
+                                <PanelField label="Message" help="The text displayed in the overlay.">
                                     <input type="text" defaultValue={m.message} onChange={e => channelAction('custommessage/edit-message', { id: m.id, message: e.target.value })} />
                                 </PanelField>
                                 <PanelField>

@@ -10,16 +10,18 @@ declare const REFRESH_TIME: number
 declare const CHANNEL_NAME: string
 
 let cachedData: OverlayAppViewData | undefined
+let pendingViewPromise: Promise<OverlayAppViewData | undefined> | undefined
 
 let debounce = false
 export async function refresh(reloadData: boolean) {
     if (debounce) return
     debounce = true
     try {
-        const data = reloadData || !cachedData ? await channelView('overlay-app') : cachedData
+        const data = reloadData || !cachedData ? await (pendingViewPromise ?? (pendingViewPromise = channelView('overlay-app'))) : cachedData
+        pendingViewPromise = undefined
         if (data) {
             cachedData = data
-            if (data.refreshTime !== REFRESH_TIME) location.reload()
+            if (reloadData && data.refreshTime !== REFRESH_TIME) location.reload()
             ReactDOM.render(<OverlayApp {...data} />, document.getElementById('app'))
         }
     } catch (e) {
@@ -38,8 +40,7 @@ export function OverlayApp(props: OverlayAppViewData) {
     const customMessage = props.modules.customMessage
     const counters = props.modules.counters
     const sounds = props.modules.sounds
-
-    const [finishedSounds, setFinishedSounds] = React.useState<Record<string, boolean>>({})
+    const vTubeStudio = props.modules.vtubeStudio
 
     const displayModes: RedeemModeDisplay[] = modeQueue.state.modes.map(mode => {
         const config = modeQueue.config.modes.find(c => c.id === mode.configID)!
@@ -80,7 +81,7 @@ export function OverlayApp(props: OverlayAppViewData) {
 
     return <div className="Overlay" style={{ ...getChannelCSS(props.modules.channelInfo.config), alignItems, justifyContent }}>
         <TransitionGroup component={null}>
-            {customMessage.config.enabled ? customMessage.state.messages.filter(m => m.visible).map(m => <CSSTransition key={m.id} {...transitionProps}>
+            {customMessage.config.enabled ? customMessage.state.messages.filter(m => m.visible && m.message).map(m => <CSSTransition key={m.id} {...transitionProps}>
                 <Bubble icon={m.emote ?? defaultEmote} msg={m.message} />
             </CSSTransition>) : null}
             {headpats.config.enabled && headpats.state.count > 0 ? <CSSTransition key='dm_headpats' {...transitionProps}>
@@ -89,10 +90,10 @@ export function OverlayApp(props: OverlayAppViewData) {
             {evilDm.config.enabled && evilDm.state.count > 0 && (evilDm.state.time + 10000) > Date.now() ? <CSSTransition key='evil_dm_' {...transitionProps}>
                 <Bubble icon={evilDm.config.emote ?? defaultEmote} username={'evil_dm_'} msg={`has confessed to her crimes ${evilDm.state.count} time${evilDm.state.count === 1 ? '' : 's'}!`} />
             </CSSTransition> : null}
-            {winLoss.config.enabled && winLoss.state.display ? <CSSTransition key='winloss' {...transitionProps}>
+            {winLoss.config.enabled && winLoss.state.display && (winLoss.state.wins !== 0 || winLoss.state.draws !== 0 || winLoss.state.losses !== 0) ? <CSSTransition key='winloss' {...transitionProps}>
                 <Bubble icon={winLoss.state.losses > winLoss.state.wins ? winLoss.config.losingEmote ?? defaultEmote : winLoss.state.losses < winLoss.state.wins ? winLoss.config.winningEmote ?? defaultEmote : winLoss.config.tiedEmote ?? defaultEmote} username={''} msg={`<b>${winLoss.state.wins}</b> W - <b>${winLoss.state.losses}</b> L` + (winLoss.state.draws !== 0 ? ` - <b>${winLoss.state.draws}</b> D` : '')} />
             </CSSTransition> : null}
-            {winLoss.config.enabled && winLoss.state.deaths > 0 && (winLoss.state.deathTime + 10000) > Date.now() ? <CSSTransition key='deaths' {...transitionProps}>
+            {winLoss.config.enabled && winLoss.state.display && (winLoss.config.deathDuration === 0 || (winLoss.state.deaths > 0 && (winLoss.state.deathTime + winLoss.config.deathDuration * 1000) > Date.now())) ? <CSSTransition key='deaths' {...transitionProps}>
                 <Bubble icon={winLoss.config.deathEmote ?? defaultEmote} username={'' + winLoss.state.deaths} msg={winLoss.state.deaths === 1 ? 'death so far!' : 'deaths so far!'} />
             </CSSTransition> : null}
             {counters.config.enabled ? counters.config.configs.filter(c => {
@@ -126,21 +127,37 @@ export function OverlayApp(props: OverlayAppViewData) {
                     <Bubble icon={c.emote ?? defaultEmote} username={count.toString()} msg={message} />
                 </CSSTransition>
             }) : null}
-            {sounds.config.enabled ? sounds.state.sounds.filter(s => !finishedSounds[s.id]).map(s => {
+            {sounds.config.enabled ? sounds.state.sounds.map(s => {
                 const config = sounds.config.sounds.find(c => c.id === s.configID)
                 return <CSSTransition key={s.id} {...transitionProps}>
-                    <>
-                        <Bubble icon={config?.emote ?? defaultEmote} username={config?.showUsername ? s.userName : ''} msg={config?.showUsername ? `played ${config?.displayName}` : `Playing ${config?.displayName}`} />
-                        <Sound url={`/${CHANNEL_NAME}/uploads/${config?.fileName}`} volume={config?.volume ?? 1} onEnd={() => {
-                            setFinishedSounds(v => ({ ...v, [s.id]: true }))
-                            channelAction('sounds/remove-redeem', { id: s.id })
-                        }} />
-                    </>
+                    <Bubble icon={config?.emote ?? defaultEmote} username={config?.showUsername ? s.userName : ''} msg={config?.showUsername ? `played ${config?.displayName}` : `Playing ${config?.displayName}`} />
                 </CSSTransition>
             }) : null}
-            {modeQueue.config.enabled ? displayModes.filter(m => m.visible).map(m => <CSSTransition key={m.id} {...transitionProps}>
+            {sounds.config.enabled ? sounds.state.sounds.map(s => {
+                const config = sounds.config.sounds.find(c => c.id === s.configID)
+                return <Sound key={s.id} url={`/${CHANNEL_NAME}/uploads/${config?.fileName}`} volume={config?.volume ?? 1} onEnd={() => {
+                    channelAction('sounds/remove-redeem', { id: s.id })
+                }} />
+            }) : null}
+            {modeQueue.config.enabled ? displayModes.filter(m => m.visible && m.msg).map(m => <CSSTransition key={m.id} {...transitionProps}>
                 <Bubble icon={m.icon} username={m.showName ? m.userName : ''} msg={m.msg} />
             </CSSTransition>) : null}
+            {vTubeStudio.config.enabled ? vTubeStudio.state.swaps.filter(s => {
+                return !!vTubeStudio.config.swaps.find(c => c.id === s.configID)?.message
+            }).map(s => {
+                const config = vTubeStudio.config.swaps.find(c => c.id === s.configID)
+                return <CSSTransition key={s.id} {...transitionProps}>
+                    <Bubble icon={config?.emote ?? defaultEmote} username={config?.showUsername ? s.userName : ''} msg={config?.message ?? ''} />
+                </CSSTransition>
+            }) : null}
+            {vTubeStudio.config.enabled ? vTubeStudio.state.triggers.filter(t => {
+                return !!vTubeStudio.config.triggers.find(c => c.id === t.configID)?.message
+            }).map(t => {
+                const config = vTubeStudio.config.triggers.find(c => c.id === t.configID)
+                return <CSSTransition key={t.id} {...transitionProps}>
+                    <Bubble icon={config?.emote ?? defaultEmote} username={config?.showUsername ? t.userName : ''} msg={config?.message ?? ''} />
+                </CSSTransition>
+            }) : null}
         </TransitionGroup>
     </div>
 }

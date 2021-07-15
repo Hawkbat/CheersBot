@@ -1,17 +1,62 @@
-import { ModuleVersion } from '../'
+import { Icon, ModuleVersion } from '../data'
 import { ModuleStateData, ModuleConfigData, Module, ModuleMap } from './common'
 
-export interface VTubeStudioStateData extends ModuleStateData {
+export interface ModelSwapConfig {
+    id: string
+    redeemID: string
+    redeemName: string
+    emote: Icon | null
+    showUsername: boolean
+    message: string
+    duration: number
+    type: 'one' | 'any'
+    models: { id: string, name: string }[]
+}
 
+export interface TriggerHotkeyConfig {
+    id: string
+    redeemID: string
+    redeemName: string
+    emote: Icon | null
+    showUsername: boolean
+    message: string
+    duration: number
+    type: 'one' | 'any' | 'all'
+    hotkeys: { id: string, name: string }[]
+}
+
+export interface ModelSwapState {
+    id: string
+    configID: string
+    userID: string
+    userName: string
+    redeemTime: number
+}
+
+export interface HotkeyTriggerState {
+    id: string
+    configID: string
+    userID: string
+    userName: string
+    redeemTime: number
+}
+
+export interface VTubeStudioStateData extends ModuleStateData {
+    swaps: ModelSwapState[]
+    triggers: HotkeyTriggerState[]
 }
 
 export interface VTubeStudioConfigData extends ModuleConfigData {
-
+    apiHost: string
+    apiPort: number
+    apiSecure: boolean
+    swaps: ModelSwapConfig[]
+    triggers: TriggerHotkeyConfig[]
 }
 
 export const VTubeStudioModule: Module<VTubeStudioStateData, VTubeStudioConfigData> = {
-    name: 'VOD Queue',
+    name: 'VTube Studio',
     description: 'Allows channel point redemptions to trigger effects in VTube Studio.',
-    version: ModuleVersion.preAlpha,
+    version: ModuleVersion.beta,
     getData: (modules: ModuleMap) => modules.vtubeStudio,
 }

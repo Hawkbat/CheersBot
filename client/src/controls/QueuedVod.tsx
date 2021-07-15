@@ -15,7 +15,7 @@ async function deleteEntry(id: string) {
 
 export function QueuedVod(props: { vod: VodQueueEntry, patchDate: number, config: VodQueueConfigData }) {
     const expired = isNaN(props.patchDate) || props.vod.time <= props.patchDate
-    return <div className="QueuedVod">
+    return <div className="QueuedItem">
         <PanelField>
             <span>{new Date(props.vod.time).toLocaleString()}</span>
             {expired ? <Warning tooltip="This VOD may have expired due to a new patch" /> : <></>}

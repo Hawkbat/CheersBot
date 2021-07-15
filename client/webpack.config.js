@@ -25,6 +25,10 @@ module.exports = {
                 test: /\.js$/,
                 loader: 'source-map-loader',
             },
+            {
+                test: /\.(png|jpg|gif)$/i,
+                loader: 'url-loader',
+            }
         ],
     },
     externals: {

@@ -1,7 +1,6 @@
 import { ApiClient } from 'twitch'
 import { ChatClient } from 'twitch-chat-client'
 import { PubSubClient } from 'twitch-pubsub-client'
-import { WebHookListener } from 'twitch-webhooks'
 import { Store, AccessMap, ModuleMap } from 'shared'
 import { Router } from 'express'
 
@@ -24,6 +23,7 @@ export interface Secrets {
     }
     local: boolean
     superUsers: string[]
+    superBot: string
 }
 
 export interface Account<T extends AccountData> {
@@ -35,6 +35,7 @@ export interface Account<T extends AccountData> {
 
 export interface Bot extends Account<BotData> {
     chatClient: ChatClient
+    joined: Record<string, boolean>
 }
 
 export interface Channel extends Account<ChannelData> {

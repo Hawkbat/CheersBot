@@ -11,16 +11,18 @@ import { Changelog } from '../controls/Changelog'
 declare const REFRESH_TIME: number
 
 let cachedData: LandingAppViewData | undefined
+let pendingViewPromise: Promise<LandingAppViewData | undefined> | undefined
 
 let debounce = false
 export async function refresh(reloadData: boolean) {
     if (debounce) return
     debounce = true
     try {
-        const data = reloadData || !cachedData ? await globalView('landing-app') : cachedData
+        const data = reloadData || !cachedData ? await (pendingViewPromise ?? (pendingViewPromise = globalView('landing-app'))) : cachedData
+        pendingViewPromise = undefined
         if (data) {
             cachedData = data
-            if (data.refreshTime !== REFRESH_TIME) location.reload()
+            if (reloadData && data.refreshTime !== REFRESH_TIME) location.reload()
             ReactDOM.render(<LandingApp {...data} />, document.getElementById('app'))
         }
     } catch (e) {
@@ -32,13 +34,13 @@ export async function refresh(reloadData: boolean) {
 export function LandingApp(props: LandingAppViewData) {
     return <div className="Landing">
         <Changelog changelog={props.changelog.changelog} />
-        {props.channelAccess ? <>
+        {props.userChannelAccess ? <>
             <div className="draggable">
                 <PanelGroup label="Your Control Panels">
                     <PanelField>Select a channel from the list below to access the corresponding control panel!</PanelField>
                     <PanelField>
                         <div className="list">
-                            {Object.keys(props.channelAccess).map(c => <Button key={c} href={`/${c}/`}>{c}</Button>)}
+                            {Object.keys(props.userChannelAccess).map(c => <Button key={c} href={`/${c}/`}>{c}</Button>)}
                         </div>
                     </PanelField>
                     <hr />
@@ -49,16 +51,17 @@ export function LandingApp(props: LandingAppViewData) {
                     </PanelField>
                 </PanelGroup>
             </div>
-            <AccessPanel type={AccountType.channel} access={props.channelAccess} />
+            <AccessPanel userType={AccountType.user} targetType={AccountType.channel} access={props.userChannelAccess} />
         </> : <>
+            <div className="Cheersy" />
             <section>
                 <p>
                     The Heccin Cheers Bot is a streaming platform integration similar to Streamlabs that provides various functionality for your live broadcasts! Features include:
-                        <ul>
-                        {Object.values(MODULES).filter(m => m.version === ModuleVersion.beta || m.version === ModuleVersion.released).map((m, i) => <li key={i}>{m.name}</li>)}
-                        <li>And more to come!</li>
-                    </ul>
                 </p>
+                <ul>
+                    {Object.values(MODULES).filter(m => m.version === ModuleVersion.beta || m.version === ModuleVersion.preRelease || m.version === ModuleVersion.released).map((m, i) => <li key={i}>{m.name}</li>)}
+                    <li>And more to come!</li>
+                </ul>
                 <p>
                     All features are driven through a mobile-friendly web-based control panel you can customize for your needs. You can grant acess to your control panel to moderators and alt accounts to help manage your stream for you, or control it yourself from a PC or mobile device!
                     </p>
@@ -68,6 +71,9 @@ export function LandingApp(props: LandingAppViewData) {
                 </p>
             </section>
         </>}
+        {props.botChannelAccess ? <>
+            <AccessPanel userType={AccountType.bot} targetType={AccountType.channel} access={props.botChannelAccess} />
+        </> : null}
         <div className="draggable">
             <PanelGroup label="Log In or Register">
                 <PanelField>To connect as a user account in order to access the control panel of your channel, or channels you moderate:</PanelField>
@@ -84,6 +90,20 @@ export function LandingApp(props: LandingAppViewData) {
                 <PanelField>
                     <Button href="/authorize/bot/">Connect Bot Account</Button>
                 </PanelField>
+            </PanelGroup>
+        </div>
+        <div className="draggable">
+            <PanelGroup label="Live Streams">
+                <PanelField>Cheers Bot users currently live on Twitch:</PanelField>
+                {props.streams.sort((a, b) => a.viewCount - b.viewCount).map(s => <PanelField key={s.channel} label={s.channel}>
+                    <a href={`https://twitch.tv/${s.channel}`}>Streaming {s.game} for {s.viewCount} viewers</a>
+                </PanelField>)}
+            </PanelGroup>
+        </div>
+        <div className="draggable">
+            <PanelGroup label="Support Me">
+                <PanelField>The Cheers Bot is currently free for all users, but it does cost money to rent the servers that it runs on. If you want to help financially support the Cheers Bot and ongoing feature development, consider leaving a tip for its creator, Hawkbar:</PanelField>
+                <PanelField><a href="https://streamlabs.com/hawkbar/tip">https://streamlabs.com/hawkbar/tip</a></PanelField>
             </PanelGroup>
         </div>
     </div>

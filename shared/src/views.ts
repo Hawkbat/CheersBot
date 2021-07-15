@@ -1,6 +1,6 @@
 import { AccessMap, IconMap, TwitchReward } from './data'
 import { Icon, AccountType, Access, Changelog } from './data'
-import { ModuleType, ModeQueueModeConfig, VodQueueConfigData, RedeemModeDisplay, CustomMessage, CounterConfig, Counter, ModuleDataType, SoundConfig, ChannelInfoConfigData } from './modules'
+import { ModuleType, ModeQueueModeConfig, VodQueueConfigData, RedeemModeDisplay, CustomMessage, CounterConfig, Counter, ModuleDataType, SoundConfig, ChannelInfoConfigData, ModelSwapConfig, TriggerHotkeyConfig, VTubeStudioConfigData, WinLossConfigData } from './modules'
 
 export interface BaseViewData {
     meta: MessageMeta
@@ -63,8 +63,10 @@ export interface OverlayAppViewData extends ChannelBaseViewData {
 
 export interface LandingAppViewData extends GlobalBaseViewData {
     username: string
-    channelAccess: AccessMap | null
+    userChannelAccess: AccessMap | null
+    botChannelAccess: AccessMap | null
     changelog: Changelog
+    streams: { channel: string, game: string, viewCount: number }[]
 }
 
 export interface PanelViewDataProps {
@@ -110,10 +112,7 @@ export interface ChannelActions {
     'winloss/adjust-draws': (args: { delta: number }, msg: MessageMeta) => boolean
     'winloss/adjust-deaths': (args: { delta: number }, msg: MessageMeta) => boolean
     'winloss/clear': (args: {}, msg: MessageMeta) => boolean
-    'winloss/set-winning-emote': (args: { emote: Icon | null }, msg: MessageMeta) => boolean
-    'winloss/set-losing-emote': (args: { emote: Icon | null }, msg: MessageMeta) => boolean
-    'winloss/set-tied-emote': (args: { emote: Icon | null }, msg: MessageMeta) => boolean
-    'winloss/set-death-emote': (args: { emote: Icon | null }, msg: MessageMeta) => boolean
+    'winloss/set-config': (args: Partial<WinLossConfigData>, msg: MessageMeta) => boolean
     'backdrop/fire-cannon': (args: { text: string }, msg: MessageMeta) => boolean
     'backdrop/swap-camera': (args: { name: string }, msg: MessageMeta) => boolean
     'vodqueue/set-config': (args: Partial<VodQueueConfigData>, msg: MessageMeta) => boolean
@@ -130,23 +129,35 @@ export interface ChannelActions {
     'sounds/add-config': (args: Partial<SoundConfig>, msg: MessageMeta) => boolean
     'sounds/edit-config': (args: { id: string } & Partial<SoundConfig>, msg: MessageMeta) => boolean
     'sounds/delete-config': (args: { id: string }, msg: MessageMeta) => boolean
-    'sounds/upload': (args: { fileName: string, data: string }, msg: MessageMeta) => boolean
+    'sounds/add-upload': (args: { fileName: string, data: string }, msg: MessageMeta) => Promise<boolean>
+    'sounds/delete-upload': (args: { fileName: string }, msg: MessageMeta) => Promise<boolean>
     'sounds/mock': (args: { configID: string, username: string }, msg: MessageMeta) => boolean
+    'vtstudio/complete-model-swap': (args: { id: string }, msg: MessageMeta) => boolean
+    'vtstudio/add-model-swap': (args: Partial<ModelSwapConfig>, msg: MessageMeta) => boolean
+    'vtstudio/edit-model-swap': (args: { id: string } & Partial<ModelSwapConfig>, msg: MessageMeta) => boolean
+    'vtstudio/delete-model-swap': (args: { id: string }, msg: MessageMeta) => boolean
+    'vtstudio/mock-model-swap': (args: { configID: string }, msg: MessageMeta) => boolean
+    'vtstudio/complete-hotkey-trigger': (args: { id: string }, msg: MessageMeta) => boolean
+    'vtstudio/add-hotkey-trigger': (args: Partial<TriggerHotkeyConfig>, msg: MessageMeta) => boolean
+    'vtstudio/edit-hotkey-trigger': (args: { id: string } & Partial<TriggerHotkeyConfig>, msg: MessageMeta) => boolean
+    'vtstudio/delete-hotkey-trigger': (args: { id: string }, msg: MessageMeta) => boolean
+    'vtstudio/mock-hotkey-trigger': (args: { configID: string }, msg: MessageMeta) => boolean
+    'vtstudio/edit-config': (args: Partial<VTubeStudioConfigData>, msg: MessageMeta) => boolean
     'channelinfo/set-config': (args: Partial<ChannelInfoConfigData>, msg: MessageMeta) => boolean
-    'channelinfo/get-icons': (args: {}, msg: MessageMeta) => IconMap
+    'channelinfo/get-icons': (args: { forceReload: boolean }, msg: MessageMeta) => Promise<IconMap>
     'tts/speak': (args: { voice: string, text: string, style: string, pitch: number }, msg: MessageMeta) => Promise<string>
     'twitch/rewards': (args: {}, msg: MessageMeta) => Promise<TwitchReward[]>
     'debug/reload': (args: {}, msg: MessageMeta) => boolean
     'config/enable-module': (args: { type: ModuleType, enabled: boolean }, msg: MessageMeta) => boolean
-    'access/set': (args: { type: AccountType, id: string, access: Access }, msg: MessageMeta) => boolean
+    'access/set': (args: { userType: AccountType, targetType: AccountType, id: string, access: Access }, msg: MessageMeta) => boolean
 }
 
 export interface ChannelViews {
-    'access-denied': (args: Omit<AccessDeniedViewData, keyof ChannelBaseViewData>, msg: MessageMeta) => AccessDeniedViewData
-    'channel': (args: Omit<ChannelViewData, keyof ChannelBaseViewData>, msg: MessageMeta) => ChannelViewData
-    'overlay': (args: Omit<OverlayViewData, keyof ChannelBaseViewData>, msg: MessageMeta) => OverlayViewData
-    'controlpanel-app': (args: Omit<ControlPanelAppViewData, keyof ChannelBaseViewData>, msg: MessageMeta) => ControlPanelAppViewData
-    'overlay-app': (args: Omit<OverlayAppViewData, keyof ChannelBaseViewData>, msg: MessageMeta) => OverlayAppViewData
+    'access-denied': (args: Omit<AccessDeniedViewData, keyof ChannelBaseViewData>, msg: MessageMeta) => Promise<AccessDeniedViewData>
+    'channel': (args: Omit<ChannelViewData, keyof ChannelBaseViewData>, msg: MessageMeta) => Promise<ChannelViewData>
+    'overlay': (args: Omit<OverlayViewData, keyof ChannelBaseViewData>, msg: MessageMeta) => Promise<OverlayViewData>
+    'controlpanel-app': (args: Omit<ControlPanelAppViewData, keyof ChannelBaseViewData>, msg: MessageMeta) => Promise<ControlPanelAppViewData>
+    'overlay-app': (args: Omit<OverlayAppViewData, keyof ChannelBaseViewData>, msg: MessageMeta) => Promise<OverlayAppViewData>
 }
 
 export interface ChannelServerMessages {
@@ -160,14 +171,14 @@ export interface ChannelClientMessages {
 
 export interface GlobalActions {
     'access/request': (args: { channel: string }, msg: MessageMeta) => boolean
-    'access/set': (args: { type: AccountType, id: string, access: Access }, msg: MessageMeta) => boolean
+    'access/set': (args: { userType: AccountType, targetType: AccountType, id: string, access: Access }, msg: MessageMeta) => boolean
 }
 
 export interface GlobalViews {
-    'authorize': (args: Omit<AuthorizeViewData, keyof GlobalBaseViewData>, msg: MessageMeta) => AuthorizeViewData
-    'landing': (args: Omit<LandingViewData, keyof GlobalBaseViewData>, msg: MessageMeta) => LandingViewData
-    'message': (args: Omit<MessageViewData, keyof GlobalBaseViewData>, msg: MessageMeta) => MessageViewData
-    'landing-app': (args: Omit<LandingAppViewData, keyof GlobalBaseViewData>, msg: MessageMeta) => LandingAppViewData
+    'authorize': (args: Omit<AuthorizeViewData, keyof GlobalBaseViewData>, msg: MessageMeta) => Promise<AuthorizeViewData>
+    'landing': (args: Omit<LandingViewData, keyof GlobalBaseViewData>, msg: MessageMeta) => Promise<LandingViewData>
+    'message': (args: Omit<MessageViewData, keyof GlobalBaseViewData>, msg: MessageMeta) => Promise<MessageViewData>
+    'landing-app': (args: Omit<LandingAppViewData, keyof GlobalBaseViewData>, msg: MessageMeta) => Promise<LandingAppViewData>
 }
 
 export interface GlobalServerMessages {

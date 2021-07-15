@@ -2,22 +2,14 @@ import * as React from 'react'
 import { ControlPanelAppViewData, ControlPanelPage, ModuleDataType, PanelViewDataProps } from 'shared'
 import { PanelField } from '../controls/PanelField'
 import { Button } from '../controls/Button'
-import { channelAction, classes } from '../utils'
+import { channelAction } from '../utils'
 import { ExternalIconPicker } from '../controls/ExternalIconPicker'
 import { Toggle } from '../controls/Toggle'
 import { TwitchRewardDropdown } from '../controls/TwitchRewardDropdown'
 import { QueuedSound } from '../controls/QueuedSound'
-import { Dropdown } from '../controls/Dropdown'
 import { Expander } from '../controls/Expander'
 import { Fold } from '../controls/Fold'
-
-async function uploadFile(file: File | undefined) {
-    if (file) {
-        const buffer = await file.arrayBuffer()
-        const base64 = btoa([...new Uint8Array(buffer)].map(b => String.fromCharCode(b)).join(''))
-        await channelAction('sounds/upload', { fileName: file.name, data: base64 })
-    }
-}
+import { UploadPicker } from 'src/controls/UploadPicker'
 
 export function SoundsPanel(props: ControlPanelAppViewData & ModuleDataType<'sounds'> & PanelViewDataProps) {
     const [tested, setTested] = React.useState('')
@@ -35,7 +27,7 @@ export function SoundsPanel(props: ControlPanelAppViewData & ModuleDataType<'sou
         case ControlPanelPage.view:
             return <>
                 <PanelField>
-                    <div id="sounds">
+                    <div className="QueuedItemList">
                         {props.state.sounds.length ? props.state.sounds.map(s => <QueuedSound key={s.id} sound={s} config={props.config.sounds.find(c => c.id === s.configID)!} />) : <i>No sounds currently queued</i>}
                     </div>
                 </PanelField>
@@ -47,30 +39,27 @@ export function SoundsPanel(props: ControlPanelAppViewData & ModuleDataType<'sou
                     Sounds are played through the overlay browser source. Ensure that "Control audio via OBS" is checked in the browser source in settings, and that the source is set to "Monitor and Output" in the audio mixer.
                 </PanelField>
                 <PanelField>
-                    <div id="sounds">
-                        {props.config.sounds.map(c => <div key={c.id} className={classes('QueuedEvent')}>
-                            <PanelField label="Reward" help="This is the channel point reward in Twitch that will trigger this sound">
+                    <div className="QueuedItemList">
+                        {props.config.sounds.map(c => <div key={c.id} className="QueuedItem">
+                            <PanelField label="Reward" help="This is the channel point reward in Twitch that will trigger this sound.">
                                 <TwitchRewardDropdown nullable selectedID={c.redeemID} selectedName={c.redeemName} onSelect={(id, name) => channelAction('sounds/edit-config', { id: c.id, redeemID: id, redeemName: name })} />
                             </PanelField>
                             {(props.panel.items?.[c.id] ?? true) ? <>
-                                <PanelField label="Emote" help="This emote is shown in the overlay when the sound is redeemed">
+                                <PanelField label="Emote" help="This emote is shown in the overlay when the sound is redeemed.">
                                     <ExternalIconPicker selected={c.emote} onSelect={v => channelAction('sounds/edit-config', { id: c.id, emote: v })} />
                                 </PanelField>
-                                <PanelField label="Show Username" help="Whether the username of the person who redeemed the sound should be displayed in the overlay before the rest of the text">
+                                <PanelField label="Show Username" help="Whether the username of the person who redeemed the sound should be displayed in the overlay before the rest of the text.">
                                     <Toggle value={c.showUsername} onToggle={v => channelAction('sounds/edit-config', { id: c.id, showUsername: v })} />
                                 </PanelField>
-                                <PanelField label="Display Name" help="The name to display for this sound in the overlay when redeemed">
+                                <PanelField label="Display Name" help="The name to display for this sound in the overlay when redeemed.">
                                     <input type="text" defaultValue={c.displayName} onChange={e => channelAction('sounds/edit-config', { id: c.id, displayName: e.target.value })} />
                                 </PanelField>
-                                <PanelField label="Volume" help="The volume that the sound will play at">
+                                <PanelField label="Volume" help="The volume that the sound will play at.">
                                     <input type="range" min="0" max="1" step="any" defaultValue={c.volume} onChange={e => channelAction('sounds/edit-config', { id: c.id, volume: e.target.valueAsNumber })} />
                                 &nbsp;{Math.round(c.volume * 100)}%
                             </PanelField>
-                                <PanelField label="Select File" help="Select a sound file to use for this sound redeem">
-                                    <Dropdown nullable selected={c.fileName} options={props.config.uploads.map(u => ({ value: u }))} onSelect={u => channelAction('sounds/edit-config', { id: c.id, fileName: u })} />
-                                </PanelField>
-                                <PanelField label="File Upload" help="Upload a sound file for use with sound redeems">
-                                    <input type="file" key={props.config.uploads.length} onChange={e => uploadFile(e.target.files?.[0])} />
+                                <PanelField label="Select File" help="Select a sound file to use for this sound redeem.">
+                                    <UploadPicker icon="volume" files={props.config.uploads} selected={c.fileName} onSelect={u => channelAction('sounds/edit-config', { id: c.id, fileName: u })} onDelete={fileName => channelAction('sounds/delete-upload', { fileName })} onUpload={(fileName, data) => channelAction('sounds/add-upload', { fileName, data })} />
                                 </PanelField>
                                 <PanelField>
                                     <Button onClick={() => mockEvent(c.id)}>Test sound</Button>

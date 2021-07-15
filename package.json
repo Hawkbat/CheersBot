@@ -4,7 +4,6 @@
   "description": "Heccin cheers bot!",
   "main": "index.js",
   "dependencies": {
-    "microsoft-cognitiveservices-speech-sdk": "^1.17.0",
     "open-cli": "^6.0.1",
     "rimraf": "^3.0.2"
   },

@@ -1,4 +1,4 @@
-import { Icon, ModuleVersion } from '../'
+import { Icon, ModuleVersion } from '../data'
 import { ModuleStateData, ModuleConfigData, Module, ModuleMap } from './common'
 
 export interface SoundRedeem {
@@ -17,7 +17,7 @@ export interface SoundConfig {
     showUsername: boolean
     displayName: string
     volume: number
-    fileName: string
+    fileName: string | null
 }
 
 export interface SoundsStateData extends ModuleStateData {

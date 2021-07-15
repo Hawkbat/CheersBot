@@ -1,4 +1,4 @@
-import { Icon, ModuleVersion } from '../'
+import { Icon, ModuleVersion } from '../data'
 import { ModuleStateData, ModuleConfigData, Module, ModuleMap } from './common'
 
 export interface RedeemMode {
