@@ -57,6 +57,20 @@
                 "Fixed overlay crash when using sound redeems",
                 "Applied minor fixes and improvements"
             ]
+        },
+        {
+            "version": "1.4.0",
+            "released": "2021-07-15",
+            "changes": [
+                "Added VTube Studio module (model swaps and hotkey triggers)",
+                "Added basic arithmetic to win/loss commands",
+                "Added timer setting to death counter",
+                "Added donation link and live channel list",
+                "Added setting for a channel's primary chat bot",
+                "Greatly improved reliability of chat bots",
+                "Fixed sounds sometimes not going away",
+                "Applied minor fixes and improvements"
+            ]
         }
     ]
 }
