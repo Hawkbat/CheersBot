@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { ControlPanelAppViewData, ControlPanelPage, ModelSwapConfig, ModuleDataType, PanelViewDataProps, randomItem, randomWeightedItem, TriggerHotkeyConfig, vts } from 'shared'
+import { ControlPanelAppViewData, ControlPanelPage, ModelSwapConfig, ModuleDataType, PanelViewDataProps, randomItem, randomWeightedItem, TriggerHotkeyConfig } from 'shared'
 import { PanelField } from '../controls/PanelField'
 import { channelAction, classes, useInterval, wait } from '../utils'
 import { Dropdown, DropdownOption } from '../controls/Dropdown'

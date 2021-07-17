@@ -17,7 +17,8 @@
     "react-dom": "^16.14.0",
     "react-transition-group": "^4.4.2",
     "shared": "file:../shared",
-    "tone": "^14.7.77"
+    "tone": "^14.7.77",
+    "vtubestudio": "^0.1.2"
   },
   "private": true,
   "devDependencies": {

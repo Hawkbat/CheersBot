@@ -1,4 +1,4 @@
-import { generateID, Store, mergePartials, AccountType, ChannelActions, ChannelViews, MODULE_TYPES, Access, GlobalActions, GlobalViews, MessageMeta, GlobalBaseViewData, ChannelBaseViewData, VodQueueGame, Changelog, CounterVisibility, vts, filterFalsy, LandingAppViewData, uniqueItems } from 'shared'
+import { generateID, Store, mergePartials, AccountType, ChannelActions, ChannelViews, MODULE_TYPES, Access, GlobalActions, GlobalViews, MessageMeta, GlobalBaseViewData, ChannelBaseViewData, VodQueueGame, Changelog, CounterVisibility, filterFalsy, LandingAppViewData, uniqueItems } from 'shared'
 import { ApiClient as TwitchClient, RefreshableAuthProvider, StaticAuthProvider } from 'twitch'
 import { ChatClient, PrivateMessage } from 'twitch-chat-client'
 import { PubSubClient } from 'twitch-pubsub-client'
@@ -1772,30 +1772,6 @@ async function run() {
     }
 
     await Promise.all(promises)
-
-    /*const wss = new WebSocket.Server({ port: 8001 })
-    wss.on('connection', ws => {
-        console.log('Websocket connection established')
-
-        const handlers: vts.MessageHandler[] = []
-
-        const bus: vts.MessageBus = {
-            on: handler => handlers.push(handler),
-            off: handler => handlers.splice(handlers.findIndex(h => h === handler), 1),
-            send: msg => ws.send(JSON.stringify(msg)),
-        }
-
-        ws.addEventListener('message', e => {
-            const msg = JSON.parse(e.data)
-            for (const handler of [...handlers]) handler(msg)
-        })
-
-        ws.addEventListener('close', e => {
-            console.log('Websocket connection closed: ', e.code, e.reason)
-        })
-
-        const mockVTS = new vts.MockApiServer(bus)
-    })*/
 
     app.listen(60004, () => console.log('Web server running!'))
 }
