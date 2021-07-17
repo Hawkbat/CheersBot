@@ -242,9 +242,9 @@ export function waitUntil(cb: () => boolean, timeout: number = 5000): Promise<vo
     })
 }
 
-export function wait(time: number): Promise<void> {
+export function wait(ms: number): Promise<void> {
     return new Promise(res => {
-        setTimeout(() => res(), time)
+        setTimeout(() => res(), ms)
     })
 }
 

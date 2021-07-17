@@ -9,8 +9,10 @@ export interface ModelSwapConfig {
     showUsername: boolean
     message: string
     duration: number
-    type: 'one' | 'any'
-    models: { id: string, name: string }[]
+    type: 'one' | 'any' | 'weighted-any'
+    models: { id: string, name: string, weight?: number }[]
+    after?: 'revert' | 'nothing'
+    revertDelay?: number | null
 }
 
 export interface TriggerHotkeyConfig {
@@ -21,8 +23,10 @@ export interface TriggerHotkeyConfig {
     showUsername: boolean
     message: string
     duration: number
-    type: 'one' | 'any' | 'all'
-    hotkeys: { id: string, name: string }[]
+    type: 'one' | 'any' | 'weighted-any' | 'all'
+    hotkeys: { id: string, name: string, weight?: number }[]
+    after?: 'retrigger' | 'nothing'
+    retriggerDelay?: number | null
 }
 
 export interface ModelSwapState {

@@ -61,6 +61,40 @@ export function filterFalsy<T>(v: T | null | undefined | false): v is T {
     return !!v
 }
 
+export function uniqueItems<T>(arr: T[], hash?: (v: T) => string | number | boolean | null | undefined): T[] {
+    return arr.filter((a, i) => i === arr.findIndex(b => hash ? hash(b) === hash(a) : b === a))
+}
+
+export function keysOf<T extends Record<string, unknown>>(obj: T): (keyof T)[] {
+    return Object.keys(obj) as (keyof T)[]
+}
+
+export function randomFloat(max: number = 1, min: number = 0) {
+    return min + Math.random() * (max - min)
+}
+
+export function randomInt(max: number = 1, min: number = 0) {
+    return Math.floor(randomFloat(max, min))
+}
+
+export function randomItem<T>(arr: T[]): T {
+    return arr[randomInt(arr.length)]
+}
+
+export function randomWeightedItem<T>(arr: T[], weightMapping: (v: T) => number): T {
+    const totalWeight = arr.reduce((p, c) => p + weightMapping(c), 0)
+    const targetWeight = randomFloat(totalWeight)
+    let weightLow = 0
+    for (const v of arr) {
+        const weight = weightMapping(v)
+        const weightHigh = weightLow + weight
+        if (targetWeight >= weightLow && targetWeight < weightHigh) {
+            return v
+        }
+    }
+    return arr[arr.length - 1]
+}
+
 function isObject(item: any): item is { [key: string]: any } {
     return item !== null && typeof item === 'object' && !Array.isArray(item)
 }

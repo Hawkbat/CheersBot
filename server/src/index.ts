@@ -1,4 +1,4 @@
-import { generateID, Store, mergePartials, AccountType, ChannelActions, ChannelViews, MODULE_TYPES, Access, GlobalActions, GlobalViews, MessageMeta, GlobalBaseViewData, ChannelBaseViewData, VodQueueGame, Changelog, CounterVisibility, vts, filterFalsy, LandingAppViewData } from 'shared'
+import { generateID, Store, mergePartials, AccountType, ChannelActions, ChannelViews, MODULE_TYPES, Access, GlobalActions, GlobalViews, MessageMeta, GlobalBaseViewData, ChannelBaseViewData, VodQueueGame, Changelog, CounterVisibility, vts, filterFalsy, LandingAppViewData, uniqueItems } from 'shared'
 import { ApiClient as TwitchClient, RefreshableAuthProvider, StaticAuthProvider } from 'twitch'
 import { ChatClient, PrivateMessage } from 'twitch-chat-client'
 import { PubSubClient } from 'twitch-pubsub-client'
@@ -1687,7 +1687,7 @@ async function run() {
             let streams: LandingAppViewData['streams'] = []
 
             try {
-                const allStreams = await Promise.all(Object.values(channels).map(c => c.client.helix.streams.getStreamByUserId(c.id)))
+                const allStreams = await Promise.all(uniqueItems(Object.values(channels), c => c.name).map(c => c.client.helix.streams.getStreamByUserId(c.id)))
                 streams = allStreams.filter(filterFalsy).map(s => ({ channel: s.userDisplayName, game: s.gameName, viewCount: s.viewers }))
             } catch (e) {
                 console.error(e)
