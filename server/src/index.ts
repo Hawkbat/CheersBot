@@ -1672,12 +1672,12 @@ async function run() {
             }
             const superBot = bots[secrets.superBot]
             if (channel && superBot) {
-                if (!channel.data.get(d => d.bots[superBot.name] !== Access.approved)) {
+                if (channel.data.get(d => d.bots[superBot.name] !== Access.approved)) {
                     channel.data.update(d => {
                         d.bots[secrets.superBot] = Access.approved
                     })
                 }
-                if (!superBot.data.get(d => d.channels[channel.name] !== Access.approved)) {
+                if (superBot.data.get(d => d.channels[channel.name] !== Access.approved)) {
                     superBot.data.update(d => {
                         d.channels[channel.name] = Access.approved
                     })
