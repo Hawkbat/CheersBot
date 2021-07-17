@@ -12,25 +12,25 @@
   "author": "",
   "license": "NO-LICENSE",
   "dependencies": {
-    "react": "^16.13.1",
-    "react-beautiful-dnd": "^13.0.0",
-    "react-dom": "^16.13.1",
+    "react": "^16.14.0",
+    "react-beautiful-dnd": "^13.1.0",
+    "react-dom": "^16.14.0",
     "react-transition-group": "^4.4.2",
     "shared": "file:../shared",
     "tone": "^14.7.77"
   },
   "private": true,
   "devDependencies": {
-    "@types/react": "^16.9.43",
-    "@types/react-beautiful-dnd": "^13.0.0",
-    "@types/react-dom": "^16.9.8",
-    "@types/react-transition-group": "^4.4.1",
-    "source-map-loader": "^1.0.1",
-    "ts-loader": "^8.0.1",
-    "tsconfig-paths-webpack-plugin": "^3.2.0",
+    "@types/react": "^16.14.11",
+    "@types/react-beautiful-dnd": "^13.1.1",
+    "@types/react-dom": "^16.9.14",
+    "@types/react-transition-group": "^4.4.2",
+    "source-map-loader": "^3.0.0",
+    "ts-loader": "^9.2.3",
+    "tsconfig-paths-webpack-plugin": "^3.5.1",
+    "tslib": "^2.3.0",
     "typescript": "^4.3.5",
-    "url-loader": "^4.1.1",
-    "webpack": "^4.44.0",
-    "webpack-cli": "^3.3.12"
+    "webpack": "^5.45.1",
+    "webpack-cli": "^4.7.2"
   }
 }

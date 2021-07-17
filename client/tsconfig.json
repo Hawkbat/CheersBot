@@ -16,7 +16,13 @@
             "ESNext"
         ],
         "jsx": "react",
-        "baseUrl": "."
+        "baseUrl": ".",
+        "types": [
+            "react",
+            "react-beautiful-dnd",
+            "react-dom",
+            "react-transition-group"
+        ]
     },
     "include": [
         "./src/**/*.ts",

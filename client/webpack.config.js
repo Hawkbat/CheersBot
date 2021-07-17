@@ -16,6 +16,12 @@ module.exports = {
     module: {
         rules: [
             {
+                test: /\.m?js$/,
+                resolve: {
+                    fullySpecified: false,
+                },
+            },
+            {
                 test: /\.tsx?$/,
                 use: 'ts-loader',
                 exclude: /node_modules/,
@@ -27,7 +33,7 @@ module.exports = {
             },
             {
                 test: /\.(png|jpg|gif)$/i,
-                loader: 'url-loader',
+                type: 'asset/inline',
             }
         ],
     },
