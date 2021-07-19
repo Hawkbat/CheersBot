@@ -698,6 +698,17 @@ async function run() {
                                 redeemTime: Date.now(),
                             }))
                         }
+
+                        const colorTintConfig = data.get(d => d.modules.vtubeStudio.config.tints.find(c => c.redeemID === msg.rewardId || c.redeemName.trim() === msg.rewardName.trim()))
+                        if (colorTintConfig) {
+                            data.update(d => d.modules.vtubeStudio.state.tints.push({
+                                id: generateID(),
+                                userID: msg.userId,
+                                userName: msg.userDisplayName,
+                                configID: colorTintConfig.id,
+                                redeemTime: Date.now(),
+                            }))
+                        }
                     })
                 }
 
