@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { ControlPanelAppViewData, ControlPanelPage, ModuleDataType, PanelViewDataProps } from 'shared'
+import { ControlPanelAppViewData, ControlPanelPage, ModuleDataType, PanelViewDataProps, safeParseInt } from 'shared'
 import { PanelField } from '../controls/PanelField'
 import { channelAction } from '../utils'
 import { Button } from '../controls/Button'
@@ -62,7 +62,7 @@ export function WinLossPanel(props: ControlPanelAppViewData & ModuleDataType<'wi
                     <ExternalIconPicker selected={props.config.deathEmote} onSelect={v => channelAction('winloss/set-config', { deathEmote: v })} />
                 </PanelField>
                 <PanelField label="Death Duration" help="The number of seconds that the death counter will remain on screen for. Remains on screen at all times if set to 0.">
-                    <input type="number" step="any" defaultValue={props.config.deathDuration} onChange={e => channelAction('winloss/set-config', { deathDuration: parseInt(e.target.value) })} />&nbsp;seconds
+                    <input type="number" step="any" defaultValue={props.config.deathDuration} onChange={e => channelAction('winloss/set-config', { deathDuration: safeParseInt(e.target.value) ?? props.config.deathDuration })} />&nbsp;seconds
                 </PanelField>
             </>
         default:

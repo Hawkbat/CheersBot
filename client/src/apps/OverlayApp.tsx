@@ -51,9 +51,13 @@ export function OverlayApp(props: OverlayAppViewData) {
         } else if (inModePeriod && mode.startTime && mode.duration) {
             const minutesLeft = Math.ceil((mode.duration - (Date.now() - mode.startTime)) / (60 * 1000))
             const minuteText = minutesLeft === 1 ? 'minute' : 'minutes'
+            const secondsLeft = minutesLeft > 1 ? minutesLeft : Math.ceil((mode.duration - (Date.now() - mode.startTime)) / 1000)
+            const secondText = minutesLeft > 1 ? minuteText : secondsLeft === 1 ? 'second' : 'seconds'
             msg = config.runningText
                 .replace('[minutesLeft]', minutesLeft.toString())
                 .replace('[minutes]', minuteText)
+                .replace('[secondsLeft]', secondsLeft.toString())
+                .replace('[seconds]', secondText)
         } else {
             msg = config.endText
         }
@@ -154,6 +158,14 @@ export function OverlayApp(props: OverlayAppViewData) {
                 return !!vTubeStudio.config.triggers.find(c => c.id === t.configID)?.message
             }).map(t => {
                 const config = vTubeStudio.config.triggers.find(c => c.id === t.configID)
+                return <CSSTransition key={t.id} {...transitionProps}>
+                    <Bubble icon={config?.emote ?? defaultEmote} username={config?.showUsername ? t.userName : ''} msg={config?.message ?? ''} />
+                </CSSTransition>
+            }) : null}
+            {vTubeStudio.config.enabled ? vTubeStudio.state.tints.filter(t => {
+                return !!vTubeStudio.config.tints.find(c => c.id === t.configID)?.message
+            }).map(t => {
+                const config = vTubeStudio.config.tints.find(c => c.id === t.configID)
                 return <CSSTransition key={t.id} {...transitionProps}>
                     <Bubble icon={config?.emote ?? defaultEmote} username={config?.showUsername ? t.userName : ''} msg={config?.message ?? ''} />
                 </CSSTransition>

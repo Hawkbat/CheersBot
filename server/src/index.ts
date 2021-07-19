@@ -1,4 +1,4 @@
-import { generateID, Store, mergePartials, AccountType, ChannelActions, ChannelViews, MODULE_TYPES, Access, GlobalActions, GlobalViews, MessageMeta, GlobalBaseViewData, ChannelBaseViewData, VodQueueGame, Changelog, CounterVisibility, filterFalsy, LandingAppViewData, uniqueItems } from 'shared'
+import { generateID, Store, mergePartials, AccountType, ChannelActions, ChannelViews, MODULE_TYPES, Access, GlobalActions, GlobalViews, MessageMeta, GlobalBaseViewData, ChannelBaseViewData, VodQueueGame, Changelog, CounterVisibility, filterFalsy, LandingAppViewData, uniqueItems, safeParseInt } from 'shared'
 import { ApiClient as TwitchClient, RefreshableAuthProvider, StaticAuthProvider } from 'twitch'
 import { ChatClient, PrivateMessage } from 'twitch-chat-client'
 import { PubSubClient } from 'twitch-pubsub-client'
@@ -226,10 +226,12 @@ async function run() {
                         apiSecure: false,
                         swaps: [],
                         triggers: [],
+                        tints: [],
                     },
                     state: {
                         swaps: [],
                         triggers: [],
+                        tints: [],
                     },
                 },
                 eventQueue: {
@@ -498,9 +500,9 @@ async function run() {
                         case commandPrefix:
                             const hasOperator = args[0] === '+' || args[0] === '-' || args[0] === '='
                             const operator = hasOperator ? args[0] : '+'
-                            const parsedAmount = hasOperator ? parseInt(args[1], 10) : parseInt(args[0], 10)
-                            const hasAmount = !Number.isNaN(parsedAmount)
-                            const amount = hasAmount ? parsedAmount : 1
+                            const parsedAmount = hasOperator ? safeParseInt(args[1], 10) : safeParseInt(args[0], 10)
+                            const hasAmount = parsedAmount !== null
+                            const amount = parsedAmount ?? 1
                             switch (command) {
                                 case 'cheersbot':
                                     chatClient?.say(channel, 'girldmCheer')
@@ -821,7 +823,7 @@ async function run() {
                                 emote: null,
                                 showUsername: false,
                                 startText: 'Mode redeemed!',
-                                runningText: 'Redeemed mode is active for [minutesLeft] more [minutes]!',
+                                runningText: 'Redeemed mode is active for [secondsLeft] more [seconds]!',
                                 endText: 'Redeemed mode is done!',
                                 duration: 10,
                                 ...args,
@@ -1258,6 +1260,67 @@ async function run() {
                         })
                         return true
                     },
+                    'vtstudio/complete-color-tint': args => {
+                        data.update(d => {
+                            d.modules.vtubeStudio.state.tints = d.modules.vtubeStudio.state.tints.filter(s => s.id !== args.id)
+                        })
+                        return true
+                    },
+                    'vtstudio/add-color-tint': args => {
+                        data.update(d => {
+                            d.modules.vtubeStudio.config.tints.push({
+                                id: generateID(),
+                                redeemID: '',
+                                redeemName: '',
+                                emote: null,
+                                showUsername: false,
+                                message: '',
+                                duration: 2,
+                                type: 'all',
+                                color: { r: 255, g: 255, b: 255, a: 255 },
+                                matches: [],
+                                rainbowSpeed: 1,
+                                ...args,
+                            })
+                        })
+                        return true
+                    },
+                    'vtstudio/edit-color-tint': args => {
+                        let updated = false
+                        data.update(d => {
+                            d.modules.vtubeStudio.config.tints = d.modules.vtubeStudio.config.tints.map(c => {
+                                if (c.id === args.id) {
+                                    updated = true
+                                    return {
+                                        ...c,
+                                        ...args,
+                                    }
+                                } else {
+                                    return c
+                                }
+                            })
+                        })
+                        return updated
+                    },
+                    'vtstudio/delete-color-tint': args => {
+                        data.update(d => {
+                            d.modules.vtubeStudio.config.tints = d.modules.vtubeStudio.config.tints.filter(c => c.id !== args.id)
+                            d.modules.vtubeStudio.state.tints = d.modules.vtubeStudio.state.tints.filter(c => c.configID !== args.id)
+                        })
+                        return true
+                    },
+                    'vtstudio/mock-color-tint': args => {
+                        data.update(d => {
+                            d.modules.vtubeStudio.state.tints.push({
+                                id: generateID(),
+                                configID: args.configID,
+                                userID: '',
+                                userName: 'Anonymous',
+                                redeemTime: Date.now(),
+                            })
+                        })
+                        return true
+                    },
                     'vtstudio/edit-config': args => {
                         data.update(d => {
                             d.modules.vtubeStudio.config = {
@@ -1483,7 +1546,7 @@ async function run() {
     app.use(express.static(workingDir + '/static/'))
 
     app.get('/ffz/:id/:size', async (req, res) => {
-        const url = await getFFZEmoteURL(req.params.id, parseInt(req.params.size) as 1 | 2 | 3)
+        const url = await getFFZEmoteURL(req.params.id, (safeParseInt(req.params.size) ?? 1) as 1 | 2 | 3)
         res.redirect(301, url)
     })
 
@@ -1674,7 +1737,7 @@ async function run() {
             if (channel && superBot) {
                 if (channel.data.get(d => d.bots[superBot.name] !== Access.approved)) {
                     channel.data.update(d => {
-                        d.bots[secrets.superBot] = Access.approved
+                        d.bots[superBot.name] = Access.approved
                     })
                 }
                 if (superBot.data.get(d => d.channels[channel.name] !== Access.approved)) {
@@ -1687,8 +1750,8 @@ async function run() {
             let streams: LandingAppViewData['streams'] = []
 
             try {
-                const allStreams = await Promise.all(uniqueItems(Object.values(channels), c => c.name).map(c => c.client.helix.streams.getStreamByUserId(c.id)))
-                streams = allStreams.filter(filterFalsy).map(s => ({ channel: s.userDisplayName, game: s.gameName, viewCount: s.viewers }))
+                const allStreams = await Promise.all(Object.values(channels).map(c => c.client.helix.streams.getStreamByUserId(c.id)))
+                streams = uniqueItems(allStreams.filter(filterFalsy).map(s => ({ channel: s.userDisplayName, game: s.gameName, viewCount: s.viewers })), c => c.channel)
             } catch (e) {
                 console.error(e)
             }

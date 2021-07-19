@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { ControlPanelAppViewData, ModuleDataType, ControlPanelPage, CounterVisibility, PanelViewDataProps } from 'shared'
+import { ControlPanelAppViewData, ModuleDataType, ControlPanelPage, CounterVisibility, PanelViewDataProps, safeParseInt } from 'shared'
 import { Dropdown } from '../controls/Dropdown'
 import { Button } from '../controls/Button'
 import { PanelField } from '../controls/PanelField'
@@ -42,11 +42,11 @@ export function CountersPanel(props: ControlPanelAppViewData & ModuleDataType<'c
                                 </PanelField>
                                 {c.visibility === CounterVisibility.whenRedeemed
                                     ? <PanelField label="Duration" help="The number of seconds that the counter will remain on screen after being redeemed." key={`${c.id}-visibility`}>
-                                        <input type="number" step="any" defaultValue={c.duration} onChange={e => channelAction('counters/edit-config', { id: c.id, duration: parseInt(e.target.value) })} />&nbsp;seconds
+                                        <input type="number" step="any" defaultValue={c.duration} onChange={e => channelAction('counters/edit-config', { id: c.id, duration: safeParseInt(e.target.value) ?? c.duration })} />&nbsp;seconds
                                 </PanelField>
                                     : <></>}
                                 <PanelField label="Maximum" help="A maximum number to count to before stopping. Leave blank for no maximum.">
-                                    <input type="number" defaultValue={c.maximum ?? undefined} onChange={e => channelAction('counters/edit-config', { id: c.id, maximum: e.target.value.length ? parseInt(e.target.value) : null })} />
+                                    <input type="number" defaultValue={c.maximum ?? undefined} onChange={e => channelAction('counters/edit-config', { id: c.id, maximum: e.target.value.length ? safeParseInt(e.target.value) ?? c.maximum : null })} />
                                 </PanelField>
                                 <PanelField>
                                     <Button onClick={() => channelAction('counters/delete-config', { id: c.id })}>Delete counter</Button>

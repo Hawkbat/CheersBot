@@ -95,6 +95,18 @@ export function randomWeightedItem<T>(arr: T[], weightMapping: (v: T) => number)
     return arr[arr.length - 1]
 }
 
+export function safeParseInt(s: string, radix = 10): number | null {
+    const result = parseInt(s, radix)
+    if (Number.isNaN(result)) return null
+    return result
+}
+
+export function safeParseFloat(s: string): number | null {
+    const result = parseFloat(s)
+    if (Number.isNaN(result)) return null
+    return result
+}
+
 function isObject(item: any): item is { [key: string]: any } {
     return item !== null && typeof item === 'object' && !Array.isArray(item)
 }

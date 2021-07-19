@@ -226,6 +226,26 @@ export function runEveryFrame(cb: () => void) {
     requestAnimationFrame(f)
 }
 
+export function runUntil(ms: number, cb: (ms: number) => void): Promise<void> {
+    return new Promise((resolve, reject) => {
+        const start = Date.now()
+        const f = () => {
+            const diff = Date.now() - start
+            if (diff > ms) {
+                resolve()
+                return
+            }
+            try {
+                cb(Math.min(ms, diff))
+                setTimeout(f, 16)
+            } catch (e) {
+                reject(e)
+            }
+        }
+        f()
+    })
+}
+
 export function waitUntil(cb: () => boolean, timeout: number = 5000): Promise<void> {
     return new Promise((resolve, reject) => {
         const intervalHandle = setInterval(() => {

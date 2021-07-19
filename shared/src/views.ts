@@ -1,6 +1,6 @@
 import { AccessMap, IconMap, TwitchReward } from './data'
 import { Icon, AccountType, Access, Changelog } from './data'
-import { ModuleType, ModeQueueModeConfig, VodQueueConfigData, RedeemModeDisplay, CustomMessage, CounterConfig, Counter, ModuleDataType, SoundConfig, ChannelInfoConfigData, ModelSwapConfig, TriggerHotkeyConfig, VTubeStudioConfigData, WinLossConfigData } from './modules'
+import { ModuleType, ModeQueueModeConfig, VodQueueConfigData, RedeemModeDisplay, CustomMessage, CounterConfig, Counter, ModuleDataType, SoundConfig, ChannelInfoConfigData, ModelSwapConfig, TriggerHotkeyConfig, VTubeStudioConfigData, WinLossConfigData, ColorTintConfig } from './modules'
 
 export interface BaseViewData {
     meta: MessageMeta
@@ -142,6 +142,11 @@ export interface ChannelActions {
     'vtstudio/edit-hotkey-trigger': (args: { id: string } & Partial<TriggerHotkeyConfig>, msg: MessageMeta) => boolean
     'vtstudio/delete-hotkey-trigger': (args: { id: string }, msg: MessageMeta) => boolean
     'vtstudio/mock-hotkey-trigger': (args: { configID: string }, msg: MessageMeta) => boolean
+    'vtstudio/complete-color-tint': (args: { id: string }, msg: MessageMeta) => boolean
+    'vtstudio/add-color-tint': (args: Partial<ColorTintConfig>, msg: MessageMeta) => boolean
+    'vtstudio/edit-color-tint': (args: { id: string } & Partial<ColorTintConfig>, msg: MessageMeta) => boolean
+    'vtstudio/delete-color-tint': (args: { id: string }, msg: MessageMeta) => boolean
+    'vtstudio/mock-color-tint': (args: { configID: string }, msg: MessageMeta) => boolean
     'vtstudio/edit-config': (args: Partial<VTubeStudioConfigData>, msg: MessageMeta) => boolean
     'channelinfo/set-config': (args: Partial<ChannelInfoConfigData>, msg: MessageMeta) => boolean
     'channelinfo/get-icons': (args: { forceReload: boolean }, msg: MessageMeta) => Promise<IconMap>

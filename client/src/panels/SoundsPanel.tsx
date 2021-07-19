@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { ControlPanelAppViewData, ControlPanelPage, ModuleDataType, PanelViewDataProps } from 'shared'
+import { ControlPanelAppViewData, ControlPanelPage, ModuleDataType, PanelViewDataProps, safeParseFloat } from 'shared'
 import { PanelField } from '../controls/PanelField'
 import { Button } from '../controls/Button'
 import { channelAction } from '../utils'
@@ -55,7 +55,7 @@ export function SoundsPanel(props: ControlPanelAppViewData & ModuleDataType<'sou
                                     <input type="text" defaultValue={c.displayName} onChange={e => channelAction('sounds/edit-config', { id: c.id, displayName: e.target.value })} />
                                 </PanelField>
                                 <PanelField label="Volume" help="The volume that the sound will play at.">
-                                    <input type="range" min="0" max="1" step="any" defaultValue={c.volume} onChange={e => channelAction('sounds/edit-config', { id: c.id, volume: e.target.valueAsNumber })} />
+                                    <input type="range" min="0" max="1" step="any" defaultValue={c.volume} onChange={e => channelAction('sounds/edit-config', { id: c.id, volume: safeParseFloat(e.target.value) ?? c.volume })} />
                                 &nbsp;{Math.round(c.volume * 100)}%
                             </PanelField>
                                 <PanelField label="Select File" help="Select a sound file to use for this sound redeem.">

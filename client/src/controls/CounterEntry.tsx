@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Counter, CounterConfig } from 'shared'
+import { Counter, CounterConfig, safeParseInt } from 'shared'
 import { channelAction } from '../utils'
 import { Button } from './Button'
 import { PanelField } from './PanelField'
@@ -16,7 +16,7 @@ export function CounterEntry(props: { config: CounterConfig, value: Counter }): 
             <span>Count:&nbsp;{props.value.count}{props.config.maximum !== null ? <>&nbsp;/&nbsp;{props.config.maximum}</> : undefined}</span>
             <div className="spacer" />
             <span>
-                <input type="number" value={override} onChange={e => setOverride(parseInt(e.target.value))} />
+                <input type="number" value={override} onChange={e => setOverride(safeParseInt(e.target.value) ?? override)} />
                 &nbsp;
                 <Button primary onClick={e => channelAction('counters/set-count', { id: props.config.id, count: override ?? 0, time: Date.now() })}>Set</Button>
                 &nbsp;

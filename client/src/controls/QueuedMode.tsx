@@ -1,4 +1,4 @@
-import { UserEvent, RedeemMode, ModeQueueModeConfig } from 'shared'
+import { UserEvent, RedeemMode, ModeQueueModeConfig, safeParseFloat } from 'shared'
 import * as React from 'react'
 import { PanelField } from './PanelField'
 import { getNumberValue, channelAction } from '../utils'
@@ -73,7 +73,7 @@ export function QueuedMode(props: { mode: RedeemMode, config: ModeQueueModeConfi
             }</span>
         </PanelField>
         <PanelField>
-            <span>Duration:&nbsp;<input type="number" defaultValue={duration} onChange={e => setDuration(parseInt(e.target.value))} />&nbsp;minutes</span>
+            <span>Duration:&nbsp;<input type="number" step="any" defaultValue={duration} onChange={e => setDuration(safeParseFloat(e.target.value) ?? duration)} />&nbsp;minutes</span>
             <div className="spacer" />
             <span>{
                 !props.mode.startTime

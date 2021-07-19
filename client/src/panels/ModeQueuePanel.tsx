@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { ControlPanelAppViewData, ControlPanelPage, ModuleDataType, PanelViewDataProps } from 'shared'
+import { ControlPanelAppViewData, ControlPanelPage, ModuleDataType, PanelViewDataProps, safeParseFloat } from 'shared'
 import { PanelField } from '../controls/PanelField'
 import { QueuedMode } from '../controls/QueuedMode'
 import { Button } from '../controls/Button'
@@ -36,7 +36,7 @@ export function ModeQueuePanel(props: ControlPanelAppViewData & ModuleDataType<'
             return <>
                 <hr />
                 <PanelField label="Alarm Volume" help="The volume of the alarm when a timer ends. Set to 0 to mute the alarm.">
-                    <input type="range" min="0" max="1" step="any" defaultValue={props.config.alarmVolume ?? 1} onChange={e => channelAction('modequeue/set-alarm-volume', { volume: e.target.valueAsNumber })} />
+                    <input type="range" min="0" max="1" step="any" defaultValue={props.config.alarmVolume ?? 1} onChange={e => channelAction('modequeue/set-alarm-volume', { volume: safeParseFloat(e.target.value) ?? 1 })} />
                                 &nbsp;{Math.round((props.config.alarmVolume ?? 1) * 100)}%
                 </PanelField>
                 <PanelField>
@@ -55,14 +55,14 @@ export function ModeQueuePanel(props: ControlPanelAppViewData & ModuleDataType<'
                                 <PanelField label="Start Text" help="The text displayed when a mode is redeemed but before the timer is started.">
                                     <input type="text" defaultValue={m.startText} onChange={e => channelAction('modequeue/edit-mode', { id: m.id, startText: e.target.value })} />
                                 </PanelField>
-                                <PanelField label="Running Text" help="The text displayed while the timer is running. Use [minutesLeft] to stand for the number of minutes remaining and [minutes] to stand for either 'minute' or 'minutes' depending on how many minutes remain.">
+                                <PanelField label="Running Text" help={"The text displayed while the timer is running.\n\nUse [secondsLeft] to stand for the number of seconds or minutes remaining and [seconds] to stand for 'second', 'seconds', 'minute' or 'minutes' depending on how much time remains.\n\nIf you only want to show the timer in minutes, use [minutesLeft] to stand for the number of minutes remaining and [minutes] to stand for either 'minute' or 'minutes' depending on how many minutes remain."}>
                                     <input type="text" defaultValue={m.runningText} onChange={e => channelAction('modequeue/edit-mode', { id: m.id, runningText: e.target.value })} />
                                 </PanelField>
                                 <PanelField label="End Text" help="The text displayed when the timer finishes but before the mode is dismissed.">
                                     <input type="text" defaultValue={m.endText} onChange={e => channelAction('modequeue/edit-mode', { id: m.id, endText: e.target.value })} />
                                 </PanelField>
                                 <PanelField label="Timer Duration" help="The default number of minutes that timers for this mode will run.">
-                                    <input type="number" defaultValue={m.duration} onChange={e => channelAction('modequeue/edit-mode', { id: m.id, duration: parseInt(e.target.value) })} />&nbsp;minutes
+                                    <input type="number" step="any" defaultValue={m.duration} onChange={e => channelAction('modequeue/edit-mode', { id: m.id, duration: safeParseFloat(e.target.value) ?? m.duration })} />&nbsp;minutes
                                 </PanelField>
                                 <PanelField label="Auto-Start" help="Whether the timer should automatically start when the mode is redeemed.">
                                     <Toggle value={m.autoStart ?? false} onToggle={v => channelAction('modequeue/edit-mode', { id: m.id, autoStart: v })} />

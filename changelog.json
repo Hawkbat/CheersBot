@@ -71,6 +71,22 @@
                 "Fixed sounds sometimes not going away",
                 "Applied minor fixes and improvements"
             ]
+        },
+        {
+            "version": "1.4.1",
+            "released": "2021-07-18",
+            "changes": [
+                "Added VTube Studio color tinting feature",
+                "Added weighted random model/hotkey options",
+                "Added 'revert to previous model' option",
+                "Added 'retrigger hotkeys on completion' option",
+                "Added [placeholders] for mode timers to display seconds",
+                "Changed newly created mode timers to display seconds by default",
+                "Changed various duration fields to accept decimal values",
+                "Fixed model swaps crashing if duration was less than 2 seconds",
+                "Fixed the default bot not being added to channels automatically",
+                "Applied minor fixes and improvements"
+            ]
         }
     ]
 }

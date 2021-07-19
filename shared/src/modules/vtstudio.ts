@@ -29,6 +29,26 @@ export interface TriggerHotkeyConfig {
     retriggerDelay?: number | null
 }
 
+export interface ColorTintConfig {
+    id: string
+    redeemID: string
+    redeemName: string
+    emote: Icon | null
+    showUsername: boolean
+    message: string
+    duration: number
+    type: 'all' | 'match' | 'rainbow'
+    color: { r: number, g: number, b: number, a: number }
+    matches: {
+        color: { r: number, g: number, b: number, a: number }
+        names: string[]
+        tags: string[]
+    }[]
+    rainbowSpeed: number
+    after?: 'reset' | 'nothing'
+    resetDelay?: number | null
+}
+
 export interface ModelSwapState {
     id: string
     configID: string
@@ -45,9 +65,18 @@ export interface HotkeyTriggerState {
     redeemTime: number
 }
 
+export interface ColorTintState {
+    id: string
+    configID: string
+    userID: string
+    userName: string
+    redeemTime: number
+}
+
 export interface VTubeStudioStateData extends ModuleStateData {
     swaps: ModelSwapState[]
     triggers: HotkeyTriggerState[]
+    tints: ColorTintState[]
 }
 
 export interface VTubeStudioConfigData extends ModuleConfigData {
@@ -56,6 +85,7 @@ export interface VTubeStudioConfigData extends ModuleConfigData {
     apiSecure: boolean
     swaps: ModelSwapConfig[]
     triggers: TriggerHotkeyConfig[]
+    tints: ColorTintConfig[]
 }
 
 export const VTubeStudioModule: Module<VTubeStudioStateData, VTubeStudioConfigData> = {

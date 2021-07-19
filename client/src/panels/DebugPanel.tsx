@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { ControlPanelAppViewData, ControlPanelPage, generateID, ModuleDataType, PanelViewDataProps, TtsMessage } from 'shared'
+import { ControlPanelAppViewData, ControlPanelPage, generateID, ModuleDataType, PanelViewDataProps, safeParseInt, TtsMessage } from 'shared'
 import { PanelField } from '../controls/PanelField'
 import { Button } from '../controls/Button'
 import { channelAction } from '../utils'
@@ -34,7 +34,7 @@ export function DebugPanel(props: ControlPanelAppViewData & ModuleDataType<'debu
                     <input type="text" value={ttsStyle} onChange={e => setTtsStyle(e.target.value)} />
                 </PanelField>
                 <PanelField label="TTS Pitch Change">
-                    <input type="number" value={ttsPitch} min={-12} max={12} step={1} onChange={e => setTtsPitch(e.target.valueAsNumber)} />
+                    <input type="number" value={ttsPitch} min={-12} max={12} step={1} onChange={e => setTtsPitch(safeParseInt(e.target.value) ?? ttsPitch)} />
                 </PanelField>
                 <PanelField label="TTS Text">
                     <input type="text" value={ttsText} onChange={e => setTtsText(e.target.value)} />
