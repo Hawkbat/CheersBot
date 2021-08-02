@@ -73,6 +73,18 @@ async function run() {
         res.status(403).type('json').send('' + JSON.stringify({ status: 403, error: `You don't have access to this channel!` }))
     }
 
+    function hasAnyTokenAuth(req: express.Request): boolean {
+        return !!req.header('Authorization')
+    }
+
+    function hasValidTokenAuth(req: express.Request, authToken: string): boolean {
+        return req.header('Authorization') === `Bearer ${authToken}`
+    }
+
+    function respondTokenAuthJSON(res: express.Response): void {
+        res.status(403).type('json').send('' + JSON.stringify({ status: 403, error: `Invalid or missing auth token!` }))
+    }
+
     function getMessage(req: express.Request, channel: string): MessageMeta {
         const msg: MessageMeta = {
             id: generateID(),
@@ -227,11 +239,14 @@ async function run() {
                         swaps: [],
                         triggers: [],
                         tints: [],
+                        useOverlay: true,
+                        debugOverlay: false,
                     },
                     state: {
                         swaps: [],
                         triggers: [],
                         tints: [],
+                        status: { time: 0, connected: false, apiError: '', readyState: 3 },
                     },
                 },
                 eventQueue: {
@@ -257,6 +272,7 @@ async function run() {
                 debug: {
                     config: {
                         enabled: false,
+                        overlayLogs: false,
                     },
                     state: {
 
@@ -581,15 +597,13 @@ async function run() {
                     }
                 }
 
-                function renderChannelView<T extends keyof ChannelViews>(req: express.Request, res: express.Response, view: T, args: Parameters<ChannelViews[T]>[0]) {
+                async function renderChannelView<T extends keyof ChannelViews>(req: express.Request, res: express.Response, view: T, args: Parameters<ChannelViews[T]>[0]) {
                     const msg = getMessage(req, name)
-                    res.render(view, {
-                        ...getChannelViewData(msg),
-                        ...views[view](args as any, msg),
-                    })
+                    res.render(view, await views[view](args, msg))
                 }
 
                 let refreshTime = Date.now()
+                const authToken = generateID(32)
 
                 const id = (await client.helix.users.getMe()).id
 
@@ -1084,6 +1098,7 @@ async function run() {
                                 displayName: '',
                                 volume: 1,
                                 fileName: '',
+                                type: 'one',
                                 ...args,
                             })
                         })
@@ -1341,6 +1356,15 @@ async function run() {
                         })
                         return true
                     },
+                    'vtstudio/set-status': args => {
+                        data.update(d => {
+                            d.modules.vtubeStudio.state = {
+                                ...d.modules.vtubeStudio.state,
+                                status: args,
+                            }
+                        })
+                        return true
+                    },
                     'channelinfo/set-config': args => {
                         data.update(d => {
                             d.modules.channelInfo.config = {
@@ -1371,6 +1395,15 @@ async function run() {
                         refreshTime = Date.now()
                         return true
                     },
+                    'debug/set-config': args => {
+                        data.update(d => {
+                            d.modules.debug.config = {
+                                ...d.modules.debug.config,
+                                ...args,
+                            }
+                        })
+                        return true
+                    },
                     'config/enable-module': args => {
                         data.update(d => {
                             d.modules[args.type].config.enabled = args.enabled
@@ -1399,50 +1432,45 @@ async function run() {
 
                 const views: ChannelViews = {
                     'access-denied': async (args, msg) => ({
-                        meta: msg,
-                        refreshTime,
-                        channel: name,
-                        isGirlDm: isGirlDm(msg),
+                        ...getChannelViewData(msg),
+                        ...args,
                     }),
                     'channel': async (args, msg) => ({
-                        meta: msg,
-                        refreshTime,
-                        channel: name,
-                        isGirlDm: isGirlDm(msg),
+                        ...getChannelViewData(msg),
+                        ...args,
                     }),
                     'overlay': async (args, msg) => ({
-                        meta: msg,
-                        refreshTime,
-                        channel: name,
-                        isGirlDm: isGirlDm(msg),
+                        ...getChannelViewData(msg),
+                        authToken,
+                        ...args,
                     }),
                     'controlpanel-app': async (args, msg) => ({
+                        ...getChannelViewData(msg),
                         username: msg.username,
                         modules: data.get(d => d.modules),
                         channels: getChannelsForUser(msg.username).map(c => c.name),
                         botAccess: data.get(d => d.bots),
                         userAccess: data.get(d => d.users),
                         panels: MODULE_TYPES,
-                        meta: msg,
-                        refreshTime,
-                        channel: name,
-                        isGirlDm: isGirlDm(msg),
                         changelog,
+                        ...args,
                     }),
                     'overlay-app': async (args, msg) => ({
+                        ...getChannelViewData(msg),
                         modules: data.get(d => d.modules),
-                        meta: msg,
-                        channel: name,
-                        refreshTime,
-                        isGirlDm: isGirlDm(msg),
+                        ...args,
                     }),
                 }
 
                 const actionPaths = Object.keys(actions) as (keyof ChannelActions)[]
                 for (const path of actionPaths) {
                     router.post(`/actions/${path}/`, async (req, res) => {
-                        if (!hasTwitchAuth(req)) return respondTwitchAuthJSON(res)
-                        if (!hasChannelAuth(req, name)) return respondChannelAuthJSON(res)
+                        if (hasAnyTokenAuth(req)) {
+                            if (!hasValidTokenAuth(req, authToken)) return respondTokenAuthJSON(res)
+                        } else {
+                            if (!hasTwitchAuth(req)) return respondTwitchAuthJSON(res)
+                            if (!hasChannelAuth(req, name)) return respondChannelAuthJSON(res)
+                        }
                         res.type('json').send(JSON.stringify(await actions[path](req.body, getMessage(req, name))))
                     })
                 }
@@ -1450,18 +1478,24 @@ async function run() {
                 const viewPaths = Object.keys(views) as (keyof ChannelViews)[]
                 for (const path of viewPaths) {
                     router.get(`/data/${path}/`, async (req, res) => {
+                        if (hasAnyTokenAuth(req)) {
+                            if (!hasValidTokenAuth(req, authToken)) return respondTokenAuthJSON(res)
+                        } else {
+                            if (!hasTwitchAuth(req)) return respondTwitchAuthJSON(res)
+                            if (!hasChannelAuth(req, name)) return respondChannelAuthJSON(res)
+                        }
                         res.type('json').send(JSON.stringify(await views[path](req.query as any, getMessage(req, name))))
                     })
                 }
 
-                router.get('/', (req, res) => {
+                router.get('/', async (req, res) => {
                     if (!hasTwitchAuth(req)) return respondTwitchAuthRedirect(res)
                     if (!hasChannelAuth(req, name)) return respondChannelAuthMessage(req, res)
-                    renderChannelView(req, res, 'channel', {})
+                    await renderChannelView(req, res, 'channel', {})
                 })
 
-                router.get('/overlay/', (req, res) => {
-                    renderChannelView(req, res, 'overlay', {})
+                router.get('/overlay/', async (req, res) => {
+                    await renderChannelView(req, res, 'overlay', {})
                 })
 
                 router.get('/sse/', (req, res) => {

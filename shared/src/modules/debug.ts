@@ -6,7 +6,7 @@ export interface DebugStateData extends ModuleStateData {
 }
 
 export interface DebugConfigData extends ModuleConfigData {
-
+    overlayLogs: boolean
 }
 
 export const DebugModule: Module<DebugStateData, DebugConfigData> = {

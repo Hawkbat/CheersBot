@@ -5,6 +5,8 @@ import { Bubble } from '../controls/Bubble'
 import { channelAction, channelView, getChannelCSS } from '../utils'
 import { Sound } from '../controls/Sound'
 import { CSSTransition, TransitionGroup } from 'react-transition-group'
+import { useVTubeStudioConnection, useVTubeStudioProcessing } from '../vtstudio'
+import { VTubeStudioBubble } from 'src/controls/VTubeStudioBubble'
 
 declare const REFRESH_TIME: number
 declare const CHANNEL_NAME: string
@@ -41,6 +43,7 @@ export function OverlayApp(props: OverlayAppViewData) {
     const counters = props.modules.counters
     const sounds = props.modules.sounds
     const vTubeStudio = props.modules.vtubeStudio
+    const debug = props.modules.debug
 
     const displayModes: RedeemModeDisplay[] = modeQueue.state.modes.map(mode => {
         const config = modeQueue.config.modes.find(c => c.id === mode.configID)!
@@ -82,6 +85,27 @@ export function OverlayApp(props: OverlayAppViewData) {
         mountOnEnter: true,
         unmountOnExit: true,
     }
+
+    const [logs, setLogs] = React.useState<{ time: number, msg: string }[]>([])
+
+    React.useEffect(() => {
+        window.addEventListener('error', e => setLogs(logs => [...logs.slice(-5), { time: Date.now(), msg: e.message }]))
+        {
+            const oldLog = console.log
+            const oldError = console.error
+                ; (console as any).log = (...args: any[]) => {
+                    setLogs(logs => [...logs.slice(-5), { time: Date.now(), msg: args.join(' ') }])
+                    oldLog(...args)
+                }
+                ; (console as any).error = (...args: any[]) => {
+                    setLogs(logs => [...logs.slice(-5), { time: Date.now(), msg: args.join(' ') }])
+                    oldError(...args)
+                }
+        }
+    }, [])
+
+    const vts = useVTubeStudioConnection({ ...vTubeStudio, type: 'overlay' })
+    useVTubeStudioProcessing({ ...vTubeStudio, ...vts, enabled: vTubeStudio.config.useOverlay })
 
     return <div className="Overlay" style={{ ...getChannelCSS(props.modules.channelInfo.config), alignItems, justifyContent }}>
         <TransitionGroup component={null}>
@@ -139,9 +163,7 @@ export function OverlayApp(props: OverlayAppViewData) {
             }) : null}
             {sounds.config.enabled ? sounds.state.sounds.map(s => {
                 const config = sounds.config.sounds.find(c => c.id === s.configID)
-                return <Sound key={s.id} url={`/${CHANNEL_NAME}/uploads/${config?.fileName}`} volume={config?.volume ?? 1} onEnd={() => {
-                    channelAction('sounds/remove-redeem', { id: s.id })
-                }} />
+                return config ? <Sound key={s.id} baseUrl={`/${CHANNEL_NAME}/uploads/`} config={config} onEnd={() => channelAction('sounds/remove-redeem', { id: s.id })} /> : null
             }) : null}
             {modeQueue.config.enabled ? displayModes.filter(m => m.visible && m.msg).map(m => <CSSTransition key={m.id} {...transitionProps}>
                 <Bubble icon={m.icon} username={m.showName ? m.userName : ''} msg={m.msg} />
@@ -170,6 +192,12 @@ export function OverlayApp(props: OverlayAppViewData) {
                     <Bubble icon={config?.emote ?? defaultEmote} username={config?.showUsername ? t.userName : ''} msg={config?.message ?? ''} />
                 </CSSTransition>
             }) : null}
+            {vTubeStudio.config.enabled && vTubeStudio.config.debugOverlay ? <CSSTransition key='vtsdebug' {...transitionProps}>
+                <VTubeStudioBubble connected={vts.connected} apiError={String(vts.apiError ?? '')} readyState={vts.client.ws.readyState} />
+            </CSSTransition> : null}
+            {debug.config.enabled && debug.config.overlayLogs ? logs.map(log => <CSSTransition key={log.time + log.msg} {...transitionProps}>
+                <Bubble icon={defaultEmote} msg={log.msg} />
+            </CSSTransition>) : null}
         </TransitionGroup>
     </div>
 }

@@ -2,7 +2,7 @@ doctype html
 html(lang="en")
     head
         meta(charset="UTF-8")
-        meta(name="viewport", content="width=device-width, initial-scale=1.0")
+        meta(name="viewport" content="width=device-width, initial-scale=1.0")
         title Cheers Bot Overlay - #{channel}
         link(rel="stylesheet", href=`/common.css?refresh=${refreshTime}`)
         link(rel="stylesheet", href=`/overlay.css?refresh=${refreshTime}`)
@@ -10,8 +10,9 @@ html(lang="en")
         script(src="/react.development.js")
         script(src="/react-dom.development.js")
         script.
-            let CHANNEL_NAME = "#{channel}"
-            let REFRESH_TIME = #{refreshTime}
+            var CHANNEL_NAME = "#{channel}";
+            var REFRESH_TIME = #{refreshTime};
+            var AUTH_TOKEN = "#{authToken}";
         script(src=`/overlay.js?refresh=${refreshTime}`)
         style.
             body {

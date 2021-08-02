@@ -19,7 +19,7 @@
     "react-transition-group": "^4.4.2",
     "shared": "file:../shared",
     "tone": "^14.7.77",
-    "vtubestudio": "^0.1.4"
+    "vtubestudio": "^0.3.3"
   },
   "private": true,
   "devDependencies": {

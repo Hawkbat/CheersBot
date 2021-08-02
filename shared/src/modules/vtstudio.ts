@@ -10,7 +10,7 @@ export interface ModelSwapConfig {
     message: string
     duration: number
     type: 'one' | 'any' | 'weighted-any'
-    models: { id: string, name: string, weight?: number }[]
+    models: { id: string, name: string, weight?: number, position?: { positionX: number, positionY: number, rotation: number, size: number } | null }[]
     after?: 'revert' | 'nothing'
     revertDelay?: number | null
 }
@@ -77,6 +77,7 @@ export interface VTubeStudioStateData extends ModuleStateData {
     swaps: ModelSwapState[]
     triggers: HotkeyTriggerState[]
     tints: ColorTintState[]
+    status: { time: number, connected: boolean, apiError: string, readyState: number }
 }
 
 export interface VTubeStudioConfigData extends ModuleConfigData {
@@ -86,6 +87,8 @@ export interface VTubeStudioConfigData extends ModuleConfigData {
     swaps: ModelSwapConfig[]
     triggers: TriggerHotkeyConfig[]
     tints: ColorTintConfig[]
+    useOverlay: boolean
+    debugOverlay: boolean
 }
 
 export const VTubeStudioModule: Module<VTubeStudioStateData, VTubeStudioConfigData> = {

@@ -17,7 +17,9 @@ export interface SoundConfig {
     showUsername: boolean
     displayName: string
     volume: number
+    type: 'one' | 'any' | 'weighted-any'
     fileName: string | null
+    sounds?: { fileName: string | null, weight?: number }[]
 }
 
 export interface SoundsStateData extends ModuleStateData {

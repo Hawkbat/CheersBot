@@ -7,8 +7,8 @@ append head
     script(src="/react.development.js")
     script(src="/react-dom.development.js")
     script.
-        let CHANNEL_NAME = "#{channel}"
-        let REFRESH_TIME = #{refreshTime}
+        var CHANNEL_NAME = "#{channel}";
+        var REFRESH_TIME = #{refreshTime};
     script(src=`/channel.js?refresh=${refreshTime}`)
 
 block body

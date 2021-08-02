@@ -4,6 +4,7 @@ import { PanelField } from '../controls/PanelField'
 import { Button } from '../controls/Button'
 import { channelAction } from '../utils'
 import { TextToSpeech } from '../controls/TextToSpeech'
+import { Toggle } from 'src/controls/Toggle'
 
 export function DebugPanel(props: ControlPanelAppViewData & ModuleDataType<'debug'> & PanelViewDataProps) {
     const [ttsVoice, setTtsVoice] = React.useState('en-US-AriaNeural')
@@ -27,6 +28,10 @@ export function DebugPanel(props: ControlPanelAppViewData & ModuleDataType<'debu
     switch (props.page) {
         case ControlPanelPage.view:
             return <>
+                <PanelField label="Overlay Logs" help="Shows the most recent log messages from the overlay window in the overlay.">
+                    <Toggle value={props.config.overlayLogs} onToggle={v => channelAction('debug/set-config', { overlayLogs: v })} />
+                </PanelField>
+                <hr />
                 <PanelField label="TTS Voice">
                     <input type="text" value={ttsVoice} onChange={e => setTtsVoice(e.target.value)} />
                 </PanelField>

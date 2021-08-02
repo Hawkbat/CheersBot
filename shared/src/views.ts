@@ -1,6 +1,6 @@
 import { AccessMap, IconMap, TwitchReward } from './data'
 import { Icon, AccountType, Access, Changelog } from './data'
-import { ModuleType, ModeQueueModeConfig, VodQueueConfigData, RedeemModeDisplay, CustomMessage, CounterConfig, Counter, ModuleDataType, SoundConfig, ChannelInfoConfigData, ModelSwapConfig, TriggerHotkeyConfig, VTubeStudioConfigData, WinLossConfigData, ColorTintConfig } from './modules'
+import { ModuleType, ModeQueueModeConfig, VodQueueConfigData, CustomMessage, CounterConfig, Counter, ModuleDataType, SoundConfig, ChannelInfoConfigData, ModelSwapConfig, TriggerHotkeyConfig, VTubeStudioConfigData, WinLossConfigData, ColorTintConfig, VTubeStudioStateData, DebugConfigData } from './modules'
 
 export interface BaseViewData {
     meta: MessageMeta
@@ -38,7 +38,7 @@ export interface MessageViewData extends GlobalBaseViewData {
 }
 
 export interface OverlayViewData extends ChannelBaseViewData {
-
+    authToken: string
 }
 
 export interface PanelViewData {
@@ -148,21 +148,23 @@ export interface ChannelActions {
     'vtstudio/delete-color-tint': (args: { id: string }, msg: MessageMeta) => boolean
     'vtstudio/mock-color-tint': (args: { configID: string }, msg: MessageMeta) => boolean
     'vtstudio/edit-config': (args: Partial<VTubeStudioConfigData>, msg: MessageMeta) => boolean
+    'vtstudio/set-status': (args: VTubeStudioStateData['status'], msg: MessageMeta) => boolean
     'channelinfo/set-config': (args: Partial<ChannelInfoConfigData>, msg: MessageMeta) => boolean
     'channelinfo/get-icons': (args: { forceReload: boolean }, msg: MessageMeta) => Promise<IconMap>
     'tts/speak': (args: { voice: string, text: string, style: string, pitch: number }, msg: MessageMeta) => Promise<string>
     'twitch/rewards': (args: {}, msg: MessageMeta) => Promise<TwitchReward[]>
     'debug/reload': (args: {}, msg: MessageMeta) => boolean
+    'debug/set-config': (args: Partial<DebugConfigData>, msg: MessageMeta) => boolean
     'config/enable-module': (args: { type: ModuleType, enabled: boolean }, msg: MessageMeta) => boolean
     'access/set': (args: { userType: AccountType, targetType: AccountType, id: string, access: Access }, msg: MessageMeta) => boolean
 }
 
 export interface ChannelViews {
-    'access-denied': (args: Omit<AccessDeniedViewData, keyof ChannelBaseViewData>, msg: MessageMeta) => Promise<AccessDeniedViewData>
-    'channel': (args: Omit<ChannelViewData, keyof ChannelBaseViewData>, msg: MessageMeta) => Promise<ChannelViewData>
-    'overlay': (args: Omit<OverlayViewData, keyof ChannelBaseViewData>, msg: MessageMeta) => Promise<OverlayViewData>
-    'controlpanel-app': (args: Omit<ControlPanelAppViewData, keyof ChannelBaseViewData>, msg: MessageMeta) => Promise<ControlPanelAppViewData>
-    'overlay-app': (args: Omit<OverlayAppViewData, keyof ChannelBaseViewData>, msg: MessageMeta) => Promise<OverlayAppViewData>
+    'access-denied': (args: Partial<AccessDeniedViewData>, msg: MessageMeta) => Promise<AccessDeniedViewData>
+    'channel': (args: Partial<ChannelViewData>, msg: MessageMeta) => Promise<ChannelViewData>
+    'overlay': (args: Partial<OverlayViewData>, msg: MessageMeta) => Promise<OverlayViewData>
+    'controlpanel-app': (args: Partial<ControlPanelAppViewData>, msg: MessageMeta) => Promise<ControlPanelAppViewData>
+    'overlay-app': (args: Partial<OverlayAppViewData>, msg: MessageMeta) => Promise<OverlayAppViewData>
 }
 
 export interface ChannelServerMessages {
@@ -181,9 +183,9 @@ export interface GlobalActions {
 
 export interface GlobalViews {
     'authorize': (args: Omit<AuthorizeViewData, keyof GlobalBaseViewData>, msg: MessageMeta) => Promise<AuthorizeViewData>
-    'landing': (args: Omit<LandingViewData, keyof GlobalBaseViewData>, msg: MessageMeta) => Promise<LandingViewData>
+    'landing': (args: Partial<LandingViewData>, msg: MessageMeta) => Promise<LandingViewData>
     'message': (args: Omit<MessageViewData, keyof GlobalBaseViewData>, msg: MessageMeta) => Promise<MessageViewData>
-    'landing-app': (args: Omit<LandingAppViewData, keyof GlobalBaseViewData>, msg: MessageMeta) => Promise<LandingAppViewData>
+    'landing-app': (args: Partial<LandingAppViewData>, msg: MessageMeta) => Promise<LandingAppViewData>
 }
 
 export interface GlobalServerMessages {

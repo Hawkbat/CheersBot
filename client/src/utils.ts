@@ -3,6 +3,8 @@ import { WaitToken } from 'shared'
 import { debounce } from 'shared'
 import { parseJSON, ChannelActions, ChannelViews, GlobalActions, GlobalViews, ChannelInfoConfigData } from 'shared'
 
+declare const AUTH_TOKEN: string | undefined
+
 export function classes(...args: (string | string[] | { [key: string]: boolean })[]): string {
     const list = []
     for (const item of args) {
@@ -58,7 +60,10 @@ export async function getJSON<T>(url: string): Promise<T | null> {
     try {
         const response = await fetch(url, {
             method: 'GET',
-            headers: { 'Accept': 'application/json' },
+            headers: {
+                'Accept': 'application/json',
+                'Authorization': 'AUTH_TOKEN' in window ? `Bearer ${AUTH_TOKEN}` : '',
+            },
             cache: 'no-store',
         })
         if (!response.ok) {
@@ -73,12 +78,20 @@ export async function getJSON<T>(url: string): Promise<T | null> {
 
 export async function postJSON<T, U>(url: string, data: T): Promise<U | null> {
     try {
-        return parseJSON<U>(await (await fetch(url, {
+        const response = await fetch(url, {
             method: 'POST',
-            headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': 'AUTH_TOKEN' in window ? `Bearer ${AUTH_TOKEN}` : '',
+            },
             cache: 'no-store',
             body: JSON.stringify(data)
-        })).text())
+        })
+        if (!response.ok) {
+            return null
+        }
+        return parseJSON<U>(await response.text())
     } catch (e) {
         console.error(e)
         return null
@@ -148,7 +161,7 @@ export function setRefreshCallback(refresh: (reloadData: boolean) => void, chann
         })
     }
 
-    setInterval(() => tryRefresh(true), intervalMinutes * 60 * 60 * 1000)
+    setInterval(() => tryRefresh(true), intervalMinutes * 60 * 1000)
     runEveryFrame(() => tryRefresh(false))
     tryRefresh(true)
 }
@@ -246,17 +259,21 @@ export function runUntil(ms: number, cb: (ms: number) => void): Promise<void> {
     })
 }
 
-export function waitUntil(cb: () => boolean, timeout: number = 5000): Promise<void> {
+export function waitUntil(cb: (() => boolean) | (() => Promise<boolean>), timeout: number = 5000): Promise<void> {
     return new Promise((resolve, reject) => {
-        const intervalHandle = setInterval(() => {
-            if (cb()) {
-                clearInterval(intervalHandle)
+        const f = async () => {
+            if (await cb()) {
+                clearTimeout(intervalHandle)
                 clearTimeout(timeoutHandle)
                 resolve()
+            } else {
+                intervalHandle = setTimeout(f, 16)
             }
-        }, 16)
+        }
+        let intervalHandle = setTimeout(f, 16)
+
         const timeoutHandle = setTimeout(() => {
-            clearInterval(intervalHandle)
+            clearTimeout(intervalHandle)
             reject(new Error('Wait timed out'))
         }, timeout)
     })
@@ -268,12 +285,22 @@ export function wait(ms: number): Promise<void> {
     })
 }
 
-export function useInterval(callback: () => void, interval: number, runImmediately: boolean) {
+export function useRepeatingEffect(callback: () => Promise<void>, interval: number, runImmediately: boolean) {
     React.useEffect(() => {
-        if (runImmediately) callback()
-        const handle = setInterval(() => callback(), interval)
-        return () => clearInterval(handle)
-    }, [callback, interval])
+        let handle: number | undefined
+
+        const f = async () => {
+            await callback()
+            handle = setTimeout(f, interval)
+        }
+
+        if (runImmediately)
+            f()
+        else
+            handle = setTimeout(f, interval)
+
+        return () => clearTimeout(handle)
+    }, [callback, interval, runImmediately])
 }
 
 export function useCallbackProgress<T extends (...args: any[]) => any>(callback?: T): [callback: (...args: Parameters<T>) => Promise<ReturnType<T>>, inProgress: boolean] {
@@ -285,6 +312,30 @@ export function useCallbackProgress<T extends (...args: any[]) => any>(callback?
         return result
     }, [callback])
     return [cb, inProgress]
+}
+
+export function useDebounce(callback: () => Promise<void>) {
+    const debounceRef = React.useRef(false)
+    const cb = React.useCallback(async () => {
+        if (debounceRef.current) return
+        debounceRef.current = true
+        await callback()
+        debounceRef.current = false
+    }, [callback])
+
+    return cb
+}
+
+export function playSound(url: string, volume: number): Promise<void> {
+    return new Promise((resolve, reject) => {
+        const audio = new Audio()
+        audio.preload = 'auto'
+        audio.autoplay = true
+        audio.onerror = e => reject(e)
+        audio.onended = () => resolve()
+        audio.volume = volume
+        audio.src = url
+    })
 }
 
 export class BufferedWebsocket implements WebSocket {

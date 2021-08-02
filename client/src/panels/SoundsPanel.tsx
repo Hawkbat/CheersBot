@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { ControlPanelAppViewData, ControlPanelPage, ModuleDataType, PanelViewDataProps, safeParseFloat } from 'shared'
+import { ControlPanelAppViewData, ControlPanelPage, ModuleDataType, PanelViewDataProps, safeParseFloat, SoundConfig } from 'shared'
 import { PanelField } from '../controls/PanelField'
 import { Button } from '../controls/Button'
 import { channelAction } from '../utils'
@@ -9,7 +9,8 @@ import { TwitchRewardDropdown } from '../controls/TwitchRewardDropdown'
 import { QueuedSound } from '../controls/QueuedSound'
 import { Expander } from '../controls/Expander'
 import { Fold } from '../controls/Fold'
-import { UploadPicker } from 'src/controls/UploadPicker'
+import { UploadPicker } from '../controls/UploadPicker'
+import { Dropdown, DropdownOption } from '../controls/Dropdown'
 
 export function SoundsPanel(props: ControlPanelAppViewData & ModuleDataType<'sounds'> & PanelViewDataProps) {
     const [tested, setTested] = React.useState('')
@@ -22,6 +23,14 @@ export function SoundsPanel(props: ControlPanelAppViewData & ModuleDataType<'sou
             console.error(e)
         }
     }
+
+    const soundTypeLabels: Record<SoundConfig['type'], string> = {
+        one: 'Single sound',
+        any: 'Random Sound',
+        "weighted-any": 'Random Sound (Weighted)',
+    }
+
+    const soundTypeOptions: DropdownOption[] = Object.entries(soundTypeLabels).map(([value, text]) => ({ value, text }))
 
     switch (props.page) {
         case ControlPanelPage.view:
@@ -57,10 +66,26 @@ export function SoundsPanel(props: ControlPanelAppViewData & ModuleDataType<'sou
                                 <PanelField label="Volume" help="The volume that the sound will play at.">
                                     <input type="range" min="0" max="1" step="any" defaultValue={c.volume} onChange={e => channelAction('sounds/edit-config', { id: c.id, volume: safeParseFloat(e.target.value) ?? c.volume })} />
                                 &nbsp;{Math.round(c.volume * 100)}%
-                            </PanelField>
-                                <PanelField label="Select File" help="Select a sound file to use for this sound redeem.">
-                                    <UploadPicker icon="volume" files={props.config.uploads} selected={c.fileName} onSelect={u => channelAction('sounds/edit-config', { id: c.id, fileName: u })} onDelete={fileName => channelAction('sounds/delete-upload', { fileName })} onUpload={(fileName, data) => channelAction('sounds/add-upload', { fileName, data })} />
                                 </PanelField>
+                                <PanelField label="Type" help="How the sound being played will be determined.">
+                                    <Dropdown selected={c.type} options={soundTypeOptions} onSelect={v => channelAction('sounds/edit-config', { id: c.id, type: v as SoundConfig['type'] })} />
+                                </PanelField>
+                                {c.type === 'one' ? <PanelField label="Select File" help="Select a sound file to play for this sound redeem.">
+                                    <UploadPicker icon="volume" files={props.config.uploads} selected={c.fileName} onSelect={u => channelAction('sounds/edit-config', { id: c.id, fileName: u })} onDelete={fileName => channelAction('sounds/delete-upload', { fileName })} onUpload={(fileName, data) => channelAction('sounds/add-upload', { fileName, data })} />
+                                </PanelField> : <PanelField>
+                                    <div className="QueuedItemList">
+                                        {c.sounds?.map((s, i) => <div key={s.fileName} className="QueuedItem">
+                                            <PanelField label="Select File" help="The sound file to play, and its chance of being picked relative to other sounds (higher means more likely).">
+                                                <UploadPicker icon="volume" files={props.config.uploads} selected={s.fileName} onSelect={u => channelAction('sounds/edit-config', { id: c.id, sounds: u ? [...(c.sounds?.slice(0, i) ?? []), { ...s, fileName: u }, ...(c.sounds?.slice(i + 1) ?? [])] : [...(c.sounds?.slice(0, i) ?? []), ...(c.sounds?.slice(i + 1) ?? [])] })} onDelete={fileName => channelAction('sounds/delete-upload', { fileName })} onUpload={(fileName, data) => channelAction('sounds/add-upload', { fileName, data })} />
+                                                {c.type === 'weighted-any' ? <>
+                                                    &nbsp;
+                                                    <input type="number" step="any" defaultValue={s.weight ?? 1} onChange={e => channelAction('sounds/edit-config', { id: c.id, sounds: [...(c.sounds?.slice(0, i) ?? []), { ...s, weight: safeParseFloat(e.target.value) ?? s.weight }, ...(c.sounds?.slice(i + 1) ?? [])] })} />
+                                                </> : null}
+                                            </PanelField>
+                                        </div>)}
+                                        <Button onClick={() => channelAction('sounds/edit-config', { id: c.id, sounds: [...(c.sounds ?? []), { fileName: null }] })}>Add sound option</Button>
+                                    </div>
+                                </PanelField>}
                                 <PanelField>
                                     <Button onClick={() => mockEvent(c.id)}>Test sound</Button>
                                     {c.id === tested ? <>&nbsp;<span>Success! Check the main tab!</span></> : <></>}

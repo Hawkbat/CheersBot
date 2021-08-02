@@ -1,38 +1,28 @@
 import * as React from 'react'
-import { ColorTintConfig, ControlPanelAppViewData, ControlPanelPage, ModelSwapConfig, ModuleDataType, PanelViewDataProps, randomItem, randomWeightedItem, safeParseFloat, safeParseInt, TriggerHotkeyConfig } from 'shared'
+import { ColorTintConfig, ControlPanelAppViewData, ControlPanelPage, ModelSwapConfig, ModuleDataType, PanelViewDataProps, safeParseFloat, safeParseInt, TriggerHotkeyConfig } from 'shared'
 import { PanelField } from '../controls/PanelField'
-import { channelAction, classes, runUntil, useInterval, wait } from '../utils'
+import { channelAction, useRepeatingEffect } from '../utils'
 import { Dropdown, DropdownOption } from '../controls/Dropdown'
 import { Button } from '../controls/Button'
 import { TwitchRewardDropdown } from '../controls/TwitchRewardDropdown'
-import { VTSClient } from '../vtstudio'
+import { useVTubeStudioConnection, useVTubeStudioProcessing } from '../vtstudio'
 import { Expander } from '../controls/Expander'
 import { ExternalIconPicker } from '../controls/ExternalIconPicker'
 import { Fold } from '../controls/Fold'
 import { TagList } from '../controls/TagList'
-import { Alert } from '../controls/Alert'
 import { Toggle } from '../controls/Toggle'
 import { QueuedSwap } from '../controls/QueuedSwap'
-import { QueuedTrigger } from 'src/controls/QueuedTrigger'
+import { QueuedTrigger } from '../controls/QueuedTrigger'
 import { QueuedTint } from '../controls/QueuedTint'
-import { ColorPicker } from 'src/controls/ColorPicker'
-
-const VTS_MODEL_SWAP_COOLDOWN = 2500
+import { ColorPicker } from '../controls/ColorPicker'
+import { VTubeStudioIndicator } from '../controls/VTubeStudioIndicator'
 
 export function VTubeStudioPanel(props: ControlPanelAppViewData & ModuleDataType<'vtubeStudio'> & PanelViewDataProps) {
     const [tested, setTested] = React.useState('')
-    const [connected, setConnected] = React.useState(false)
     const [models, setModels] = React.useState<{ id: string, name: string }[]>([])
     const [hotkeys, setHotkeys] = React.useState<{ id: string, name: string }[]>([])
     const [artMeshNames, setArtMeshNames] = React.useState<string[]>([])
     const [artMeshTags, setArtMeshTags] = React.useState<string[]>([])
-    const [apiError, setApiError] = React.useState<Error | null>(null)
-    const [redeemedSwaps, setRedeemedSwaps] = React.useState<Record<string, boolean>>({})
-    const [redeemedTriggers, setRedeemedTriggers] = React.useState<Record<string, boolean>>({})
-    const [redeemedTints, setRedeemedTints] = React.useState<Record<string, boolean>>({})
-    const [pollSwapDebounce, setPollSwapDebounce] = React.useState<boolean>(false)
-    const [pollTriggerDebounce, setPollTriggerDebounce] = React.useState<boolean>(false)
-    const [pollTintDebounce, setPollTintDebounce] = React.useState<boolean>(false)
 
     const mockEvent = async (configID: string, type: 'model-swap' | 'hotkey-trigger' | 'color-tint') => {
         try {
@@ -48,23 +38,16 @@ export function VTubeStudioPanel(props: ControlPanelAppViewData & ModuleDataType
         }
     }
 
-    const client = React.useMemo(() => {
-        const client = new VTSClient(`ws://${props.config.apiHost}:${props.config.apiPort}`)
-        client.ws.addEventListener('open', () => setConnected(true))
-        client.ws.addEventListener('close', () => setConnected(false))
-        return client
-    }, [])
-
-    React.useEffect(() => {
-        client.ws.url = `ws://${props.config.apiHost}:${props.config.apiPort}`
-    }, [client, props.config.apiHost, props.config.apiPort])
+    const vts = useVTubeStudioConnection({ ...props, type: 'control-panel' })
+    useVTubeStudioProcessing({ ...props, enabled: !props.config.useOverlay, ...vts })
+    const status = props.state.status
 
     const refreshDropdowns = React.useCallback(async () => {
-        if (client && connected) {
-            try {
-                const models = await client.plugin.models()
+        if (vts.client && vts.connected) {
+            await vts.execute(async () => {
+                const models = await vts.client.plugin.models()
                 setModels(models.map(m => ({ id: m.id, name: m.name })))
-                const currentModel = await client.plugin.currentModel()
+                const currentModel = await vts.client.plugin.currentModel()
                 if (currentModel) {
                     const hotkeys = await currentModel.hotkeys()
                     setHotkeys(hotkeys.map(h => ({ id: h.id, name: h.name })))
@@ -77,161 +60,15 @@ export function VTubeStudioPanel(props: ControlPanelAppViewData & ModuleDataType
                     setArtMeshNames([])
                     setArtMeshTags([])
                 }
-                setApiError(null)
-            } catch (e) {
-                console.error(e)
-                setApiError(e)
-            }
+            })
         }
-    }, [client, connected])
-    useInterval(refreshDropdowns, 10 * 1000, true)
+    }, [vts.client, vts.connected])
+    useRepeatingEffect(refreshDropdowns, 10 * 1000, true)
 
-    const pollSwapRedeems = React.useCallback(async () => {
-        if (pollSwapDebounce) return
-        setPollSwapDebounce(true)
-        const pendingSwaps = props.state.swaps.filter(s => !redeemedSwaps[s.id])
-        const resolvedSwaps: Record<string, boolean> = {}
-        for (const swap of pendingSwaps) {
-            try {
-                const config = props.config.swaps.find(c => c.id === swap.configID)
-                if (config) {
-                    const models = await client.plugin.models()
-                    const currentModel = await client.plugin.currentModel()
-                    const validModels = models.filter(m => config.models.some(c => c.id === m.id || c.name === m.name) && m.id !== currentModel?.id && m.name !== currentModel?.name)
-                    let selectedModel
-
-                    if (config.type === 'one') selectedModel = validModels[0]
-                    else if (config.type === 'any') selectedModel = randomItem(validModels)
-                    else if (config.type === 'weighted-any') selectedModel = randomWeightedItem(validModels, m => config.models.find(c => c.id === m.id || c.name === m.name)?.weight ?? 1)
-
-                    if (selectedModel) {
-                        await selectedModel.load()
-                        await Promise.all([
-                            (async () => {
-                                await wait(Math.max(config.duration * 1000, VTS_MODEL_SWAP_COOLDOWN))
-                                await channelAction('vtstudio/complete-model-swap', { id: swap.id })
-                            })(),
-                            (async () => {
-                                if (config.after === 'revert') {
-                                    await wait(Math.max((config.revertDelay ?? config.duration) * 1000, VTS_MODEL_SWAP_COOLDOWN))
-                                    await models.find(m => m.id === currentModel?.id || m.name === currentModel?.name)?.load()
-                                    await wait(VTS_MODEL_SWAP_COOLDOWN)
-                                }
-                            })(),
-                        ])
-                        resolvedSwaps[swap.id] = true
-                    }
-                }
-            } catch (e) {
-                console.error(e)
-                setApiError(e)
-            }
-        }
-        setRedeemedSwaps({ ...redeemedSwaps, ...resolvedSwaps })
-        setPollSwapDebounce(false)
-    }, [redeemedSwaps, pollSwapDebounce, props.state.swaps])
-    useInterval(pollSwapRedeems, 1000, false)
-
-    const pollTriggerRedeems = React.useCallback(async () => {
-        if (pollTriggerDebounce) return
-        setPollTriggerDebounce(true)
-        const pendingTriggers = props.state.triggers.filter(s => !redeemedTriggers[s.id])
-        const resolvedTriggers: Record<string, boolean> = {}
-        for (const trigger of pendingTriggers) {
-            try {
-                const config = props.config.triggers.find(c => c.id === trigger.configID)
-                if (config) {
-                    const currentModel = await client.plugin.currentModel()
-                    if (currentModel) {
-                        const hotkeys = await currentModel.hotkeys()
-                        const validHotkeys = hotkeys.filter(h => config.hotkeys.some(c => c.id === h.id || c.name === h.name))
-                        let selectedHotkeys
-                        if (validHotkeys.length) {
-                            if (config.type === 'one') selectedHotkeys = [validHotkeys[0]]
-                            else if (config.type === 'any') selectedHotkeys = [randomItem(validHotkeys)]
-                            else if (config.type === 'weighted-any') selectedHotkeys = [randomWeightedItem(validHotkeys, h => config.hotkeys.find(c => c.id === h.id || c.name === h.name)?.weight ?? 1)]
-                            else if (config.type === 'all') selectedHotkeys = validHotkeys
-                        }
-                        if (selectedHotkeys && selectedHotkeys.length) {
-                            await Promise.all(selectedHotkeys.map(h => h.trigger()))
-                            await Promise.all([
-                                (async () => {
-                                    await wait(config.duration * 1000)
-                                    await channelAction('vtstudio/complete-hotkey-trigger', { id: trigger.id })
-                                })(),
-                                (async () => {
-                                    if (config.after === 'retrigger') {
-                                        await wait((config.retriggerDelay ?? config.duration) * 1000)
-                                        await Promise.all(selectedHotkeys.map(h => h.trigger()))
-                                    }
-                                })(),
-                            ])
-                            resolvedTriggers[trigger.id] = true
-                        }
-                    }
-                }
-            } catch (e) {
-                console.error(e)
-                setApiError(e)
-            }
-        }
-        setRedeemedTriggers({ ...redeemedTriggers, ...resolvedTriggers })
-        setPollTriggerDebounce(false)
-    }, [redeemedTriggers, pollTriggerDebounce, props.state.triggers])
-    useInterval(pollTriggerRedeems, 1000, false)
-
-    const pollTintRedeems = React.useCallback(async () => {
-        if (pollTintDebounce) return
-        setPollTintDebounce(true)
-        const pendingTints = props.state.tints.filter(t => !redeemedTints[t.id])
-        const resolvedTints: Record<string, boolean> = {}
-        for (const tint of pendingTints) {
-            try {
-                const config = props.config.tints.find(c => c.id === tint.configID)
-                if (config) {
-                    const currentModel = await client.plugin.currentModel()
-                    if (currentModel) {
-                        if (config.type === 'all') {
-                            await currentModel.colorTint(config.color)
-                        } else if (config.type === 'match') {
-                            await Promise.all(config.matches.map(m => currentModel.colorTint(m.color, { nameExact: m.names, tagExact: m.tags })))
-                        }
-                        await Promise.all([
-                            (async () => {
-                                if (config.type === 'rainbow') {
-                                    await runUntil(config.duration * 1000, ms => {
-                                        const hsvToRgb = (h: number, s: number, v: number) => {
-                                            let f = (n: number, k = (n + h / 60) % 6) => v - v * s * Math.max(Math.min(k, 4 - k, 1), 0)
-                                            const c = (n: number) => Math.min(255, Math.max(0, Math.round(n * 255)))
-                                            return { r: c(f(5)), g: c(f(3)), b: c(f(1)) }
-                                        }
-                                        currentModel.colorTint(hsvToRgb((ms / 1000 * 360 * config.rainbowSpeed) % 360, 1, 1))
-                                    })
-                                }
-                            })(),
-                            (async () => {
-                                await wait(config.duration * 1000)
-                                await channelAction('vtstudio/complete-color-tint', { id: tint.id })
-                            })(),
-                            (async () => {
-                                if (config.after === 'reset') {
-                                    await wait((config.resetDelay ?? config.duration) * 1000)
-                                    await currentModel.colorTint({ r: 255, g: 255, b: 255 })
-                                }
-                            })(),
-                        ])
-                        resolvedTints[tint.id] = true
-                    }
-                }
-            } catch (e) {
-                console.error(e)
-                setApiError(e)
-            }
-        }
-        setRedeemedTints({ ...redeemedTints, ...resolvedTints })
-        setPollTintDebounce(false)
-    }, [redeemedTints, pollTintDebounce, props.state.tints])
-    useInterval(pollTintRedeems, 1000, false)
+    const getModelPosition = async () => {
+        const m = await vts.client.plugin.currentModel()
+        return await m?.position() ?? null
+    }
 
     const modelOptions: DropdownOption[] = [...models, ...props.config.swaps.flatMap(c => c.models).filter(m => !models.some(o => o.id === m.id || o.name === m.name)).map(m => ({ ...m, name: `${m.name}*` }))].map(m => ({ value: m.id, text: m.name })).sort((a, b) => a.text.localeCompare(b.text))
 
@@ -287,49 +124,42 @@ export function VTubeStudioPanel(props: ControlPanelAppViewData & ModuleDataType
 
     const tintAfterOptions: DropdownOption[] = Object.entries(tintAfterLabels).map(([value, text]) => ({ value, text }))
 
-    const indicator = <>
-        <div className={classes('VTubeStudioIndicator', { connected })}>VTube Studio</div>
-        {connected ? <PanelField>
-            <Alert type="success">Connected to VTube Studio! Configured redeems will trigger and lists will be populated based on the currently loaded model.</Alert>
-        </PanelField> : null}
-        {!connected ? <PanelField>
-            <Alert type="warn" tooltip={`Connection status: ${['Connecting', 'Connected', 'Disconnecting', 'Disconnected'][client?.ws.readyState ?? 3]}`}>Not connected to VTube Studio. Redeems will not work and lists will not populate until the connection is reestablished.</Alert>
-        </PanelField> : null}
-        {apiError !== null ? <PanelField>
-            <Alert type="fail" tooltip={String(apiError)}>An error occurred while communicating with VTube Studio.</Alert>
-        </PanelField> : null}
-    </>
-
     switch (props.page) {
         case ControlPanelPage.view:
             return <>
-                {indicator}
+                {props.config.useOverlay ?
+                    <VTubeStudioIndicator type="overlay" processing connected={Date.now() < status.time + 30000 ? status.connected : false} apiError={String(status.apiError ?? '')} readyState={status.readyState} /> :
+                    <VTubeStudioIndicator type="control-panel" processing connected={vts.connected} apiError={String(vts.apiError ?? '')} readyState={vts.client.ws.readyState} />
+                }
                 <PanelField>
                     <div className="QueuedItemList">
                         {props.state.swaps.length
                             ? props.state.swaps.map(s => <QueuedSwap key={s.id} swap={s} config={props.config.swaps.find(c => c.id === s.configID)!} />)
-                            : <i>No model swaps in queue</i>}
+                            : <i>No model swaps in queue</i>
+                        }
                     </div>
                 </PanelField>
                 <PanelField>
                     <div className="QueuedItemList">
                         {props.state.triggers.length
                             ? props.state.triggers.map(t => <QueuedTrigger key={t.id} trigger={t} config={props.config.triggers.find(c => c.id === t.configID)!} />)
-                            : <i>No hotkey triggers in queue</i>}
+                            : <i>No hotkey triggers in queue</i>
+                        }
                     </div>
                 </PanelField>
                 <PanelField>
                     <div className="QueuedItemList">
                         {props.state.tints.length
                             ? props.state.tints.map(t => <QueuedTint key={t.id} tint={t} config={props.config.tints.find(c => c.id === t.configID)!} />)
-                            : <i>No color tints in queue</i>}
+                            : <i>No color tints in queue</i>
+                        }
                     </div>
                 </PanelField>
             </>
         case ControlPanelPage.edit:
             return <>
                 <hr />
-                {indicator}
+                <VTubeStudioIndicator type="control-panel" processing={!props.config.useOverlay} connected={vts.connected} apiError={String(vts.apiError ?? '')} readyState={vts.client.ws.readyState} />
                 <hr />
                 <PanelField label="Model Swaps"><div></div></PanelField>
                 <PanelField>
@@ -354,9 +184,16 @@ export function VTubeStudioPanel(props: ControlPanelAppViewData & ModuleDataType
                                 <PanelField label="Type" help="How the model being swapped in will be determined.">
                                     <Dropdown selected={c.type} options={modelTypeOptions} onSelect={v => channelAction('vtstudio/edit-model-swap', { id: c.id, type: v as ModelSwapConfig['type'] })} />
                                 </PanelField>
-                                {c.type === 'one' ? <PanelField label="Model" help="The model that will be swapped in.">
-                                    <Dropdown selected={c.models[0]?.id ?? ''} options={modelOptions} onSelect={v => channelAction('vtstudio/edit-model-swap', { id: c.id, models: v ? [{ id: v, name: models.find(m => m.id === v)?.name ?? '' }] : [] })} nullable />
-                                </PanelField> : c.type === 'weighted-any' ? <PanelField>
+                                {c.type === 'one' ? <>
+                                    <PanelField label="Model" help="The model that will be swapped in.">
+                                        <Dropdown selected={c.models[0]?.id ?? ''} options={modelOptions} onSelect={v => channelAction('vtstudio/edit-model-swap', { id: c.id, models: v ? [{ id: v, name: models.find(m => m.id === v)?.name ?? '' }] : [] })} nullable />
+                                    </PanelField>
+                                    {c.models[0] ? <PanelField label="Position" help="The position on screen to place the model at, if set.">
+                                        <Button primary onClick={async () => channelAction('vtstudio/edit-model-swap', { id: c.id, models: [{ ...c.models[0], position: await getModelPosition() ?? c.models[0].position }] })}>Save Current</Button>
+                                        &nbsp;
+                                        {!!c.models[0]?.position ? <Button onClick={() => channelAction('vtstudio/edit-model-swap', { id: c.id, models: [{ ...c.models[0], position: null }] })}>Clear</Button> : null}
+                                    </PanelField> : null}
+                                </> : c.type === 'weighted-any' ? <PanelField>
                                     <div className="QueuedItemList">
                                         {c.models.map((m, i) => <div key={m.id} className="QueuedItem">
                                             <PanelField label="Model" help="The model that will be swapped in, and its chance of being picked relative to other models (higher means more likely).">
@@ -365,6 +202,11 @@ export function VTubeStudioPanel(props: ControlPanelAppViewData & ModuleDataType
                                                 <input type="number" step="any" defaultValue={m.weight ?? 1} onChange={e => channelAction('vtstudio/edit-model-swap', { id: c.id, models: [...c.models.slice(0, i), { ...m, weight: safeParseFloat(e.target.value) ?? m.weight }, ...c.models.slice(i + 1)] })} />
                                                 &nbsp;chances
                                             </PanelField>
+                                            {c.models[i] ? <PanelField label="Position" help="The position on screen to place the model at, if set.">
+                                                <Button primary onClick={async () => channelAction('vtstudio/edit-model-swap', { id: c.id, models: [...c.models.slice(0, i), { ...c.models[i], position: await getModelPosition() ?? c.models[i].position }, ...c.models.slice(i + 1)] })}>Save Current</Button>
+                                                &nbsp;
+                                                {!!c.models[i]?.position ? <Button onClick={() => channelAction('vtstudio/edit-model-swap', { id: c.id, models: [...c.models.slice(0, i), { ...c.models[i], position: null }, ...c.models.slice(i + 1)] })}>Clear</Button> : null}
+                                            </PanelField> : null}
                                         </div>)}
                                         Add Model:&nbsp;<Dropdown selected='' nullable options={modelOptions.filter(o => !c.models.some(e => e.id === o.value))} onSelect={(v, n) => channelAction('vtstudio/edit-model-swap', { id: c.id, models: [...c.models, { id: v, name: n, weight: 1 }] })} />
                                     </div>
@@ -530,6 +372,13 @@ export function VTubeStudioPanel(props: ControlPanelAppViewData & ModuleDataType
                 <PanelField>
                     <Button primary onClick={() => channelAction('vtstudio/add-color-tint', {})}>Add new color tint</Button>
                 </PanelField>
+                <hr />
+                <PanelField label="Use Overlay" help="Whether to use the browser source overlay to process VTube Studio redeems. Otherwise, the control panel will be used.">
+                    <Toggle value={props.config.useOverlay} onToggle={v => channelAction('vtstudio/edit-config', { useOverlay: v })} />
+                </PanelField>
+                {props.config.useOverlay ? <PanelField label="Debug Overlay" help="Whether to show an indicator of the VTube Studio connection status in the overlay. Useful for checking connection issues.">
+                    <Toggle value={props.config.debugOverlay} onToggle={v => channelAction('vtstudio/edit-config', { debugOverlay: v })} />
+                </PanelField> : null}
                 <hr />
                 <PanelField label="API Host" help="The URL to connect to VTube Studio at. When using Cheers Bot on the same device as VTube Studio you will want to leave this as 'localhost'.">
                     <input type="text" value={props.config.apiHost} onChange={e => channelAction('vtstudio/edit-config', { apiHost: e.target.value || props.config.apiHost })} />

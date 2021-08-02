@@ -87,6 +87,17 @@
                 "Fixed the default bot not being added to channels automatically",
                 "Applied minor fixes and improvements"
             ]
+        },
+        {
+            "version": "1.4.2",
+            "released": "2021-08-02",
+            "changes": [
+                "Added option to process VTube Studio redeems in the overlay",
+                "Added position saving/loading for model swaps",
+                "Added random weighted sound redeem options",
+                "Added additional debugging settings",
+                "Applied minor fixes and improvements"
+            ]
         }
     ]
 }

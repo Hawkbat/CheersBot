@@ -1,12 +1,21 @@
 import * as React from 'react'
+import { randomItem, randomWeightedItem, SoundConfig } from 'shared'
+import { playSound } from '../utils'
 
-export function Sound({ url, volume, onEnd }: { url: string, volume: number, onEnd: () => void }) {
+export function Sound({ baseUrl, config, onEnd }: { baseUrl: string, config: SoundConfig, onEnd: () => void }) {
     React.useEffect(() => {
-        const audio = new Audio(url)
-        audio.loop = false
-        audio.volume = volume
-        audio.addEventListener('ended', onEnd)
-        audio.addEventListener('loadeddata', () => audio.play())
-    }, [url, volume])
+        (async () => {
+            if (config.type === 'one') {
+                if (config.fileName) await playSound(baseUrl + config.fileName, config.volume)
+            } else {
+                const options = config.sounds ?? []
+                const s = config.type === 'weighted-any' ?
+                    randomWeightedItem(options, o => o.weight ?? 1) :
+                    randomItem(options)
+                if (s.fileName) await playSound(baseUrl + s.fileName, config.volume)
+            }
+            onEnd()
+        })()
+    }, [config.id])
     return <></>
 }
