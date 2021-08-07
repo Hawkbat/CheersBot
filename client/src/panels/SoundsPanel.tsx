@@ -70,7 +70,7 @@ export function SoundsPanel(props: ControlPanelAppViewData & ModuleDataType<'sou
                                 <PanelField label="Type" help="How the sound being played will be determined.">
                                     <Dropdown selected={c.type} options={soundTypeOptions} onSelect={v => channelAction('sounds/edit-config', { id: c.id, type: v as SoundConfig['type'] })} />
                                 </PanelField>
-                                {c.type === 'one' ? <PanelField label="Select File" help="Select a sound file to play for this sound redeem.">
+                                {(c.type ?? 'one') === 'one' ? <PanelField label="Select File" help="Select a sound file to play for this sound redeem.">
                                     <UploadPicker icon="volume" files={props.config.uploads} selected={c.fileName} onSelect={u => channelAction('sounds/edit-config', { id: c.id, fileName: u })} onDelete={fileName => channelAction('sounds/delete-upload', { fileName })} onUpload={(fileName, data) => channelAction('sounds/add-upload', { fileName, data })} />
                                 </PanelField> : <PanelField>
                                     <div className="QueuedItemList">

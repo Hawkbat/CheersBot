@@ -5,7 +5,7 @@ import { playSound } from '../utils'
 export function Sound({ baseUrl, config, onEnd }: { baseUrl: string, config: SoundConfig, onEnd: () => void }) {
     React.useEffect(() => {
         (async () => {
-            if (config.type === 'one') {
+            if ((config.type ?? 'one') === 'one') {
                 if (config.fileName) await playSound(baseUrl + config.fileName, config.volume)
             } else {
                 const options = config.sounds ?? []
