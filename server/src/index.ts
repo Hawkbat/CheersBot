@@ -1621,6 +1621,10 @@ async function run() {
         renderGlobalView(req, res, 'landing', {})
     })
 
+    app.get('/faq', (req, res) => {
+        res.render('faq')
+    })
+
     app.get('/privacy', (req, res) => {
         res.render('privacy')
     })
