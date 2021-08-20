@@ -14,4 +14,5 @@ export const BackdropModule: Module<BackdropStateData, BackdropConfigData> = {
     description: 'Interactive Unity application backdrops controlled remotely from the control panel.',
     version: ModuleVersion.preAlpha,
     getData: (modules: ModuleMap) => modules.backdrop,
+    scopes: ['channel:read:redemptions'],
 }

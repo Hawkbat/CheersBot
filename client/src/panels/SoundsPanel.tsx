@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { ControlPanelAppViewData, ControlPanelPage, ModuleDataType, PanelViewDataProps, safeParseFloat, SoundConfig } from 'shared'
+import { ControlPanelAppViewData, ControlPanelPage, logError, ModuleDataType, PanelViewDataProps, safeParseFloat, SoundConfig } from 'shared'
 import { PanelField } from '../controls/PanelField'
 import { Button } from '../controls/Button'
 import { channelAction } from '../utils'
@@ -20,7 +20,7 @@ export function SoundsPanel(props: ControlPanelAppViewData & ModuleDataType<'sou
             await channelAction('sounds/mock', { configID, username: 'Anonymous' })
             setTested(configID)
         } catch (e) {
-            console.error(e)
+            logError(CHANNEL_NAME, 'sounds', e)
         }
     }
 

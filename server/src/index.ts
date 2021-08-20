@@ -1,4 +1,4 @@
-import { generateID, Store, mergePartials, AccountType, ChannelActions, ChannelViews, MODULE_TYPES, Access, GlobalActions, GlobalViews, MessageMeta, GlobalBaseViewData, ChannelBaseViewData, VodQueueGame, Changelog, CounterVisibility, filterFalsy, LandingAppViewData, uniqueItems, safeParseInt } from 'shared'
+import { generateID, Store, mergePartials, AccountType, ChannelActions, ChannelViews, MODULE_TYPES, Access, GlobalActions, GlobalViews, MessageMeta, GlobalBaseViewData, ChannelBaseViewData, VodQueueGame, Changelog, CounterVisibility, filterFalsy, LandingAppViewData, uniqueItems, safeParseInt, logError, logInfo, SubathonTriggerConfig, logMessage } from 'shared'
 import { ApiClient as TwitchClient, RefreshableAuthProvider, StaticAuthProvider } from 'twitch'
 import { ChatClient, PrivateMessage } from 'twitch-chat-client'
 import { PubSubClient } from 'twitch-pubsub-client'
@@ -33,7 +33,7 @@ async function run() {
     const CLIENT_SECRET = secrets.twitch.clientSecret
 
     const BOT_SCOPES = ['chat:read', 'chat:edit']
-    const CHANNEL_SCOPES = ['moderation:read', 'channel:moderate', 'channel:read:redemptions', 'channel:read:subscriptions']
+    const CHANNEL_SCOPES = ['moderation:read', 'channel:moderate', 'channel:read:redemptions', 'channel:read:subscriptions', 'channel_subscriptions', 'bits:read']
     const USER_SCOPES = ['user:read:email']
     const DISCORD_SCOPES = ['bot', 'identify', 'guilds', 'guilds.join']
 
@@ -45,6 +45,24 @@ async function run() {
     let bots: { [key: string]: Bot } = {}
     let channels: { [key: string]: Channel } = {}
     let users: { [key: string]: User } = {}
+
+    let streams: LandingAppViewData['streams'] = []
+
+    setInterval(async () => {
+        try {
+            const allStreams = await Promise.all(Object.values(channels).map(async c => {
+                try {
+                    return c.client.helix.streams.getStreamByUserId(c.id)
+                } catch (e) {
+                    logError('global', 'streamlist', e)
+                    return null
+                }
+            }))
+            streams = uniqueItems(allStreams.filter(filterFalsy).map(s => ({ channel: s.userDisplayName, game: s.gameName, viewCount: s.viewers })), c => c.channel)
+        } catch (e) {
+            logError('global', 'streamlist', e)
+        }
+    }, 10 * 60 * 1000)
 
     const app = express()
 
@@ -103,11 +121,11 @@ async function run() {
         }
     }
 
-    function renderGlobalView<T extends keyof GlobalViews>(req: express.Request, res: express.Response, view: T, args: Parameters<GlobalViews[T]>[0]) {
+    async function renderGlobalView<T extends keyof GlobalViews>(req: express.Request, res: express.Response, view: T, args: Parameters<GlobalViews[T]>[0]) {
         const msg = getMessage(req, '')
         res.render(view, {
             ...getGlobalViewData(msg),
-            ...views[view](args as any, msg),
+            ...(await views[view](args as any, msg)),
         })
     }
 
@@ -249,6 +267,28 @@ async function run() {
                         status: { time: 0, connected: false, apiError: '', readyState: 3 },
                     },
                 },
+                subathon: {
+                    config: {
+                        enabled: false,
+                        icon: null,
+                        startText: 'Subathon starting soon!',
+                        runningText: 'remaining in the subathon!',
+                        endText: 'Subathon is over!',
+                        duration: 5 * 60 * 1000,
+                        type: 'extend',
+                        triggers: [],
+                    },
+                    state: {
+                        active: false,
+                        running: false,
+                        startTime: null,
+                        remainingTime: 0,
+                        elapsedTime: 0,
+                        subCount: 0,
+                        bitCount: 0,
+                        pointCount: 0,
+                    },
+                },
                 eventQueue: {
                     config: {
                         enabled: false,
@@ -275,7 +315,7 @@ async function run() {
                         overlayLogs: false,
                     },
                     state: {
-
+                        logs: [],
                     },
                 },
             },
@@ -330,17 +370,17 @@ async function run() {
                 res.status(200)
                 renderGlobalView(req, res, 'message', { message: `Successfully logged in!`, redirect: '/' })
             } catch (e) {
-                console.error(`Error registering: `, e)
+                logError('global', 'oauth', `Error registering ${accountType}`, e)
                 res.status(500)
                 renderGlobalView(req, res, 'message', { message: `We weren't able to log you in :( Let Hawkbar know the bot is broken!` })
             }
         })
 
         app.get(`/authorize/${accountType}/`, (req, res) => {
-            if (secrets?.local) {
+            /*if (secrets?.local) {
                 localLoggedIn = true
                 return res.redirect('/')
-            }
+            }*/
             renderGlobalView(req, res, 'authorize', { accountType })
         })
 
@@ -376,22 +416,23 @@ async function run() {
             const authProvider = new RefreshableAuthProvider(new StaticAuthProvider(CLIENT_ID, token.accessToken, token.scope, 'user'), {
                 clientSecret: CLIENT_SECRET,
                 refreshToken: token.refreshToken,
+                expiry: new Date(token.expiration ?? 0),
                 onRefresh: async token => {
                     try {
                         if (!userName || !tokenPath) {
-                            console.error('Attempted to refresh token before username has been retrieved')
+                            logError('global', 'oauth', 'Attempted to refresh token before username has been retrieved')
                             return
                         }
                         const data = await readJSON<AccountData>(tokenPath)
                         if (data) {
-                            data.token = { accessToken: token.accessToken, refreshToken: token.refreshToken, scope: token.scope }
+                            data.token = { accessToken: token.accessToken, refreshToken: token.refreshToken, scope: token.scope, expiration: token.expiryDate?.getTime() ?? 0 }
                             await writeJSON(tokenPath, data)
-                            console.log(`Refreshed token for ${accountType} ${userName}`)
+                            logInfo(userName, 'tokenRefresh', `Refreshed token for ${accountType} ${userName}`)
                         } else {
-                            console.log(`Unable to refresh token for ${accountType} ${userName} as file was not found`)
+                            logError(userName, 'tokenRefresh', `Unable to refresh token for ${accountType} ${userName} as file was not found`)
                         }
                     } catch (e) {
-                        console.error(`Error refreshing token for ${accountType} ${userName}:`, e)
+                        logError(userName, 'tokenRefresh', `Error refreshing token for ${accountType} ${userName}`, e)
                     }
                 }
             })
@@ -416,10 +457,10 @@ async function run() {
                 return v
             })
 
-            console.log(`Generated client for ${accountType} ${userName}`)
+            logInfo(userName, 'oauth', `Generated client for ${accountType} ${userName}`)
             return { data, client }
         } catch (e) {
-            console.error(`Error generating client for ${accountType} ${userName}:`, e)
+            logError(userName, 'oauth', `Error generating client for ${accountType} ${userName}`, e)
             return { data: null, client: null }
         }
     }
@@ -446,8 +487,8 @@ async function run() {
     }
 
     async function setupBot(name: string): Promise<Bot | null> {
-        const { data, client } = await generateClient(AccountType.bot, name)
         try {
+            const { data, client } = await generateClient(AccountType.bot, name)
             if (data && client) {
                 const id = (await client.helix.users.getMe()).id
 
@@ -460,29 +501,36 @@ async function run() {
                     try {
                         await chatClient.join(channel.name)
                         joined[channel.name] = true
-                        console.log(`${name} joined #${channel.name}`)
+                        logInfo(name, 'bot', `${name} joined #${channel.name}`)
                     } catch (e) {
-                        console.error(e)
+                        logError(name, 'bot', e)
                     }
                 }
 
+                let fullResetCounter = 0
+
                 setInterval(async () => {
                     const validChannels = getChannelsForBot(name)
+
+                    const needsReset = fullResetCounter === 4 * 60
+                    fullResetCounter = needsReset ? 0 : fullResetCounter + 1
+
                     for (const channel in joined) {
-                        if (!validChannels.find(c => c.name === channel)) {
+                        if (needsReset || !validChannels.find(c => c.name === channel)) {
                             chatClient.part(channel)
                             delete joined[channel]
-                            console.log(`${name} left #${channel}`)
+                            logInfo(name, 'bot', `${name} left #${channel}`)
                         }
                     }
+
                     for (const channel of validChannels) {
                         if (!joined[channel.name]) {
                             try {
                                 await chatClient.join(channel.name)
                                 joined[channel.name] = true
-                                console.log(`${name} joined #${channel.name}`)
+                                logInfo(name, 'bot', `${name} joined #${channel.name}`)
                             } catch (e) {
-                                console.error(e)
+                                logError(name, 'bot', e)
                             }
                         }
                     }
@@ -579,14 +627,14 @@ async function run() {
                 }
             }
         } catch (e) {
-            console.error(`Error setting up bot ${name}:`, e)
+            logError(name, 'bot', `Error setting up bot ${name}`, e)
         }
         return null
     }
 
     async function setupChannel(name: string): Promise<Channel | null> {
-        const { data, client } = await generateClient(AccountType.channel, name)
         try {
+            const { data, client } = await generateClient(AccountType.channel, name)
             if (data && client) {
                 function getChannelViewData(msg: MessageMeta): ChannelBaseViewData {
                     return {
@@ -606,6 +654,7 @@ async function run() {
                 const authToken = generateID(32)
 
                 const id = (await client.helix.users.getMe()).id
+                const actualScopes = (await client.getTokenInfo()).scopes
 
                 const router = express.Router()
                 router.use(express.json())
@@ -613,7 +662,52 @@ async function run() {
                 const pubSubClient = new PubSubClient()
                 await pubSubClient.registerUserListener(client, id)
 
-                if (data.get(d => d.token.scope.includes('channel:read:redemptions'))) {
+                const processSubathonContribution = (t: SubathonTriggerConfig, amount: number) => {
+                    const hasRemainingTime = data.get(d => {
+                        const s = d.modules.subathon
+                        if (!s.state.active) return false
+                        const timeElapsedInCurrentPeriod = Date.now() - (s.state.startTime ?? Date.now())
+                        const gracePeriod = 5 * 1000
+                        const timeRemainingInCurrentPeriod = Math.max(0, (s.state.remainingTime + gracePeriod) - timeElapsedInCurrentPeriod)
+                        return timeRemainingInCurrentPeriod > 0
+                    })
+                    if (t && hasRemainingTime) {
+                        data.update(d => {
+                            const s = d.modules.subathon
+                            if (t.type === 'sub') s.state.subCount += amount
+                            if (t.type === 'bits') s.state.bitCount += amount
+                            if (t.type === 'reward') s.state.pointCount += amount
+
+                            const timeElapsedInCurrentPeriod = Date.now() - (s.state.startTime ?? Date.now())
+
+                            if (s.config.type === 'extend') {
+                                s.state.remainingTime += t.baseDuration + t.scaledDuration * amount
+                            } else if (s.config.type === 'reset') {
+                                s.state.remainingTime = s.config.duration
+                                s.state.elapsedTime += timeElapsedInCurrentPeriod
+                                s.state.startTime = Date.now()
+                            }
+                        })
+                        return true
+                    }
+                    return false
+                }
+
+                if (actualScopes.includes('channel:read:subscriptions') && actualScopes.includes('channel_subscriptions')) {
+                    pubSubClient.onSubscription(id, msg => {
+                        const subathonTriggers = data.get(d => d.modules.subathon.config.triggers.filter(t => t.type === 'sub'))
+                        for (const t of subathonTriggers) processSubathonContribution(t, 1)
+                    })
+                }
+
+                if (actualScopes.includes('bits:read')) {
+                    pubSubClient.onBits(id, msg => {
+                        const subathonTriggers = data.get(d => d.modules.subathon.config.triggers.filter(t => t.type === 'bits'))
+                        for (const t of subathonTriggers) processSubathonContribution(t, msg.bits)
+                    })
+                }
+
+                if (actualScopes.includes('channel:read:redemptions')) {
                     pubSubClient.onRedemption(id, msg => {
                         switch (msg.rewardName.trim()) {
                             case 'girldm headpats':
@@ -723,10 +817,13 @@ async function run() {
                                 redeemTime: Date.now(),
                             }))
                         }
+
+                        const subathonTriggers = data.get(d => d.modules.subathon.config.triggers.filter(t => t.type === 'reward' && (t.redeemID === msg.rewardId || t.redeemName.trim() === msg.rewardName.trim())))
+                        for (const t of subathonTriggers) processSubathonContribution(t, msg.rewardCost)
                     })
                 }
 
-                if (data.get(d => d.token.scope.includes('channel:moderate'))) {
+                if (actualScopes.includes('channel:moderate')) {
                     pubSubClient.onModAction(id, id, msg => {
                         if (msg.action === 'timeout') {
                             const username = msg.args[0]
@@ -1139,7 +1236,7 @@ async function run() {
                             })
                             return true
                         } catch (e) {
-                            console.error(e)
+                            logError(name, 'sounds/add-upload', e)
                             return false
                         }
                     },
@@ -1152,7 +1249,7 @@ async function run() {
                             })
                             return true
                         } catch (e) {
-                            console.error(e)
+                            logError(name, 'sounds/delete-upload', e)
                             return false
                         }
                     },
@@ -1365,6 +1462,121 @@ async function run() {
                         })
                         return true
                     },
+                    'subathon/set-active': args => {
+                        data.update(d => {
+                            if (args.active) {
+                                d.modules.subathon.state.active = true
+                                d.modules.subathon.state.running = false
+                                d.modules.subathon.state.startTime = null
+                                d.modules.subathon.state.remainingTime = d.modules.subathon.config.duration
+                                d.modules.subathon.state.subCount = 0
+                                d.modules.subathon.state.bitCount = 0
+                                d.modules.subathon.state.pointCount = 0
+                            } else {
+                                d.modules.subathon.state.active = false
+                                d.modules.subathon.state.running = false
+                                d.modules.subathon.state.startTime = null
+                                d.modules.subathon.state.remainingTime = 0
+                            }
+                        })
+                        return true
+                    },
+                    'subathon/start-timer': args => {
+                        data.update(d => {
+                            d.modules.subathon.state.running = true
+                            d.modules.subathon.state.startTime = Date.now()
+                        })
+                        return true
+                    },
+                    'subathon/stop-timer': args => {
+                        data.update(d => {
+                            const s = d.modules.subathon
+                            s.state.running = false
+                            if (s.state.startTime !== null) {
+                                const timeElapsedInCurrentPeriod = Date.now() - (s.state.startTime ?? Date.now())
+                                s.state.elapsedTime += timeElapsedInCurrentPeriod
+                                s.state.remainingTime = Math.max(0, s.state.remainingTime - timeElapsedInCurrentPeriod)
+                                s.state.startTime = null
+                            }
+                        })
+                        return true
+                    },
+                    'subathon/add-time': args => {
+                        data.update(d => {
+                            const s = d.modules.subathon
+                            s.state.remainingTime = Math.max(0, s.state.remainingTime) + args.duration
+                        })
+                        return true
+                    },
+                    'subathon/remove-time': args => {
+                        data.update(d => {
+                            const s = d.modules.subathon
+                            s.state.remainingTime = Math.max(0, s.state.remainingTime - args.duration)
+                        })
+                        return true
+                    },
+                    'subathon/set-time': args => {
+                        data.update(d => {
+                            const s = d.modules.subathon
+                            if (s.state.startTime !== null) {
+                                const timeElapsedInCurrentPeriod = Date.now() - (s.state.startTime ?? Date.now())
+                                s.state.elapsedTime += timeElapsedInCurrentPeriod
+                                s.state.startTime = Date.now()
+                            }
+                            s.state.remainingTime = args.duration
+                        })
+                        return true
+                    },
+                    'subathon/add-trigger': args => {
+                        data.update(d => {
+                            d.modules.subathon.config.triggers.push({
+                                id: generateID(),
+                                type: 'sub',
+                                baseDuration: 5 * 60 * 1000,
+                                scaledDuration: 0,
+                                redeemID: '',
+                                redeemName: '',
+                            })
+                        })
+                        return true
+                    },
+                    'subathon/edit-trigger': args => {
+                        let updated = false
+                        data.update(d => {
+                            d.modules.subathon.config.triggers = d.modules.subathon.config.triggers.map(t => {
+                                if (t.id === args.id) {
+                                    updated = true
+                                    return {
+                                        ...t,
+                                        ...args,
+                                    }
+                                } else {
+                                    return t
+                                }
+                            })
+                        })
+                        return updated
+                    },
+                    'subathon/delete-trigger': args => {
+                        data.update(d => {
+                            d.modules.subathon.config.triggers = d.modules.subathon.config.triggers.filter(t => t.id !== args.id)
+                        })
+                        return true
+                    },
+                    'subathon/mock': args => {
+                        const trigger = data.get(d => d.modules.subathon.config.triggers.find(t => t.id === args.triggerID))
+                        if (trigger) return processSubathonContribution(trigger, trigger.type === 'bits' || trigger.type === 'reward' ? 10 : 1)
+                        return false
+                    },
+                    'subathon/set-config': args => {
+                        data.update(d => {
+                            d.modules.subathon.config = {
+                                ...d.modules.subathon.config,
+                                ...args,
+                            }
+                        })
+                        return true
+                    },
                     'channelinfo/set-config': args => {
                         data.update(d => {
                             d.modules.channelInfo.config = {
@@ -1383,7 +1595,7 @@ async function run() {
                             const base64 = Buffer.from(buffer).toString('base64')
                             return base64
                         } catch (e) {
-                            console.error(e)
+                            logError(name, 'tts/speak', e)
                             return ''
                         }
                     },
@@ -1401,6 +1613,13 @@ async function run() {
                                 ...d.modules.debug.config,
                                 ...args,
                             }
+                        })
+                        return true
+                    },
+                    'debug/send-logs': args => {
+                        for (const msg of args.logs) logMessage(msg)
+                        data.update(d => {
+                            d.modules.debug.state.logs = [...d.modules.debug.state.logs, ...args.logs].slice(-10)
                         })
                         return true
                     },
@@ -1451,6 +1670,7 @@ async function run() {
                         channels: getChannelsForUser(msg.username).map(c => c.name),
                         botAccess: data.get(d => d.bots),
                         userAccess: data.get(d => d.users),
+                        tokenScopes: actualScopes,
                         panels: MODULE_TYPES,
                         changelog,
                         ...args,
@@ -1542,14 +1762,14 @@ async function run() {
                 }
             }
         } catch (e) {
-            console.error(`Error setting up channel ${name}:`, e)
+            logError(name, 'channel', `Error setting up channel ${name}`, e)
         }
         return null
     }
 
     async function setupUser(name: string): Promise<User | null> {
-        const { data, client } = await generateClient(AccountType.user, name)
         try {
+            const { data, client } = await generateClient(AccountType.user, name)
             if (data && client) {
                 const id = (await client.helix.users.getMe()).id
                 return users[name] = {
@@ -1560,7 +1780,7 @@ async function run() {
                 }
             }
         } catch (e) {
-            console.error(`Error setting up user ${name}:`, e)
+            logError(name, 'user', `Error setting up user ${name}`)
         }
         return null
     }
@@ -1730,6 +1950,10 @@ async function run() {
             }
             return false
         },
+        'debug/send-logs': (args) => {
+            for (const msg of args.logs) logMessage(msg)
+            return true
+        },
     }
 
     const views: GlobalViews = {
@@ -1796,21 +2020,13 @@ async function run() {
                 }
             }
 
-            let streams: LandingAppViewData['streams'] = []
-
-            try {
-                const allStreams = await Promise.all(Object.values(channels).map(c => c.client.helix.streams.getStreamByUserId(c.id)))
-                streams = uniqueItems(allStreams.filter(filterFalsy).map(s => ({ channel: s.userDisplayName, game: s.gameName, viewCount: s.viewers })), c => c.channel)
-            } catch (e) {
-                console.error(e)
-            }
-
             return {
                 ...getGlobalViewData(msg),
                 ...args,
                 username: msg.username,
                 userChannelAccess: user ? user.data.get(d => d.channels) : null,
                 botChannelAccess: bot ? bot.data.get(d => d.channels) : null,
+                channels: user ? Object.keys(user.data.get(d => d.channels)).filter(c => !!channels[c]) : [],
                 changelog,
                 streams,
             }
@@ -1885,7 +2101,7 @@ async function run() {
 
     await Promise.all(promises)
 
-    app.listen(60004, () => console.log('Web server running!'))
+    app.listen(60004, () => logInfo('global', 'server', 'Web server running!'))
 }
 
 run()

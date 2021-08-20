@@ -1,4 +1,4 @@
-import { Icon } from 'shared'
+import { Icon, logError } from 'shared'
 import { getJSON } from './utils'
 
 type GlobalResponse = {
@@ -37,7 +37,7 @@ interface ErrorResponse {
 export async function getBTTVEmotes(channelID: string): Promise<Icon[]> {
     const result = await getJSON<ChannelResponse | ErrorResponse>(`https://api.betterttv.net/3/cached/users/twitch/${channelID}`)
     if (!result) {
-        console.error(`Failed to fetch BTTV emotes for channel ${channelID}`)
+        logError(channelID, 'bttv', `Failed to fetch BTTV emotes for channel ${channelID}`)
         return []
     }
     if ('message' in result) return []
@@ -47,7 +47,7 @@ export async function getBTTVEmotes(channelID: string): Promise<Icon[]> {
 export async function getGlobalBTTVEmotes(): Promise<Icon[]> {
     const result = await getJSON<GlobalResponse>(`https://api.betterttv.net/3/cached/emotes/global`)
     if (!result) {
-        console.error('Failed to fetch global BTTV emotes')
+        logError('global', 'bttv', `Failed to fetch global BTTV emotes`)
         return []
     }
     return result.map(e => ({ type: 'bttv', id: e.id, name: e.code }))

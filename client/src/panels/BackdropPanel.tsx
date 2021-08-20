@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { ControlPanelAppViewData, ControlPanelPage, ModuleDataType, PanelViewDataProps } from 'shared'
+import { ControlPanelAppViewData, ControlPanelPage, logError, ModuleDataType, PanelViewDataProps } from 'shared'
 import { PanelField } from '../controls/PanelField'
 import { channelAction } from '../utils'
 import { Button } from '../controls/Button'
@@ -11,7 +11,7 @@ export function BackdropPanel(props: ControlPanelAppViewData & ModuleDataType<'b
         try {
             await channelAction('backdrop/swap-camera', { name })
         } catch (e) {
-            console.error(e)
+            logError(CHANNEL_NAME, 'backdrop', e)
         }
     }
 
@@ -20,7 +20,7 @@ export function BackdropPanel(props: ControlPanelAppViewData & ModuleDataType<'b
             setCannonText('')
             await channelAction('backdrop/fire-cannon', { text: cannonText })
         } catch (e) {
-            console.error(e)
+            logError(CHANNEL_NAME, 'backdrop', e)
         }
     }
 

@@ -1,4 +1,4 @@
-import { UserEvent, RedeemMode, ModeQueueModeConfig, safeParseFloat } from 'shared'
+import { UserEvent, RedeemMode, ModeQueueModeConfig, safeParseFloat, logError } from 'shared'
 import * as React from 'react'
 import { PanelField } from './PanelField'
 import { getNumberValue, channelAction } from '../utils'
@@ -8,7 +8,7 @@ async function startMode(id: string, minutes: number) {
     try {
         await channelAction('modequeue/start', { id, duration: minutes * 60 * 1000 })
     } catch (e) {
-        console.error(e)
+        logError(CHANNEL_NAME, 'mode-queue', e)
     }
 }
 
@@ -20,7 +20,7 @@ async function stopMode(id: string) {
             alarm.currentTime = 0
         }
     } catch (e) {
-        console.error(e)
+        logError(CHANNEL_NAME, 'mode-queue', e)
     }
 }
 
@@ -33,7 +33,7 @@ async function clearMode(id: string) {
         }
         await channelAction('modequeue/clear', { id })
     } catch (e) {
-        console.error(e)
+        logError(CHANNEL_NAME, 'mode-queue', e)
     }
 }
 
@@ -44,7 +44,7 @@ function isAlarmRunning(): boolean {
             return !alarm.paused
         }
     } catch (e) {
-        console.error(e)
+        logError(CHANNEL_NAME, 'modequeue', e)
     }
     return false
 }

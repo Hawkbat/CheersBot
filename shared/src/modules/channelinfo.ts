@@ -19,4 +19,5 @@ export const ChannelInfoModule: Module<ChannelInfoStateData, ChannelInfoConfigDa
     description: 'Displays information about the current user and channel. Don\'t disable unless you know what you\'re doing!',
     version: ModuleVersion.released,
     getData: (modules: ModuleMap) => modules.channelInfo,
+    scopes: [],
 }

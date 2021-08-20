@@ -50,6 +50,7 @@ export interface User extends Account<UserData> {
 export interface TwitchToken {
     accessToken: string
     refreshToken: string
+    expiration?: number
     scope: string[]
 }
 

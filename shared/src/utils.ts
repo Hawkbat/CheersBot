@@ -1,3 +1,4 @@
+import { logError } from './logging'
 
 const DATE_FORMAT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/
 const ID_CHARS = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-'
@@ -19,7 +20,7 @@ export function parseJSON<T>(json: string): T | null {
     try {
         return JSON.parse(json, reviver)
     } catch (e) {
-        console.error(e)
+        logError('unknown', 'parseJSON', `Failed to parse JSON`, e, json)
         return null
     }
 }

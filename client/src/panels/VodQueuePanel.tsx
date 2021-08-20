@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { ControlPanelAppViewData, ControlPanelPage, ModuleDataType, PanelViewDataProps, VodQueueGame } from 'shared'
+import { ControlPanelAppViewData, ControlPanelPage, logError, ModuleDataType, PanelViewDataProps, VodQueueGame } from 'shared'
 import { PanelField } from '../controls/PanelField'
 import { channelAction } from '../utils'
 import { Dropdown } from '../controls/Dropdown'
@@ -15,7 +15,7 @@ export function VodQueuePanel(props: ControlPanelAppViewData & ModuleDataType<'v
             await channelAction('vodqueue/mock', {})
             setTested(true)
         } catch (e) {
-            console.error(e)
+            logError(CHANNEL_NAME, 'vodqueue', e)
         }
     }
 

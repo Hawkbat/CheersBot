@@ -1,15 +1,12 @@
-import { OverlayAppViewData, Icon, Counter, CounterVisibility, RedeemModeDisplay } from 'shared'
+import { OverlayAppViewData, Icon, Counter, CounterVisibility, RedeemModeDisplay, logError, peekLogBuffer, popLogBuffer } from 'shared'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
 import { Bubble } from '../controls/Bubble'
-import { channelAction, channelView, getChannelCSS } from '../utils'
+import { channelAction, channelView, getChannelCSS, useRepeatingEffect } from '../utils'
 import { Sound } from '../controls/Sound'
 import { CSSTransition, TransitionGroup } from 'react-transition-group'
 import { useVTubeStudioConnection, useVTubeStudioProcessing } from '../vtstudio'
 import { VTubeStudioBubble } from 'src/controls/VTubeStudioBubble'
-
-declare const REFRESH_TIME: number
-declare const CHANNEL_NAME: string
 
 let cachedData: OverlayAppViewData | undefined
 let pendingViewPromise: Promise<OverlayAppViewData | undefined> | undefined
@@ -27,7 +24,7 @@ export async function refresh(reloadData: boolean) {
             ReactDOM.render(<OverlayApp {...data} />, document.getElementById('app'))
         }
     } catch (e) {
-        console.error(e)
+        logError(CHANNEL_NAME, 'overlay', 'Error refreshing overlay', e)
     }
     debounce = false
 }
@@ -43,35 +40,54 @@ export function OverlayApp(props: OverlayAppViewData) {
     const counters = props.modules.counters
     const sounds = props.modules.sounds
     const vTubeStudio = props.modules.vtubeStudio
+    const subathon = props.modules.subathon
     const debug = props.modules.debug
 
     const displayModes: RedeemModeDisplay[] = modeQueue.state.modes.map(mode => {
-        const config = modeQueue.config.modes.find(c => c.id === mode.configID)!
+        const config = modeQueue.config.modes.find(c => c.id === mode.configID)
         const inModePeriod = mode.startTime && mode.duration && (Date.now() - mode.startTime) < mode.duration
         let msg = ''
         if (!mode.startTime) {
-            msg = config.startText
+            msg = config?.startText ?? ''
         } else if (inModePeriod && mode.startTime && mode.duration) {
             const minutesLeft = Math.ceil((mode.duration - (Date.now() - mode.startTime)) / (60 * 1000))
             const minuteText = minutesLeft === 1 ? 'minute' : 'minutes'
             const secondsLeft = minutesLeft > 1 ? minutesLeft : Math.ceil((mode.duration - (Date.now() - mode.startTime)) / 1000)
             const secondText = minutesLeft > 1 ? minuteText : secondsLeft === 1 ? 'second' : 'seconds'
-            msg = config.runningText
+            msg = (config?.runningText ?? '')
                 .replace('[minutesLeft]', minutesLeft.toString())
                 .replace('[minutes]', minuteText)
                 .replace('[secondsLeft]', secondsLeft.toString())
                 .replace('[seconds]', secondText)
         } else {
-            msg = config.endText
+            msg = config?.endText ?? ''
         }
-        let icon: Icon = config.emote ?? { type: 'logo', id: 'hawkbar', name: 'Hawkbar' }
+        let icon: Icon = config?.emote ?? { type: 'logo', id: 'hawkbar', name: 'Hawkbar' }
         return {
             ...mode,
             icon,
             msg,
-            showName: config.showUsername,
+            showName: config?.showUsername ?? false,
         }
     })
+
+    const getSubathonTimer = () => {
+        const timeInCurrentPeriod = Date.now() - (subathon.state.startTime ?? Date.now())
+        const actualTimeRemaining = Math.max(0, subathon.state.remainingTime - timeInCurrentPeriod)
+        const hours = Math.floor(actualTimeRemaining / (60 * 60 * 1000))
+        const minutes = Math.floor((actualTimeRemaining - hours * 60 * 60 * 1000) / (60 * 1000))
+        const seconds = (actualTimeRemaining - hours * 60 * 60 * 1000 - minutes * 60 * 1000) / 1000
+        return `${hours > 0 ? `${hours.toString().padStart(2, '0')}:` : ''}${minutes.toString().padStart(hours > 0 ? 2 : 1, '0')}:${Math.floor(seconds).toString().padStart(2, '0')}`
+    }
+
+    const getSubathonMsg = () => {
+        const timeInCurrentPeriod = Date.now() - (subathon.state.startTime ?? Date.now())
+        const actualTimeRemaining = Math.max(0, subathon.state.remainingTime - timeInCurrentPeriod)
+        const totalTimePassed = subathon.state.elapsedTime + timeInCurrentPeriod
+        if (actualTimeRemaining <= 0) return subathon.config.endText
+        if (totalTimePassed > 0) return subathon.config.runningText
+        return subathon.config.startText
+    }
 
     const alignItems = props.modules.channelInfo.config.overlayCorner?.includes('right') ? 'flex-end' : 'flex-start'
     const justifyContent = props.modules.channelInfo.config.overlayCorner?.includes('bottom') ? 'flex-end' : 'flex-start'
@@ -86,23 +102,13 @@ export function OverlayApp(props: OverlayAppViewData) {
         unmountOnExit: true,
     }
 
-    const [logs, setLogs] = React.useState<{ time: number, msg: string }[]>([])
-
     React.useEffect(() => {
-        window.addEventListener('error', e => setLogs(logs => [...logs.slice(-5), { time: Date.now(), msg: e.message }]))
-        {
-            const oldLog = console.log
-            const oldError = console.error
-                ; (console as any).log = (...args: any[]) => {
-                    setLogs(logs => [...logs.slice(-5), { time: Date.now(), msg: args.join(' ') }])
-                    oldLog(...args)
-                }
-                ; (console as any).error = (...args: any[]) => {
-                    setLogs(logs => [...logs.slice(-5), { time: Date.now(), msg: args.join(' ') }])
-                    oldError(...args)
-                }
-        }
+        window.addEventListener('error', e => logError(CHANNEL_NAME, 'overlay', e.message, e.filename, e.lineno, e.colno, e.error))
     }, [])
+
+    useRepeatingEffect(React.useCallback(async () => {
+        await channelAction('debug/send-logs', { logs: popLogBuffer() })
+    }, []), 60 * 1000, false)
 
     const vts = useVTubeStudioConnection({ ...vTubeStudio, type: 'overlay' })
     useVTubeStudioProcessing({ ...vTubeStudio, ...vts, enabled: vTubeStudio.config.useOverlay })
@@ -195,8 +201,11 @@ export function OverlayApp(props: OverlayAppViewData) {
             {vTubeStudio.config.enabled && vTubeStudio.config.debugOverlay ? <CSSTransition key='vtsdebug' {...transitionProps}>
                 <VTubeStudioBubble connected={vts.connected} apiError={String(vts.apiError ?? '')} readyState={vts.client.ws.readyState} />
             </CSSTransition> : null}
-            {debug.config.enabled && debug.config.overlayLogs ? logs.map(log => <CSSTransition key={log.time + log.msg} {...transitionProps}>
-                <Bubble icon={defaultEmote} msg={log.msg} />
+            {subathon.config.enabled && subathon.state.active ? <CSSTransition key='subathon' {...transitionProps}>
+                <Bubble icon={subathon.config.icon ?? defaultEmote} username={getSubathonTimer()} msg={getSubathonMsg()} />
+            </CSSTransition> : null}
+            {debug.config.enabled && debug.config.overlayLogs ? peekLogBuffer().slice(-5).map(log => <CSSTransition key={log.join(' ')} {...transitionProps}>
+                <Bubble icon={defaultEmote} msg={log.join(' ')} />
             </CSSTransition>) : null}
         </TransitionGroup>
     </div>

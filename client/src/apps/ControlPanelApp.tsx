@@ -1,15 +1,13 @@
-import { ControlPanelAppViewData, PanelViewData, ControlPanelPage, getModule, AccountType, ModuleVersion } from 'shared'
+import { ControlPanelAppViewData, PanelViewData, ControlPanelPage, getModule, AccountType, ModuleVersion, logError, popLogBuffer } from 'shared'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd'
-import { channelView, classes, localRetrieveJSON, localStoreJSON, getChannelCSS } from '../utils'
+import { channelView, classes, localRetrieveJSON, localStoreJSON, getChannelCSS, channelAction, useRepeatingEffect } from '../utils'
 import { Panel } from '../controls/Panel'
 import { TabSet } from '../controls/TabSet'
 import { AccessPanel } from '../panels/AccessPanel'
 import { Changelog } from '../controls/Changelog'
 import { InfoPopupProvider } from '../controls/InfoPopup'
-
-declare const REFRESH_TIME: number
 
 let lastPingTime = Date.now()
 let debounce = false
@@ -44,7 +42,7 @@ export async function refresh(reloadData: boolean) {
             lastPingTime = pingTime
         }
     } catch (e) {
-        console.error(e)
+        logError(CHANNEL_NAME, 'control-panel', 'Error refreshing control panel', e)
     }
     debounce = false
 }
@@ -78,6 +76,14 @@ export function ControlPanelApp(props: ControlPanelAppViewData) {
         }).map(p => savedPanels.find(o => o.type === p) ?? { type: p, open: true })
         setPanels(sortedPanels)
     }, [page, props.panels])
+
+    React.useEffect(() => {
+        window.addEventListener('error', e => logError(CHANNEL_NAME, 'control-panel', e.message, e.filename, e.lineno, e.colno, e.error))
+    }, [])
+
+    useRepeatingEffect(React.useCallback(async () => {
+        await channelAction('debug/send-logs', { logs: popLogBuffer() })
+    }, []), 60 * 1000, false)
 
     const visiblePanels = panels.filter(p => {
         const module = getModule(p.type)

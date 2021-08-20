@@ -15,9 +15,11 @@ import { PanelGroup } from './PanelGroup'
 import { PanelField } from './PanelField'
 import { Toggle } from './Toggle'
 import { Info } from './Info'
+import { Warning } from './Warning'
 import { SoundsPanel } from '../panels/SoundsPanel'
 import { VTubeStudioPanel } from '../panels/VTubeStudioPanel'
-import { Warning } from './Warning'
+import { SubathonPanel } from '../panels/SubathonPanel'
+import { Alert } from './Alert'
 
 export function Panel(props: { page: ControlPanelPage, panel: PanelViewData, data: ControlPanelAppViewData, onToggle: (open: boolean) => void, onToggleItem: (id: string, open: boolean) => void }) {
     const module = getModule(props.panel.type)
@@ -28,6 +30,7 @@ export function Panel(props: { page: ControlPanelPage, panel: PanelViewData, dat
                 <PanelField><span>{module.version ? <><Info text={module.version} tooltip={VERSION_TOOLTIPS[module.version]} />&nbsp;</> : <></>}{module.description}</span></PanelField>
                 <hr />
                 <PanelField label="Enabled"><Toggle value={module.getData(props.data.modules).config.enabled} onToggle={async v => await channelAction('config/enable-module', { type: props.panel.type, enabled: v })} /></PanelField>
+                {module.scopes.length && !module.scopes.every(s => props.data.tokenScopes.includes(s)) ? <Alert type="warn"><span>Your account is missing permissions needed by this module. Please <a href="/authorize/channel/">reconnect your Twitch channel.</a>.</span></Alert> : null}
             </>
             : <></>}
         {(() => {
@@ -53,6 +56,8 @@ export function Panel(props: { page: ControlPanelPage, panel: PanelViewData, dat
                     return <SoundsPanel {...panelProps} {...props.data} {...getModule(props.panel.type).getData(props.data.modules)} />
                 case 'vtubeStudio':
                     return <VTubeStudioPanel {...panelProps} {...props.data} {...getModule(props.panel.type).getData(props.data.modules)} />
+                case 'subathon':
+                    return <SubathonPanel {...panelProps} {...props.data} {...getModule(props.panel.type).getData(props.data.modules)} />
                 case 'channelInfo':
                     return <ChannelInfoPanel {...panelProps} {...props.data} {...getModule(props.panel.type).getData(props.data.modules)} />
                 case 'debug':

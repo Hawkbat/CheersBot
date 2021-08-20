@@ -96,4 +96,5 @@ export const VTubeStudioModule: Module<VTubeStudioStateData, VTubeStudioConfigDa
     description: 'Allows channel point redemptions to trigger effects in VTube Studio.',
     version: ModuleVersion.beta,
     getData: (modules: ModuleMap) => modules.vtubeStudio,
+    scopes: ['channel:read:redemptions'],
 }

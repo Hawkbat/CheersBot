@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { VTubeStudioConfigData, VTubeStudioStateData, randomItem, randomWeightedItem } from 'shared'
+import { VTubeStudioConfigData, VTubeStudioStateData, randomItem, randomWeightedItem, logError } from 'shared'
 import * as vts from 'vtubestudio'
 import { BufferedWebsocket, channelAction, runUntil, useDebounce, useRepeatingEffect, wait, waitUntil } from './utils'
 import iconUri from './vts-plugin-icon.png'
@@ -44,7 +44,7 @@ export function useVTubeStudioConnection(props: { type: 'control-panel' | 'overl
         try {
             await cb()
         } catch (e) {
-            console.error(e)
+            logError(CHANNEL_NAME, 'vts', 'Error excuting VTube Studio command', e)
             setApiError(e)
         }
     }, [])
@@ -95,27 +95,26 @@ export function useVTubeStudioProcessing(props: { enabled: boolean, connected: b
                             })
                         }
 
-                        await Promise.all([
+                        if (config.after === 'revert') {
                             (async () => {
-                                await wait(Math.max(config.duration * 1000, VTS_MODEL_SWAP_COOLDOWN))
-                                await channelAction('vtstudio/complete-model-swap', { id: swap.id })
-                            })(),
-                            (async () => {
-                                if (config.after === 'revert') {
-                                    await wait(Math.max((config.revertDelay ?? config.duration) * 1000, VTS_MODEL_SWAP_COOLDOWN))
-                                    await models.find(m => m.id === currentModel?.id || m.name === currentModel?.name)?.load()
-                                    if (position) {
-                                        await waitUntil(async () => (await props.client.plugin.currentModel())?.id === currentModel?.id)
-                                        await props.client.plugin.apiClient.moveModel({
-                                            timeInSeconds: 0.5,
-                                            valuesAreRelativeToModel: false,
-                                            ...position,
-                                        })
-                                    }
-                                    await wait(VTS_MODEL_SWAP_COOLDOWN)
+                                await wait(Math.max((config.revertDelay ?? config.duration) * 1000, VTS_MODEL_SWAP_COOLDOWN) + 100)
+                                await models.find(m => m.id === currentModel?.id || m.name === currentModel?.name)?.load()
+                                if (position) {
+                                    await waitUntil(async () => (await props.client.plugin.currentModel())?.id === currentModel?.id)
+                                    await props.client.plugin.apiClient.moveModel({
+                                        timeInSeconds: 0.5,
+                                        valuesAreRelativeToModel: false,
+                                        ...position,
+                                    })
                                 }
-                            })(),
-                        ])
+                            })()
+                        }
+
+                        await (async () => {
+                            await wait(Math.max(config.duration * 1000, VTS_MODEL_SWAP_COOLDOWN))
+                            await channelAction('vtstudio/complete-model-swap', { id: swap.id })
+                            await wait(VTS_MODEL_SWAP_COOLDOWN)
+                        })()
                         redeemedSwaps.current = { ...redeemedSwaps.current, [swap.id]: true }
                     }
                 }
@@ -144,19 +143,17 @@ export function useVTubeStudioProcessing(props: { enabled: boolean, connected: b
                             else if (config.type === 'all') selectedHotkeys = validHotkeys
                         }
                         if (selectedHotkeys && selectedHotkeys.length) {
+                            if (config.after === 'retrigger') {
+                                (async () => {
+                                    await wait((config.retriggerDelay ?? config.duration) * 1000 + 100)
+                                    await Promise.all(selectedHotkeys.map(h => h.trigger()))
+                                })()
+                            }
                             await Promise.all(selectedHotkeys.map(h => h.trigger()))
-                            await Promise.all([
-                                (async () => {
-                                    await wait(config.duration * 1000)
-                                    await channelAction('vtstudio/complete-hotkey-trigger', { id: trigger.id })
-                                })(),
-                                (async () => {
-                                    if (config.after === 'retrigger') {
-                                        await wait((config.retriggerDelay ?? config.duration) * 1000)
-                                        await Promise.all(selectedHotkeys.map(h => h.trigger()))
-                                    }
-                                })(),
-                            ])
+                            await (async () => {
+                                await wait(config.duration * 1000)
+                                await channelAction('vtstudio/complete-hotkey-trigger', { id: trigger.id })
+                            })()
                             redeemedTriggers.current = { ...redeemedTriggers.current, [trigger.id]: true }
                         }
                     }
@@ -180,6 +177,16 @@ export function useVTubeStudioProcessing(props: { enabled: boolean, connected: b
                         } else if (config.type === 'match') {
                             await Promise.all(config.matches.map(m => currentModel.colorTint(m.color, { nameExact: m.names, tagExact: m.tags })))
                         }
+                        if (config.after === 'reset') {
+                            (async () => {
+                                await wait((config.resetDelay ?? config.duration) * 1000 + 100)
+                                if (config.type === 'all' || config.type === 'rainbow') {
+                                    await currentModel.colorTint({ r: 255, g: 255, b: 255 })
+                                } else if (config.type === 'match') {
+                                    await Promise.all(config.matches.map(m => currentModel.colorTint({ r: 255, g: 255, b: 255 }, { nameExact: m.names, tagExact: m.tags })))
+                                }
+                            })()
+                        }
                         await Promise.all([
                             (async () => {
                                 if (config.type === 'rainbow') {
@@ -196,12 +203,6 @@ export function useVTubeStudioProcessing(props: { enabled: boolean, connected: b
                             (async () => {
                                 await wait(config.duration * 1000)
                                 await channelAction('vtstudio/complete-color-tint', { id: tint.id })
-                            })(),
-                            (async () => {
-                                if (config.after === 'reset') {
-                                    await wait((config.resetDelay ?? config.duration) * 1000)
-                                    await currentModel.colorTint({ r: 255, g: 255, b: 255 })
-                                }
                             })(),
                         ])
                         redeemedTints.current = { ...redeemedTints.current, [tint.id]: true }

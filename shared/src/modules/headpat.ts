@@ -15,4 +15,5 @@ export const HeadpatsModule: Module<HeadpatStateData, HeadpatConfigData> = {
     description: 'Keeps an overlay counter of how many times a certain channel point reward is redeemed.',
     version: ModuleVersion.girldm,
     getData: (modules: ModuleMap) => modules.headpats,
+    scopes: ['channel:read:redemptions'],
 }

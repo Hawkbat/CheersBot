@@ -1,6 +1,7 @@
 import { AccessMap, IconMap, TwitchReward } from './data'
 import { Icon, AccountType, Access, Changelog } from './data'
-import { ModuleType, ModeQueueModeConfig, VodQueueConfigData, CustomMessage, CounterConfig, Counter, ModuleDataType, SoundConfig, ChannelInfoConfigData, ModelSwapConfig, TriggerHotkeyConfig, VTubeStudioConfigData, WinLossConfigData, ColorTintConfig, VTubeStudioStateData, DebugConfigData } from './modules'
+import { LogMessage } from './logging'
+import { ModuleType, ModeQueueModeConfig, VodQueueConfigData, CustomMessage, CounterConfig, Counter, ModuleDataType, SoundConfig, ChannelInfoConfigData, ModelSwapConfig, TriggerHotkeyConfig, VTubeStudioConfigData, WinLossConfigData, ColorTintConfig, VTubeStudioStateData, DebugConfigData, SubathonConfigData, SubathonTriggerConfig } from './modules'
 
 export interface BaseViewData {
     meta: MessageMeta
@@ -52,6 +53,7 @@ export interface ControlPanelAppViewData extends ChannelBaseViewData {
     modules: { [key in ModuleType]: ModuleDataType<key> }
     userAccess: AccessMap
     botAccess: AccessMap
+    tokenScopes: string[]
     channels: string[]
     panels: ModuleType[]
     changelog: Changelog
@@ -65,6 +67,7 @@ export interface LandingAppViewData extends GlobalBaseViewData {
     username: string
     userChannelAccess: AccessMap | null
     botChannelAccess: AccessMap | null
+    channels: string[]
     changelog: Changelog
     streams: { channel: string, game: string, viewCount: number }[]
 }
@@ -149,11 +152,23 @@ export interface ChannelActions {
     'vtstudio/mock-color-tint': (args: { configID: string }, msg: MessageMeta) => boolean
     'vtstudio/edit-config': (args: Partial<VTubeStudioConfigData>, msg: MessageMeta) => boolean
     'vtstudio/set-status': (args: VTubeStudioStateData['status'], msg: MessageMeta) => boolean
+    'subathon/set-active': (args: { active: boolean }, msg: MessageMeta) => boolean
+    'subathon/start-timer': (args: {}, msg: MessageMeta) => boolean
+    'subathon/stop-timer': (args: {}, msg: MessageMeta) => boolean
+    'subathon/add-time': (args: { duration: number }, msg: MessageMeta) => boolean
+    'subathon/remove-time': (args: { duration: number }, msg: MessageMeta) => boolean
+    'subathon/set-time': (args: { duration: number }, msg: MessageMeta) => boolean
+    'subathon/add-trigger': (args: Partial<SubathonTriggerConfig>, msg: MessageMeta) => boolean
+    'subathon/edit-trigger': (args: { id: string } & Partial<SubathonTriggerConfig>, msg: MessageMeta) => boolean
+    'subathon/delete-trigger': (args: { id: string }, msg: MessageMeta) => boolean
+    'subathon/set-config': (args: Partial<SubathonConfigData>, msg: MessageMeta) => boolean
+    'subathon/mock': (args: { triggerID: string }, msg: MessageMeta) => boolean
     'channelinfo/set-config': (args: Partial<ChannelInfoConfigData>, msg: MessageMeta) => boolean
     'channelinfo/get-icons': (args: { forceReload: boolean }, msg: MessageMeta) => Promise<IconMap>
     'tts/speak': (args: { voice: string, text: string, style: string, pitch: number }, msg: MessageMeta) => Promise<string>
     'twitch/rewards': (args: {}, msg: MessageMeta) => Promise<TwitchReward[]>
     'debug/reload': (args: {}, msg: MessageMeta) => boolean
+    'debug/send-logs': (args: { logs: LogMessage[] }, msg: MessageMeta) => boolean
     'debug/set-config': (args: Partial<DebugConfigData>, msg: MessageMeta) => boolean
     'config/enable-module': (args: { type: ModuleType, enabled: boolean }, msg: MessageMeta) => boolean
     'access/set': (args: { userType: AccountType, targetType: AccountType, id: string, access: Access }, msg: MessageMeta) => boolean
@@ -179,6 +194,7 @@ export interface ChannelClientMessages {
 export interface GlobalActions {
     'access/request': (args: { channel: string }, msg: MessageMeta) => boolean
     'access/set': (args: { userType: AccountType, targetType: AccountType, id: string, access: Access }, msg: MessageMeta) => boolean
+    'debug/send-logs': (args: { logs: LogMessage[] }, msg: MessageMeta) => boolean
 }
 
 export interface GlobalViews {

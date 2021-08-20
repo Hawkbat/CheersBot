@@ -1,4 +1,4 @@
-import { AccountType, Access, AccessMap } from 'shared'
+import { AccountType, Access, AccessMap, logError } from 'shared'
 import * as React from 'react'
 import { channelAction, globalAction } from '../utils'
 import { PanelGroup } from '../controls/PanelGroup'
@@ -13,7 +13,7 @@ async function setAccess(userType: AccountType, targetType: AccountType, id: str
         else
             await channelAction('access/set', { userType, targetType, id, access })
     } catch (e) {
-        console.error(e)
+        logError(CHANNEL_NAME ? CHANNEL_NAME : 'global', 'access', e)
     }
 }
 

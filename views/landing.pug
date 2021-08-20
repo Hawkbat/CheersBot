@@ -7,6 +7,7 @@ append head
     script(src="/react.development.js")
     script(src="/react-dom.development.js")
     script.
+        var CHANNEL_NAME = "global";
         var REFRESH_TIME = #{refreshTime};
     script(src=`/landing.js?refresh=${refreshTime}`)
 

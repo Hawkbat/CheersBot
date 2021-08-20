@@ -36,4 +36,5 @@ export const SoundsModule: Module<SoundsStateData, SoundsConfigData> = {
     description: 'Plays sounds through the overlay when certain channel point rewards are redeemed.',
     version: ModuleVersion.beta,
     getData: (modules: ModuleMap) => modules.sounds,
+    scopes: ['channel:read:redemptions'],
 }

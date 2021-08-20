@@ -32,4 +32,5 @@ export const VodQueueModule: Module<VodQueueStateData, VodQueueConfigData> = {
     description: 'Allows channels to track VOD review requests and automatically invalidate them when new patches come out. Games currently supported: Any (Generic), Overwatch',
     version: ModuleVersion.beta,
     getData: (modules: ModuleMap) => modules.vodQueue,
+    scopes: ['channel:read:redemptions'],
 }

@@ -148,11 +148,11 @@ export interface Timer {
 }
 
 export interface EventQueueStateData extends ModuleStateData {
-    
+
 }
 
 export interface EventQueueConfigData extends ModuleConfigData {
-    
+
 }
 
 export const EventQueueModule: Module<EventQueueStateData, EventQueueConfigData> = {
@@ -160,4 +160,5 @@ export const EventQueueModule: Module<EventQueueStateData, EventQueueConfigData>
     description: 'Generic notification/alert system for various Twitch events, including channel point redemptions.',
     version: ModuleVersion.preAlpha,
     getData: (modules: ModuleMap) => modules.eventQueue,
+    scopes: ['channel:read:subscriptions', 'bits:read', 'channel:read:redemptions'],
 }

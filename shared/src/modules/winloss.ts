@@ -23,4 +23,5 @@ export const WinLossModule: Module<WinLossStateData, WinLossConfigData> = {
     description: 'Allows channels to track game wins, losses, and deaths for a stream and display them in the overlay.',
     version: ModuleVersion.preRelease,
     getData: (modules: ModuleMap) => modules.winLoss,
+    scopes: [],
 }

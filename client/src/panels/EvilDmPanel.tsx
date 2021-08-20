@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { ControlPanelAppViewData, ControlPanelPage, ModuleDataType, PanelViewDataProps } from 'shared'
+import { ControlPanelAppViewData, ControlPanelPage, logError, ModuleDataType, PanelViewDataProps } from 'shared'
 import { PanelField } from '../controls/PanelField'
 import { getNumberValue, setNumberValue, channelAction } from '../utils'
 import { Button } from '../controls/Button'
@@ -10,7 +10,7 @@ async function clearEvil() {
         const count = getNumberValue('evil-count')
         await channelAction('evildm/adjust', { delta: -count })
     } catch (e) {
-        console.error(e)
+        logError(CHANNEL_NAME, 'evildm', e)
     }
 }
 
@@ -22,7 +22,7 @@ async function adjustEvil() {
             setNumberValue('evil-input', 0)
         }
     } catch (e) {
-        console.error(e)
+        logError(CHANNEL_NAME, 'evildm', e)
     }
 }
 

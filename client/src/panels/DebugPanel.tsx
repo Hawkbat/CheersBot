@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { ControlPanelAppViewData, ControlPanelPage, generateID, ModuleDataType, PanelViewDataProps, safeParseInt, TtsMessage } from 'shared'
+import { ControlPanelAppViewData, ControlPanelPage, generateID, logError, ModuleDataType, PanelViewDataProps, safeParseInt, TtsMessage } from 'shared'
 import { PanelField } from '../controls/PanelField'
 import { Button } from '../controls/Button'
 import { channelAction } from '../utils'
@@ -21,7 +21,7 @@ export function DebugPanel(props: ControlPanelAppViewData & ModuleDataType<'debu
         try {
             await channelAction('debug/reload', {})
         } catch (e) {
-            console.error(e)
+            logError(CHANNEL_NAME, 'debug', e)
         }
     }
 
@@ -31,6 +31,18 @@ export function DebugPanel(props: ControlPanelAppViewData & ModuleDataType<'debu
                 <PanelField label="Overlay Logs" help="Shows the most recent log messages from the overlay window in the overlay.">
                     <Toggle value={props.config.overlayLogs} onToggle={v => channelAction('debug/set-config', { overlayLogs: v })} />
                 </PanelField>
+                <hr />
+
+                <div className="QueuedItemList">
+                    {props.state.logs.length
+                        ? props.state.logs.map(s => <div key={s.join(' ')} className="QueuedItem">
+                            <PanelField label={s[0]}>
+                                {s.slice(1).join(' ')}
+                            </PanelField>
+                        </div>)
+                        : <i>No logs available</i>
+                    }
+                </div>
                 <hr />
                 <PanelField label="TTS Voice">
                     <input type="text" value={ttsVoice} onChange={e => setTtsVoice(e.target.value)} />

@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { ColorTintConfig, ControlPanelAppViewData, ControlPanelPage, ModelSwapConfig, ModuleDataType, PanelViewDataProps, safeParseFloat, safeParseInt, TriggerHotkeyConfig } from 'shared'
+import { ColorTintConfig, ControlPanelAppViewData, ControlPanelPage, logError, ModelSwapConfig, ModuleDataType, PanelViewDataProps, safeParseFloat, safeParseInt, TriggerHotkeyConfig } from 'shared'
 import { PanelField } from '../controls/PanelField'
 import { channelAction, useRepeatingEffect } from '../utils'
 import { Dropdown, DropdownOption } from '../controls/Dropdown'
@@ -34,7 +34,7 @@ export function VTubeStudioPanel(props: ControlPanelAppViewData & ModuleDataType
                 await channelAction('vtstudio/mock-color-tint', { configID })
             setTested(configID)
         } catch (e) {
-            console.error(e)
+            logError(CHANNEL_NAME, 'vts', e)
         }
     }
 
@@ -70,13 +70,39 @@ export function VTubeStudioPanel(props: ControlPanelAppViewData & ModuleDataType
         return await m?.position() ?? null
     }
 
-    const modelOptions: DropdownOption[] = [...models, ...props.config.swaps.flatMap(c => c.models).filter(m => !models.some(o => o.id === m.id || o.name === m.name)).map(m => ({ ...m, name: `${m.name}*` }))].map(m => ({ value: m.id, text: m.name })).sort((a, b) => a.text.localeCompare(b.text))
+    const modelOptions: DropdownOption[] = [
+        ...models.map(m => ({ value: m.id, text: m.name })),
+        ...props.config.swaps
+            .flatMap(c => c.models)
+            .filter(m => !models.some(o => o.id === m.id || o.name === m.name))
+            .map(m => ({ value: m.id, text: m.name, invalid: true })),
+    ].sort((a, b) => a.text.localeCompare(b.text))
 
-    const hotkeyOptions: DropdownOption[] = [...hotkeys, ...props.config.triggers.flatMap(c => c.hotkeys).filter(h => !hotkeys.some(o => o.id === h.id || o.name === h.name)).map(h => ({ ...h, name: `${h.name}*` }))].map(h => ({ value: h.id, text: h.name })).sort((a, b) => a.text.localeCompare(b.text))
+    const hotkeyOptions: DropdownOption[] = [
+        ...hotkeys.map(h => ({ value: h.id, text: h.name })),
+        ...props.config.triggers
+            .flatMap(c => c.hotkeys)
+            .filter(h => !hotkeys.some(o => o.id === h.id || o.name === h.name))
+            .map(h => ({ value: h.id, text: h.name, invalid: true })),
+    ].sort((a, b) => a.text.localeCompare(b.text))
 
-    const artMeshNameOptions: DropdownOption[] = [...artMeshNames, ...props.config.tints.flatMap(c => c.matches).flatMap(m => m.names).filter(n => !artMeshNames.includes(n)).map(n => `${n}*`)].map(n => ({ value: n })).sort((a, b) => a.value.localeCompare(b.value))
+    const artMeshNameOptions: DropdownOption[] = [
+        ...artMeshNames.map(n => ({ value: n })),
+        ...props.config.tints
+            .flatMap(c => c.matches)
+            .flatMap(m => m.names)
+            .filter(n => !artMeshNames.includes(n))
+            .map(n => ({ value: n, invalid: true })),
+    ].sort((a, b) => a.value.localeCompare(b.value))
 
-    const artMeshTagOptions: DropdownOption[] = [...artMeshTags, ...props.config.tints.flatMap(c => c.matches).flatMap(m => m.tags).filter(t => !artMeshTags.includes(t)).map(t => `${t}*`)].map(t => ({ value: t })).sort((a, b) => a.value.localeCompare(b.value))
+    const artMeshTagOptions: DropdownOption[] = [
+        ...artMeshTags.map(t => ({ value: t })),
+        ...props.config.tints
+            .flatMap(c => c.matches)
+            .flatMap(m => m.tags)
+            .filter(t => !artMeshTags.includes(t))
+            .map(t => ({ value: t, invalid: true })),
+    ].sort((a, b) => a.value.localeCompare(b.value))
 
     const modelTypeLabels: Record<ModelSwapConfig['type'], string> = {
         one: 'Single Model',
@@ -134,7 +160,7 @@ export function VTubeStudioPanel(props: ControlPanelAppViewData & ModuleDataType
                 <PanelField>
                     <div className="QueuedItemList">
                         {props.state.swaps.length
-                            ? props.state.swaps.map(s => <QueuedSwap key={s.id} swap={s} config={props.config.swaps.find(c => c.id === s.configID)!} />)
+                            ? props.state.swaps.map(s => <QueuedSwap key={s.id} swap={s} config={props.config.swaps.find(c => c.id === s.configID)} />)
                             : <i>No model swaps in queue</i>
                         }
                     </div>
@@ -142,7 +168,7 @@ export function VTubeStudioPanel(props: ControlPanelAppViewData & ModuleDataType
                 <PanelField>
                     <div className="QueuedItemList">
                         {props.state.triggers.length
-                            ? props.state.triggers.map(t => <QueuedTrigger key={t.id} trigger={t} config={props.config.triggers.find(c => c.id === t.configID)!} />)
+                            ? props.state.triggers.map(t => <QueuedTrigger key={t.id} trigger={t} config={props.config.triggers.find(c => c.id === t.configID)} />)
                             : <i>No hotkey triggers in queue</i>
                         }
                     </div>
@@ -150,7 +176,7 @@ export function VTubeStudioPanel(props: ControlPanelAppViewData & ModuleDataType
                 <PanelField>
                     <div className="QueuedItemList">
                         {props.state.tints.length
-                            ? props.state.tints.map(t => <QueuedTint key={t.id} tint={t} config={props.config.tints.find(c => c.id === t.configID)!} />)
+                            ? props.state.tints.map(t => <QueuedTint key={t.id} tint={t} config={props.config.tints.find(c => c.id === t.configID)} />)
                             : <i>No color tints in queue</i>
                         }
                     </div>

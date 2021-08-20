@@ -1,4 +1,4 @@
-import { VodQueueEntry, VodQueueConfigData } from 'shared'
+import { VodQueueEntry, VodQueueConfigData, logError } from 'shared'
 import * as React from 'react'
 import { PanelField } from './PanelField'
 import { channelAction } from '../utils'
@@ -9,7 +9,7 @@ async function deleteEntry(id: string) {
     try {
         await channelAction('vodqueue/delete-entry', { id })
     } catch (e) {
-        console.error(e)
+        logError(CHANNEL_NAME, 'vodequeue', e)
     }
 }
 

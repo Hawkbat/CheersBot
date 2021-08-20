@@ -1,9 +1,9 @@
 import * as React from 'react'
-import { WaitToken } from 'shared'
+import { logError, logInfo, WaitToken } from 'shared'
 import { debounce } from 'shared'
 import { parseJSON, ChannelActions, ChannelViews, GlobalActions, GlobalViews, ChannelInfoConfigData } from 'shared'
 
-declare const AUTH_TOKEN: string | undefined
+type UnwrapPromise<T> = T extends Promise<infer U> ? U : T
 
 export function classes(...args: (string | string[] | { [key: string]: boolean })[]): string {
     const list = []
@@ -71,7 +71,7 @@ export async function getJSON<T>(url: string): Promise<T | null> {
         }
         return parseJSON<T>(await response.text())
     } catch (e) {
-        console.error(e)
+        logError(CHANNEL_NAME, 'getJSON', `Error retrieving JSON at ${url} ${'AUTH_TOKEN' in window ? `with auth token ${AUTH_TOKEN}` : 'with no auth token'}`, e)
         return null
     }
 }
@@ -93,14 +93,10 @@ export async function postJSON<T, U>(url: string, data: T): Promise<U | null> {
         }
         return parseJSON<U>(await response.text())
     } catch (e) {
-        console.error(e)
+        logError(CHANNEL_NAME, 'getJSON', `Error sending JSON at ${url} ${'AUTH_TOKEN' in window ? `with auth token ${AUTH_TOKEN}` : 'with no auth token'} and payload`, data, e)
         return null
     }
 }
-
-type UnwrapPromise<T> = T extends Promise<infer U> ? U : T
-
-declare const CHANNEL_NAME: string
 
 function setupEventStream(url: string, cb: (evt: { type: string }) => void) {
     const idleTimeout = 90 * 1000
@@ -109,29 +105,28 @@ function setupEventStream(url: string, cb: (evt: { type: string }) => void) {
     let eventSource!: EventSource
     const setup = () => {
         retryTimeout = Math.min(32000, retryTimeout * 2)
-        console.log('Connecting')
+        logInfo(CHANNEL_NAME, 'sse', 'Connecting')
         try {
             if (eventSource && eventSource.readyState === eventSource.OPEN) eventSource.close()
             eventSource = new EventSource(url)
             eventSource.addEventListener('message', e => {
-                console.log(e.data)
                 const data = parseJSON<{ type: string }>(e.data)
                 if (data) cb(data)
                 debounce(idleTimeout, token).then(() => setup())
             })
             eventSource.addEventListener('open', e => {
-                console.log('Connected')
+                logInfo(CHANNEL_NAME, 'sse', 'Connected')
                 retryTimeout = 1000
                 debounce(idleTimeout, token).then(() => setup())
             })
             eventSource.addEventListener('error', e => {
-                console.log('Connection lost')
+                logInfo(CHANNEL_NAME, 'sse', 'Connection lost')
                 eventSource.close()
                 debounce(retryTimeout, token).then(() => setup())
             })
             debounce(idleTimeout, token).then(() => setup())
         } catch (e) {
-            console.error(e)
+            logError(CHANNEL_NAME, 'sse', e)
             debounce(retryTimeout, token).then(() => setup())
         }
     }
@@ -147,7 +142,7 @@ export function setRefreshCallback(refresh: (reloadData: boolean) => void, chann
         try {
             refresh(reloadData)
         } catch (e) {
-            console.error(e)
+            logError(CHANNEL_NAME, 'refresh', `Failed to refresh${reloadData ? ' and reload data' : ''}`, e)
         }
     }
 
@@ -181,7 +176,7 @@ export async function channelAction<K extends keyof ChannelActions>(action: K, a
         refresh(true)
         return result
     } catch (e) {
-        console.error(e)
+        logError(CHANNEL_NAME, 'channelAction', 'Failed to call action', action, 'with args', args, e)
         return undefined
     }
 }
@@ -192,7 +187,7 @@ export async function channelView<K extends keyof ChannelViews>(view: K): Promis
         if (!result) throw new Error(`Error calling view ${view}`)
         return result
     } catch (e) {
-        console.error(e)
+        logError(CHANNEL_NAME, 'channelView', 'Failed to call view', view, e)
         return undefined
     }
 }
@@ -208,7 +203,7 @@ export async function globalAction<K extends keyof GlobalActions>(action: K, arg
         refresh(true)
         return result
     } catch (e) {
-        console.error(e)
+        logError('global', 'globalAction', 'Failed to call action', action, 'with args', args, e)
         return undefined
     }
 }
@@ -219,7 +214,7 @@ export async function globalView<K extends keyof GlobalViews>(view: K): Promise<
         if (!result) throw new Error(`Error calling view ${view}`)
         return result
     } catch (e) {
-        console.error(e)
+        logError('global', 'globalView', 'Failed to call view', view, e)
         return undefined
     }
 }
@@ -459,7 +454,7 @@ export class BufferedWebsocket implements WebSocket {
                 }
             })
         } catch (e) {
-            console.error(e)
+            logError(CHANNEL_NAME, 'ws', e)
             this.reconnect()
         }
     }

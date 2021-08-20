@@ -37,4 +37,5 @@ export const CountersModule: Module<CountersStateData, CountersConfigData> = {
     description: 'Tracks the number of times certain channel point rewards are redeemed.',
     version: ModuleVersion.released,
     getData: (modules: ModuleMap) => modules.counters,
+    scopes: ['channel:read:redemptions'],
 }

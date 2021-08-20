@@ -1,13 +1,13 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import fetch from 'node-fetch'
-import { parseJSON } from 'shared'
+import { logError, parseJSON } from 'shared'
 
 export async function getJSON<T>(url: string): Promise<T | null> {
     try {
         return parseJSON<T>(await (await fetch(url)).text())
     } catch (e) {
-        console.error(e)
+        logError('unknown', 'getJSON', `Failed to parse response for "${url}"`, e)
         return null
     }
 }
@@ -19,7 +19,7 @@ export async function postJSON<T, U>(url: string, data: T): Promise<U | null> {
             body: JSON.stringify(data)
         })).text())
     } catch (e) {
-        console.error(e)
+        logError('unknown', 'postJSON', `Failed to parse response for "${url}"`, e)
         return null
     }
 }

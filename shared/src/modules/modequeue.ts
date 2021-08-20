@@ -48,4 +48,5 @@ export const ModeQueueModule: Module<ModeQueueStateData, ModeQueueConfigData> = 
     description: 'Displays "modes" in the overlay that can be controlled with timers, when certain channel point rewards are redeemed.',
     version: ModuleVersion.released,
     getData: (modules: ModuleMap) => modules.modeQueue,
+    scopes: ['channel:read:redemptions'],
 }

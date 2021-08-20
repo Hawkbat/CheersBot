@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { ControlPanelAppViewData, ControlPanelPage, ModuleDataType, PanelViewDataProps, safeParseFloat } from 'shared'
+import { ControlPanelAppViewData, ControlPanelPage, logError, ModuleDataType, PanelViewDataProps, safeParseFloat } from 'shared'
 import { PanelField } from '../controls/PanelField'
 import { QueuedMode } from '../controls/QueuedMode'
 import { Button } from '../controls/Button'
@@ -18,7 +18,7 @@ export function ModeQueuePanel(props: ControlPanelAppViewData & ModuleDataType<'
             await channelAction('modequeue/mock', { configID, username: 'Anonymous' })
             setTested(configID)
         } catch (e) {
-            console.error(e)
+            logError(CHANNEL_NAME, 'modequeue', e)
         }
     }
 

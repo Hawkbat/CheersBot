@@ -9,6 +9,7 @@ import { EvilDmModule } from './evildm'
 import { HeadpatsModule } from './headpat'
 import { ModeQueueModule } from './modequeue'
 import { SoundsModule } from './sounds'
+import { SubathonModule } from './subathon'
 import { UserQueueModule } from './userqueue'
 import { VodQueueModule } from './vodqueue'
 import { VTubeStudioModule } from './vtstudio'
@@ -31,6 +32,7 @@ export interface Module<State extends ModuleStateData = ModuleStateData, Config 
     name: string
     description: string
     version: ModuleVersion
+    scopes: string[]
 
     getData: (modules: ModuleMap) => ModuleData<State, Config>
 }
@@ -47,6 +49,7 @@ export const MODULES = {
     counters: CountersModule,
     sounds: SoundsModule,
     vtubeStudio: VTubeStudioModule,
+    subathon: SubathonModule,
     eventQueue: EventQueueModule,
     channelInfo: ChannelInfoModule,
     debug: DebugModule,

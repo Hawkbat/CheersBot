@@ -1,14 +1,12 @@
-import { LandingAppViewData, AccountType, MODULES, ModuleVersion } from 'shared'
+import { LandingAppViewData, AccountType, MODULES, ModuleVersion, logError, popLogBuffer } from 'shared'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
-import { globalView } from '../utils'
+import { globalAction, globalView, useRepeatingEffect } from '../utils'
 import { PanelGroup } from '../controls/PanelGroup'
 import { PanelField } from '../controls/PanelField'
 import { Button } from '../controls/Button'
 import { AccessPanel } from '../panels/AccessPanel'
 import { Changelog } from '../controls/Changelog'
-
-declare const REFRESH_TIME: number
 
 let cachedData: LandingAppViewData | undefined
 let pendingViewPromise: Promise<LandingAppViewData | undefined> | undefined
@@ -26,12 +24,21 @@ export async function refresh(reloadData: boolean) {
             ReactDOM.render(<LandingApp {...data} />, document.getElementById('app'))
         }
     } catch (e) {
-        console.error(e)
+        logError('global', 'landing', 'Error refreshing landing page', e)
     }
     debounce = false
 }
 
 export function LandingApp(props: LandingAppViewData) {
+
+    React.useEffect(() => {
+        window.addEventListener('error', e => logError('global', 'landing', e.message, e.filename, e.lineno, e.colno, e.error))
+    }, [])
+
+    useRepeatingEffect(React.useCallback(async () => {
+        await globalAction('debug/send-logs', { logs: popLogBuffer() })
+    }, []), 60 * 1000, false)
+
     return <div className="Landing">
         <Changelog changelog={props.changelog.changelog} />
         {props.userChannelAccess ? <>
@@ -40,7 +47,7 @@ export function LandingApp(props: LandingAppViewData) {
                     <PanelField>Select a channel from the list below to access the corresponding control panel!</PanelField>
                     <PanelField>
                         <div className="list">
-                            {Object.keys(props.userChannelAccess).map(c => <Button key={c} href={`/${c}/`}>{c}</Button>)}
+                            {props.channels.sort((a, b) => a.localeCompare(b)).map(c => <Button key={c} href={`/${c}/`}>{c}</Button>)}
                         </div>
                     </PanelField>
                     <hr />

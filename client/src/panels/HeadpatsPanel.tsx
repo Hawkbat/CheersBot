@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { ControlPanelAppViewData, ControlPanelPage, ModuleDataType, PanelViewDataProps } from 'shared'
+import { ControlPanelAppViewData, ControlPanelPage, logError, ModuleDataType, PanelViewDataProps } from 'shared'
 import { PanelField } from '../controls/PanelField'
 import { getNumberValue, setNumberValue, channelAction } from '../utils'
 import { Button } from '../controls/Button'
@@ -10,7 +10,7 @@ async function clearHeadpats() {
         const count = getNumberValue('headpat-count')
         await channelAction('headpats/adjust', { delta: -count })
     } catch (e) {
-        console.error(e)
+        logError(CHANNEL_NAME, 'headpats', e)
     }
 }
 
@@ -22,7 +22,7 @@ async function completeHeadpats() {
             setNumberValue('headpat-input', 1)
         }
     } catch (e) {
-        console.error(e)
+        logError(CHANNEL_NAME, 'headpats', e)
     }
 }
 

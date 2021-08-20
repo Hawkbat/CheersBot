@@ -34,4 +34,5 @@ export const UserQueueModule: Module<UserQueueStateData, UserQueueConfigData> = 
     description: 'Allows Twitch chat to submit entries into a queue the streamer can then draw from. Could be used for raffles, viewer game drafting, and similar events.',
     version: ModuleVersion.preAlpha,
     getData: (modules: ModuleMap) => modules.userQueue,
+    scopes: ['channel:read:redemptions'],
 }

@@ -15,4 +15,5 @@ export const EvilDmModule: Module<EvilDmStateData, EvilDmConfigData> = {
     description: 'Keeps an overlay counter of how many times a certain channel point reward is redeemed with certain keywords in the message.',
     version: ModuleVersion.girldm,
     getData: (modules: ModuleMap) => modules.evilDm,
+    scopes: ['channel:read:redemptions'],
 }

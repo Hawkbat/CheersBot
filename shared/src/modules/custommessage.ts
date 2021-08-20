@@ -21,4 +21,5 @@ export const CustomMessageModule: Module<CustomMessageStateData, CustomMessageCo
     description: 'Displays custom overlay messages similar to the ones used by other features.',
     version: ModuleVersion.released,
     getData: (modules: ModuleMap) => modules.customMessage,
+    scopes: [],
 }
