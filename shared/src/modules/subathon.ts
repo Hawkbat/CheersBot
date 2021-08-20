@@ -34,7 +34,7 @@ export interface SubathonConfigData extends ModuleConfigData {
 export const SubathonModule: Module<SubathonStateData, SubathonConfigData> = {
     name: 'Subathon Timer',
     description: 'Manages a timer for subathons that either resets or has time added when users subscribe.',
-    version: ModuleVersion.preAlpha,
+    version: ModuleVersion.beta,
     getData: (modules: ModuleMap) => modules.subathon,
     scopes: ['channel:read:subscriptions', 'bits:read', 'channel:read:redemptions'],
 }

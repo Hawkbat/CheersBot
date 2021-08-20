@@ -98,6 +98,21 @@
                 "Added additional debugging settings",
                 "Applied minor fixes and improvements"
             ]
+        },
+        {
+            "version": "1.5.0",
+            "released": "2021-08-20",
+            "changes": [
+                "Added new Subathon module for automatic subathon timers",
+                "Added FAQ page to address common questions and issues",
+                "Added additional logging and debugging tools",
+                "Added notification when channel is missing permissions",
+                "Changed model-swap/hotkey-trigger/color-tint reverting to not block the next item in queue",
+                "Fixed chat bots getting stuck in a disconnected state",
+                "Fixed selected models/hotkeys/tags getting lost while disconnected",
+                "Fixed existing sound configurations loading incorrectly",
+                "Applied minor fixes and improvements"
+            ]
         }
     ]
 }
