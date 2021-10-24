@@ -7,6 +7,7 @@ import { PanelField } from '../controls/PanelField'
 import { Button } from '../controls/Button'
 import { AccessPanel } from '../panels/AccessPanel'
 import { Changelog } from '../controls/Changelog'
+import { HelpWindow } from '../controls/HelpWindow'
 
 let cachedData: LandingAppViewData | undefined
 let pendingViewPromise: Promise<LandingAppViewData | undefined> | undefined
@@ -41,6 +42,7 @@ export function LandingApp(props: LandingAppViewData) {
 
     return <div className="Landing">
         <Changelog changelog={props.changelog.changelog} />
+        <HelpWindow />
         {props.userChannelAccess ? <>
             <div className="draggable">
                 <PanelGroup label="Your Control Panels">
@@ -83,14 +85,14 @@ export function LandingApp(props: LandingAppViewData) {
         </> : null}
         <div className="draggable">
             <PanelGroup label="Log In or Register">
+                <PanelField>To connect your account as a channel and get a custom overlay and control panel:</PanelField>
+                <PanelField>
+                    <Button primary href="/authorize/channel/">Connect Channel Account</Button>
+                </PanelField>
+                <hr />
                 <PanelField>To connect as a user account in order to access the control panel of your channel, or channels you moderate:</PanelField>
                 <PanelField>
                     <Button primary href="/authorize/user/">Connect User Account</Button>
-                </PanelField>
-                <hr />
-                <PanelField>To connect your account as a channel and get a custom overlay and control panel:</PanelField>
-                <PanelField>
-                    <Button href="/authorize/channel/">Connect Channel Account</Button>
                 </PanelField>
                 <hr />
                 <PanelField>To connect your account as a "bot" user that can send chat messages to other channels:</PanelField>

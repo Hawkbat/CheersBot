@@ -2,4 +2,5 @@ out/
 node_modules/
 data/
 *.tsbuildinfo
+*.heapsnapshot
 secrets.json

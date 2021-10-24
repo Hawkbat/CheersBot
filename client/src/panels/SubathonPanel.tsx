@@ -109,13 +109,13 @@ export function SubathonPanel(props: ControlPanelAppViewData & ModuleDataType<'s
                     <DurationInput value={props.config.duration} onChange={duration => channelAction('subathon/set-config', { duration })} />
                 </PanelField>
                 <PanelField label="Type" help="How the timer behaves when users contribute to the subathon.">
-                    <Dropdown selected={props.config.type} options={typeOptions} onSelect={v => channelAction('subathon/set-config', { type: v as any })} />
+                    <Dropdown selected={props.config.type} options={typeOptions} onSelect={v => channelAction('subathon/set-config', { type: v })} />
                 </PanelField>
                 <PanelField>
                     <div className="QueuedItemList">
                         {props.config.triggers.map(t => <div key={t.id} className="QueuedItem">
                             <PanelField label="Contrib. Type" help="The type of contribution that can be spent by users.">
-                                <Dropdown nullable nullText="(Remove)" selected={t.type} options={triggerTypeOptions} onSelect={v => v ? channelAction('subathon/edit-trigger', { id: t.id, type: v as any }) : channelAction('subathon/delete-trigger', { id: t.id })} />
+                                <Dropdown nullable nullText="(Remove)" selected={t.type} options={triggerTypeOptions} onSelect={v => v ? channelAction('subathon/edit-trigger', { id: t.id, type: v }) : channelAction('subathon/delete-trigger', { id: t.id })} />
                             </PanelField>
                             {t.type === 'reward' ? <PanelField label="Reward" help="This is the channel point reward in Twitch that will contribute to the subathon.">
                                 <TwitchRewardDropdown nullable selectedID={t.redeemID} selectedName={t.redeemName} onSelect={(id, name) => channelAction('subathon/edit-trigger', { id: t.id, redeemID: id, redeemName: name })} />

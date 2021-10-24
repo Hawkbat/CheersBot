@@ -2,12 +2,17 @@ import { ControlPanelAppViewData, PanelViewData, ControlPanelPage, getModule, Ac
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd'
-import { channelView, classes, localRetrieveJSON, localStoreJSON, getChannelCSS, channelAction, useRepeatingEffect } from '../utils'
+import { channelView, classes, localRetrieveJSON, localStoreJSON, getChannelCSS, channelAction, useRepeatingEffect, globalAction } from '../utils'
 import { Panel } from '../controls/Panel'
 import { TabSet } from '../controls/TabSet'
 import { AccessPanel } from '../panels/AccessPanel'
 import { Changelog } from '../controls/Changelog'
 import { InfoPopupProvider } from '../controls/InfoPopup'
+import { PanelGroup } from '../controls/PanelGroup'
+import { PanelField } from '../controls/PanelField'
+import { Button } from '../controls/Button'
+import { Alert } from '../controls/Alert'
+import { HelpWindow } from '../controls/HelpWindow'
 
 let lastPingTime = Date.now()
 let debounce = false
@@ -130,6 +135,18 @@ export function ControlPanelApp(props: ControlPanelAppViewData) {
         })
     }
 
+    if (props.tokenInvalid) {
+        return <div className='ModalOverlay' onClick={() => { }}>
+            <div className='Modal UploadWindow' onClick={() => { }}>
+                <PanelField>
+                    <Alert type="fail">
+                        <div>This channel's Twitch connection has expired and could not be automatically refreshed. Please <a href="/authorize/channel/">re-connect your channel account</a>.</div>
+                    </Alert>
+                </PanelField>
+            </div>
+        </div>
+    }
+
     return <div className={classes('ControlPanel')} style={getChannelCSS(props.modules.channelInfo.config)}>
         <InfoPopupProvider>
             <DragDropContext onDragEnd={(result, provided) => {
@@ -144,6 +161,21 @@ export function ControlPanelApp(props: ControlPanelAppViewData) {
                     {(provided, snapshot) => <div className={classes("droppable", { dropping: snapshot.isDraggingOver })} ref={provided.innerRef} {...provided.droppableProps}>
                         {page === ControlPanelPage.access
                             ? <>
+                                {props.isSuperUser ? <Draggable key="admin" draggableId="admin" index={0}>
+                                    {(provided, snapshot) => <div className={classes('draggable', { dragging: snapshot.isDragging })} {...provided.draggableProps} ref={provided.innerRef}>
+                                        <PanelGroup label="Admin">
+                                            <PanelField>
+                                                <Button onClick={() => channelAction('admin/lock-channel', {})}>Lock</Button>
+                                                <Button onClick={() => channelAction('admin/unlock-channel', {})}>Unlock</Button>
+                                                <Button onClick={() => channelAction('admin/reload-channel', {})}>Reload</Button>
+                                            </PanelField>
+                                            <PanelField>
+                                                <Button onClick={() => confirm('This will stall the server for up to a full minute while a heapdump is created. Make sure nobody is actively using the plugin before doing this. Continue?') && globalAction('admin/heapdump', {})}>Server Heap Dump</Button>
+                                            </PanelField>
+                                        </PanelGroup>
+                                        <div className="dragger" {...provided.dragHandleProps}></div>
+                                    </div>}
+                                </Draggable> : null}
                                 <Draggable key={AccountType.bot} draggableId={AccountType.bot} index={0}>
                                     {(provided, snapshot) => <div className={classes('draggable', { dragging: snapshot.isDragging })} {...provided.draggableProps} ref={provided.innerRef}>
                                         <AccessPanel userType={AccountType.channel} targetType={AccountType.bot} access={props.botAccess} />
@@ -171,5 +203,6 @@ export function ControlPanelApp(props: ControlPanelAppViewData) {
             </DragDropContext>
         </InfoPopupProvider>
         <Changelog changelog={props.changelog.changelog} />
+        <HelpWindow />
     </div>
 }

@@ -41,6 +41,7 @@
     "@types/node": "^14.17.1",
     "@types/node-fetch": "^2.5.10",
     "@types/stylus": "^0.48.34",
-    "@types/ws": "^7.4.6"
+    "@types/ws": "^7.4.6",
+    "rimraf": "^3.0.2"
   }
 }

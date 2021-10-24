@@ -35,7 +35,7 @@ export function ChannelInfoPanel(props: ControlPanelAppViewData & ModuleDataType
             return <>
                 <hr />
                 <PanelField label="Overlay Align" help="Where items in the overlay will be positioned within the browser source.">
-                    <Dropdown selected={props.config.overlayCorner ?? 'top-left'} options={[{ value: 'top-left', text: 'Top Left' }, { value: 'top-right', text: 'Top Right' }, { value: 'bottom-left', text: 'Bottom Left' }, { value: 'bottom-right', text: 'Bottom Right' }]} onSelect={v => channelAction('channelinfo/set-config', { overlayCorner: v as any })} />
+                    <Dropdown selected={props.config.overlayCorner ?? 'top-left'} options={[{ value: 'top-left', text: 'Top Left' }, { value: 'top-right', text: 'Top Right' }, { value: 'bottom-left', text: 'Bottom Left' }, { value: 'bottom-right', text: 'Bottom Right' }]} onSelect={v => channelAction('channelinfo/set-config', { overlayCorner: v })} />
                 </PanelField>
                 <PanelField label="Accent Color" help="The primary color used for bold text and other accents.">
                     <input type="color" defaultValue={props.config.accentColor} onChange={e => channelAction('channelinfo/set-config', { accentColor: e.target.value })} />

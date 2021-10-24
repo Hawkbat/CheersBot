@@ -35,5 +35,5 @@ export function TwitchRewardDropdown({
 
     const realSelected = options.find(o => o.value === selectedID)?.value ?? options.find(o => o.text.trim() === selectedName.trim())?.value ?? ''
 
-    return <Dropdown options={options} selected={realSelected} onSelect={onSelect} nullable={nullable} />
+    return <Dropdown options={options} selected={realSelected} onSelect={v => onSelect(v, options.find(o => o.value === v)?.text ?? '')} nullable={nullable} />
 }

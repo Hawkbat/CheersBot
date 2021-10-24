@@ -37,6 +37,10 @@ export function ExternalIcon(props: { icon: Icon, size: 1 | 2 | 3 }) {
             return <div className="ExternalIcon" data-size={props.size} title={`${props.icon.name} (Brand Logo)`}>
                 <IconComponent data-size={props.size} fixedWidth icon={props.icon.id} style="brand" />
             </div>
+        case 'url':
+            src = props.icon.id
+            type = 'External Image'
+            break
     }
     return <div className="ExternalIcon" data-size={props.size}>
         <img title={`${props.icon.name} (${type})`} src={src}></img>

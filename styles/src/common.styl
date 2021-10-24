@@ -95,6 +95,9 @@ a
     color var(--accent-color)
     text-decoration none
 
+blockquote
+    user-select all
+
 .draggable
     position relative
     margin-bottom 16px
@@ -529,6 +532,21 @@ button.primary:hover
 
 .VTubeStudioIndicator.connected::before
     background hsl(150, 100%, 50%)
+
+.HelpWindowOpener
+    position fixed
+    bottom 5px
+    right 5px
+    border-radius 5px
+    padding 2px 6px
+    font-size 24px
+    background-color #333
+    box-shadow 0 0 3px black
+    z-index 1
+    cursor pointer
+
+.HelpWindowOpener:hover
+    background-color #3e3e3e
 
 .ModalCloser
     cursor pointer

@@ -41,6 +41,13 @@ export function getStringValue(id: string): string {
     else return el.textContent ?? ''
 }
 
+export function formatTime(ms: number): string {
+    const hours = Math.floor(ms / (60 * 60 * 1000))
+    const minutes = Math.floor((ms - hours * 60 * 60 * 1000) / (60 * 1000))
+    const seconds = (ms - hours * 60 * 60 * 1000 - minutes * 60 * 1000) / 1000
+    return `${hours > 0 ? `${hours.toString().padStart(2, '0')}:` : ''}${minutes.toString().padStart(hours > 0 ? 2 : 1, '0')}:${Math.floor(seconds).toString().padStart(2, '0')}`
+}
+
 export function localStoreJSON<T>(key: string, data: T): void {
     localStorage.setItem(key, JSON.stringify(data))
 }
@@ -105,7 +112,7 @@ function setupEventStream(url: string, cb: (evt: { type: string }) => void) {
     let eventSource!: EventSource
     const setup = () => {
         retryTimeout = Math.min(32000, retryTimeout * 2)
-        logInfo(CHANNEL_NAME, 'sse', 'Connecting')
+        //logInfo(CHANNEL_NAME, 'sse', 'Connecting')
         try {
             if (eventSource && eventSource.readyState === eventSource.OPEN) eventSource.close()
             eventSource = new EventSource(url)
@@ -115,7 +122,7 @@ function setupEventStream(url: string, cb: (evt: { type: string }) => void) {
                 debounce(idleTimeout, token).then(() => setup())
             })
             eventSource.addEventListener('open', e => {
-                logInfo(CHANNEL_NAME, 'sse', 'Connected')
+                //logInfo(CHANNEL_NAME, 'sse', 'Connected')
                 retryTimeout = 1000
                 debounce(idleTimeout, token).then(() => setup())
             })
@@ -381,7 +388,10 @@ export class BufferedWebsocket implements WebSocket {
         const listeners = this.eventListeners.get(type) ?? []
         listeners.push({ listener, options })
         this.eventListeners.set(type, listeners)
-        this.ws.addEventListener(type, listener, options)
+
+        // Don't bubble up close or error events in order to make reconnection 'seamless'
+        if (type !== 'close' && type !== 'error')
+            this.ws.addEventListener(type, listener, options)
     }
 
     removeEventListener<K extends keyof WebSocketEventMap>(type: K, listener: (this: WebSocket, ev: WebSocketEventMap[K]) => any, options?: boolean | EventListenerOptions): void
@@ -415,7 +425,7 @@ export class BufferedWebsocket implements WebSocket {
             if (prev && prev.readyState === prev.OPEN) prev.close(3012, 'Reconnecting')
 
             // Terrible hack to guarantee that the first websocket will always be instantiated successfully
-            const next = new WebSocket(prev ? this._url : 'wss://echo.websocket.org', this._protocols)
+            const next = new WebSocket(prev ? this._url : 'wss://websocket-echo.hawkbar.workers.dev', this._protocols)
 
             next.binaryType = prev?.binaryType ?? next.binaryType
             next.onopen = prev?.onopen ?? next.onopen

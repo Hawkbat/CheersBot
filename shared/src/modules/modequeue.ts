@@ -1,5 +1,5 @@
 import { Icon, ModuleVersion } from '../data'
-import { ModuleStateData, ModuleConfigData, Module, ModuleMap } from './common'
+import { ModuleStateData, ModuleConfigData, Module, ModuleMap, TriggerConfig } from './common'
 
 export interface RedeemMode {
     id: string
@@ -24,10 +24,7 @@ export interface ModeQueueStateData extends ModuleStateData {
     modes: RedeemMode[]
 }
 
-export interface ModeQueueModeConfig {
-    id: string
-    redeemID: string
-    redeemName: string
+export interface ModeQueueModeConfig extends TriggerConfig {
     emote: Icon | null
     showUsername: boolean
     startText: string

@@ -1,4 +1,4 @@
-import { generateID, Store, mergePartials, AccountType, ChannelActions, ChannelViews, MODULE_TYPES, Access, GlobalActions, GlobalViews, MessageMeta, GlobalBaseViewData, ChannelBaseViewData, VodQueueGame, Changelog, CounterVisibility, filterFalsy, LandingAppViewData, uniqueItems, safeParseInt, logError, logInfo, SubathonTriggerConfig, logMessage } from 'shared'
+import { generateID, Store, mergePartials, AccountType, ChannelActions, ChannelViews, MODULE_TYPES, Access, GlobalActions, GlobalViews, MessageMeta, GlobalBaseViewData, ChannelBaseViewData, VodQueueGame, Changelog, CounterVisibility, safeParseInt, logError, logInfo, SubathonTriggerConfig, logMessage, BSDataPullerUrl, BSDataPullerPort, ModeQueueModeConfig, CustomMessage, SoundConfig, ModelSwapConfig, TriggerHotkeyConfig, ColorTintConfig, filterFalsy, LandingAppViewData, uniqueItems, TriggerConfig, TriggerEvent } from 'shared'
 import { ApiClient as TwitchClient, RefreshableAuthProvider, StaticAuthProvider } from 'twitch'
 import { ChatClient, PrivateMessage } from 'twitch-chat-client'
 import { PubSubClient } from 'twitch-pubsub-client'
@@ -66,6 +66,10 @@ async function run() {
 
     const app = express()
 
+    function isSuperUser(username: string): boolean {
+        return secrets?.superUsers.includes(username) ?? false
+    }
+
     function hasTwitchAuth(req: express.Request): boolean {
         return !!req.session?.twitchUserName
     }
@@ -79,7 +83,7 @@ async function run() {
     }
 
     function hasChannelAuth(req: express.Request, channel: string): boolean {
-        return getUsersForChannel(channel).some(u => u.name === req.session?.twitchUserName) || (secrets?.superUsers.includes(req.session?.twitchUserName ?? '') ?? false)
+        return getUsersForChannel(channel).some(u => u.name === req.session?.twitchUserName) || isSuperUser(req.session?.twitchUserName ?? '')
     }
 
     function respondChannelAuthMessage(req: express.Request, res: express.Response): void {
@@ -118,6 +122,7 @@ async function run() {
             meta: msg,
             refreshTime,
             isGirlDm: isGirlDm(msg),
+            isSuperUser: isSuperUser(msg.username),
         }
     }
 
@@ -143,6 +148,8 @@ async function run() {
             token,
             bots: {},
             users: {},
+            accessTimes: {},
+            overlayAccessTime: 0,
             modules: {
                 headpats: {
                     config: {
@@ -287,6 +294,28 @@ async function run() {
                         subCount: 0,
                         bitCount: 0,
                         pointCount: 0,
+                    },
+                },
+                beatsaber: {
+                    config: {
+                        enabled: false,
+                        apiHost: BSDataPullerUrl,
+                        apiPort: BSDataPullerPort,
+                        debugOverlay: false,
+                    },
+                    state: {
+
+                    },
+                },
+                obs: {
+                    config: {
+                        enabled: false,
+                        apiHost: 'localhost',
+                        apiPort: 4444,
+                        debugOverlay: false,
+                    },
+                    state: {
+
                     },
                 },
                 eventQueue: {
@@ -496,6 +525,7 @@ async function run() {
                 await chatClient.connect()
 
                 const joined: Record<string, boolean> = {}
+                const failedAttempts: Record<string, { time: number, attempts: number } | undefined> = {}
 
                 for (const channel of getChannelsForBot(name)) {
                     try {
@@ -504,6 +534,7 @@ async function run() {
                         logInfo(name, 'bot', `${name} joined #${channel.name}`)
                     } catch (e) {
                         logError(name, 'bot', e)
+                        failedAttempts[name] = { time: Date.now(), attempts: 1 }
                     }
                 }
 
@@ -525,12 +556,22 @@ async function run() {
 
                     for (const channel of validChannels) {
                         if (!joined[channel.name]) {
-                            try {
-                                await chatClient.join(channel.name)
-                                joined[channel.name] = true
-                                logInfo(name, 'bot', `${name} joined #${channel.name}`)
-                            } catch (e) {
-                                logError(name, 'bot', e)
+                            const lastAccessTime = channel.data.get(d => Math.max(d.overlayAccessTime, ...Object.values(d.accessTimes)))
+                            const attempts = failedAttempts[channel.name] ?? { time: Date.now(), attempts: 0 }
+                            const hasRecentAccess = lastAccessTime > Date.now() - 5 * 60 * 1000
+                            const hasPassedFailedAttemptTimeout = attempts.attempts === 0 || Date.now() > attempts.time + Math.pow(2, attempts.attempts) * 60 * 1000
+                            const shouldAttempt = hasRecentAccess || hasPassedFailedAttemptTimeout
+                            if (shouldAttempt) {
+                                logInfo(name, 'bot', `${name} attempting to join #${channel.name} (recentAccess: ${hasRecentAccess}, failedAttempts: ${attempts.attempts})`)
+                                try {
+                                    await chatClient.join(channel.name)
+                                    joined[channel.name] = true
+                                    delete failedAttempts[channel.name]
+                                    logInfo(name, 'bot', `${name} joined #${channel.name}`)
+                                } catch (e) {
+                                    logError(name, 'bot', e)
+                                    failedAttempts[channel.name] = { time: Date.now(), attempts: attempts.attempts + 1 }
+                                }
                             }
                         }
                     }
@@ -642,6 +683,7 @@ async function run() {
                         meta: msg,
                         refreshTime,
                         isGirlDm: isGirlDm(msg),
+                        isSuperUser: isSuperUser(msg.username),
                     }
                 }
 
@@ -661,6 +703,10 @@ async function run() {
 
                 const pubSubClient = new PubSubClient()
                 await pubSubClient.registerUserListener(client, id)
+
+                data.update(d => {
+                    delete d.tokenInvalid
+                })
 
                 const processSubathonContribution = (t: SubathonTriggerConfig, amount: number) => {
                     const hasRemainingTime = data.get(d => {
@@ -693,17 +739,110 @@ async function run() {
                     return false
                 }
 
+                const doesConfigMatchEvent = (event: TriggerEvent, config: Omit<TriggerConfig, 'id'>): boolean => {
+                    if (config.archived) return false
+                    if (event.type !== (config.triggerType ?? 'reward')) return false
+                    switch (event.type) {
+                        case 'reward': return event.rewardId === config.redeemID || event.rewardName.trim() === config.redeemName.trim()
+                        case 'bits': return config.triggerAmount === undefined || event.amount === config.triggerAmount
+                        case 'sub': return true
+                    }
+                }
+
+                const processTriggerEvent = (event: TriggerEvent) => {
+                    const configFilter = (config: Omit<TriggerConfig, 'id'>) => doesConfigMatchEvent(event, config)
+
+                    for (const modeConfig of data.get(d => d.modules.modeQueue.config.modes).filter(configFilter)) {
+                        const id = generateID()
+                        data.update(d => {
+                            d.modules.modeQueue.state.modes.push({
+                                id,
+                                configID: modeConfig.id,
+                                userID: event.userID,
+                                userName: event.userName,
+                                message: '',
+                                amount: 1,
+                                redeemTime: Date.now(),
+                                visible: true,
+                                startTime: modeConfig.autoStart ? Date.now() : undefined,
+                                duration: modeConfig.autoStart ? modeConfig.duration * 60 * 1000 : undefined,
+                            })
+                        })
+                        if (modeConfig.autoStart && modeConfig.autoEnd) {
+                            setTimeout(() => {
+                                data.update(d => {
+                                    d.modules.modeQueue.state.modes = d.modules.modeQueue.state.modes.filter(m => m.id !== id)
+                                })
+                            }, modeConfig.duration * 60 * 1000)
+                        }
+                    }
+                    const isVodConfig = data.get(d => configFilter(d.modules.vodQueue.config))
+                    if (isVodConfig) {
+                        data.update(d => d.modules.vodQueue.state.entries.push({
+                            id: generateID(),
+                            user: { id: event.userID, name: event.userName },
+                            time: Date.now(),
+                            context: event.message,
+                        }))
+                    }
+                    for (const counterConfig of data.get(d => d.modules.counters.config.configs.filter(configFilter))) {
+                        const counter = data.get(d => d.modules.counters.state.counters[counterConfig.id])
+                        data.update(d => d.modules.counters.state.counters[counterConfig.id] = {
+                            ...counter,
+                            count: (counter?.count ?? 0) + 1,
+                            time: Date.now(),
+                        })
+                    }
+                    for (const soundConfig of data.get(d => d.modules.sounds.config.sounds.filter(configFilter))) {
+                        data.update(d => d.modules.sounds.state.sounds.push({
+                            id: generateID(),
+                            userID: event.userID,
+                            userName: event.userName,
+                            configID: soundConfig.id,
+                            redeemTime: Date.now(),
+                        }))
+                    }
+                    for (const modelSwapConfig of data.get(d => d.modules.vtubeStudio.config.swaps.filter(configFilter))) {
+                        data.update(d => d.modules.vtubeStudio.state.swaps.push({
+                            id: generateID(),
+                            userID: event.userID,
+                            userName: event.userName,
+                            configID: modelSwapConfig.id,
+                            redeemTime: Date.now(),
+                        }))
+                    }
+                    for (const hotkeyTriggerConfig of data.get(d => d.modules.vtubeStudio.config.triggers.filter(configFilter))) {
+                        data.update(d => d.modules.vtubeStudio.state.triggers.push({
+                            id: generateID(),
+                            userID: event.userID,
+                            userName: event.userName,
+                            configID: hotkeyTriggerConfig.id,
+                            redeemTime: Date.now(),
+                        }))
+                    }
+                    for (const colorTintConfig of data.get(d => d.modules.vtubeStudio.config.tints.filter(configFilter))) {
+                        data.update(d => d.modules.vtubeStudio.state.tints.push({
+                            id: generateID(),
+                            userID: event.userID,
+                            userName: event.userName,
+                            configID: colorTintConfig.id,
+                            redeemTime: Date.now(),
+                        }))
+                    }
+                    for (const subathonTrigger of data.get(d => d.modules.subathon.config.triggers.filter(t => configFilter({ triggerType: t.type, ...t })))) {
+                        processSubathonContribution(subathonTrigger, event.type === 'sub' ? 1 : event.type === 'bits' ? event.amount : event.type === 'reward' ? event.cost : 1)
+                    }
+                }
+
                 if (actualScopes.includes('channel:read:subscriptions') && actualScopes.includes('channel_subscriptions')) {
                     pubSubClient.onSubscription(id, msg => {
-                        const subathonTriggers = data.get(d => d.modules.subathon.config.triggers.filter(t => t.type === 'sub'))
-                        for (const t of subathonTriggers) processSubathonContribution(t, 1)
+                        processTriggerEvent({ type: 'sub', userID: msg.userId, userName: msg.userDisplayName, message: msg.message?.message ?? '' })
                     })
                 }
 
                 if (actualScopes.includes('bits:read')) {
                     pubSubClient.onBits(id, msg => {
-                        const subathonTriggers = data.get(d => d.modules.subathon.config.triggers.filter(t => t.type === 'bits'))
-                        for (const t of subathonTriggers) processSubathonContribution(t, msg.bits)
+                        processTriggerEvent({ type: 'bits', amount: msg.bits, userID: msg.userId ?? '', userName: msg.userName ?? '', message: msg.message })
                     })
                 }
 
@@ -733,93 +872,8 @@ async function run() {
                                 }
                                 break
                         }
-                        const modeConfig = data.get(d => d.modules.modeQueue.config.modes.find(m => m.redeemID === msg.rewardId || m.redeemName.trim() === msg.rewardName.trim()))
-                        if (modeConfig) {
-                            const id = generateID()
-                            data.update(d => {
-                                d.modules.modeQueue.state.modes.push({
-                                    id,
-                                    configID: modeConfig.id,
-                                    userID: msg.userId,
-                                    userName: msg.userDisplayName,
-                                    message: '',
-                                    amount: 1,
-                                    redeemTime: Date.now(),
-                                    visible: true,
-                                    startTime: modeConfig.autoStart ? Date.now() : undefined,
-                                    duration: modeConfig.autoStart ? modeConfig.duration * 60 * 1000 : undefined,
-                                })
-                            })
-                            if (modeConfig.autoStart && modeConfig.autoEnd) {
-                                setTimeout(() => {
-                                    data.update(d => {
-                                        d.modules.modeQueue.state.modes = d.modules.modeQueue.state.modes.filter(m => m.id !== id)
-                                    })
-                                }, modeConfig.duration * 60 * 1000)
-                            }
-                        }
-                        const isVodConfig = data.get(d => d.modules.vodQueue.config.redeemID === msg.rewardId || d.modules.vodQueue.config.redeemName.trim() === msg.rewardName.trim())
-                        if (isVodConfig) {
-                            data.update(d => d.modules.vodQueue.state.entries.push({
-                                id: generateID(),
-                                user: { id: msg.userId, name: msg.userName },
-                                time: Date.now(),
-                                context: msg.message,
-                            }))
-                        }
-                        const counterConfig = data.get(d => d.modules.counters.config.configs.find(c => c.redeemID === msg.rewardId || c.redeemName.trim() === msg.rewardName.trim()))
-                        if (counterConfig) {
-                            const counter = data.get(d => d.modules.counters.state.counters[counterConfig.id])
-                            data.update(d => d.modules.counters.state.counters[counterConfig.id] = {
-                                ...counter,
-                                count: (counter?.count ?? 0) + 1,
-                                time: Date.now(),
-                            })
-                        }
-                        const soundConfig = data.get(d => d.modules.sounds.config.sounds.find(c => c.redeemID === msg.rewardId || c.redeemName.trim() === msg.rewardName.trim()))
-                        if (soundConfig) {
-                            data.update(d => d.modules.sounds.state.sounds.push({
-                                id: generateID(),
-                                userID: msg.userId,
-                                userName: msg.userDisplayName,
-                                configID: soundConfig.id,
-                                redeemTime: Date.now(),
-                            }))
-                        }
-                        const modelSwapConfig = data.get(d => d.modules.vtubeStudio.config.swaps.find(c => c.redeemID === msg.rewardId || c.redeemName.trim() === msg.rewardName.trim()))
-                        if (modelSwapConfig) {
-                            data.update(d => d.modules.vtubeStudio.state.swaps.push({
-                                id: generateID(),
-                                userID: msg.userId,
-                                userName: msg.userDisplayName,
-                                configID: modelSwapConfig.id,
-                                redeemTime: Date.now(),
-                            }))
-                        }
-                        const hotkeyTriggerConfig = data.get(d => d.modules.vtubeStudio.config.triggers.find(c => c.redeemID === msg.rewardId || c.redeemName.trim() === msg.rewardName.trim()))
-                        if (hotkeyTriggerConfig) {
-                            data.update(d => d.modules.vtubeStudio.state.triggers.push({
-                                id: generateID(),
-                                userID: msg.userId,
-                                userName: msg.userDisplayName,
-                                configID: hotkeyTriggerConfig.id,
-                                redeemTime: Date.now(),
-                            }))
-                        }
 
-                        const colorTintConfig = data.get(d => d.modules.vtubeStudio.config.tints.find(c => c.redeemID === msg.rewardId || c.redeemName.trim() === msg.rewardName.trim()))
-                        if (colorTintConfig) {
-                            data.update(d => d.modules.vtubeStudio.state.tints.push({
-                                id: generateID(),
-                                userID: msg.userId,
-                                userName: msg.userDisplayName,
-                                configID: colorTintConfig.id,
-                                redeemTime: Date.now(),
-                            }))
-                        }
-
-                        const subathonTriggers = data.get(d => d.modules.subathon.config.triggers.filter(t => t.type === 'reward' && (t.redeemID === msg.rewardId || t.redeemName.trim() === msg.rewardName.trim())))
-                        for (const t of subathonTriggers) processSubathonContribution(t, msg.rewardCost)
+                        processTriggerEvent({ type: 'reward', rewardId: msg.rewardId, rewardName: msg.rewardName, cost: msg.rewardCost, userID: msg.userId, userName: msg.userDisplayName, message: msg.message })
                     })
                 }
 
@@ -937,21 +991,20 @@ async function run() {
                         return true
                     },
                     'modequeue/add-mode': args => {
-                        data.update(d => {
-                            d.modules.modeQueue.config.modes.push({
-                                id: generateID(),
-                                redeemID: '',
-                                redeemName: '',
-                                emote: null,
-                                showUsername: false,
-                                startText: 'Mode redeemed!',
-                                runningText: 'Redeemed mode is active for [secondsLeft] more [seconds]!',
-                                endText: 'Redeemed mode is done!',
-                                duration: 10,
-                                ...args,
-                            })
-                        })
-                        return true
+                        const config: ModeQueueModeConfig = {
+                            id: generateID(),
+                            redeemID: '',
+                            redeemName: '',
+                            emote: null,
+                            showUsername: false,
+                            startText: 'Mode redeemed!',
+                            runningText: 'Redeemed mode is active for [secondsLeft] more [seconds]!',
+                            endText: 'Redeemed mode is done!',
+                            duration: 10,
+                            ...args,
+                        }
+                        data.update(d => d.modules.modeQueue.config.modes.push(config))
+                        return config
                     },
                     'modequeue/edit-mode': args => {
                         let updated = false
@@ -984,7 +1037,7 @@ async function run() {
                         return true
                     },
                     'modequeue/mock': args => {
-                        const config = data.get(d => d.modules.modeQueue.config.modes.find(c => c.id === args.configID))
+                        const config = data.get(d => d.modules.modeQueue.config.modes.find(c => c.id === args.id))
                         if (config) {
                             const id = generateID()
                             data.update(d => {
@@ -992,7 +1045,7 @@ async function run() {
                                     id,
                                     configID: config.id,
                                     userID: '',
-                                    userName: args.username,
+                                    userName: 'Anonymous',
                                     message: '',
                                     amount: 1,
                                     redeemTime: Date.now(),
@@ -1094,16 +1147,15 @@ async function run() {
                         return true
                     },
                     'custommessage/add-message': args => {
-                        data.update(d => {
-                            d.modules.customMessage.state.messages.push({
-                                id: generateID(),
-                                emote: null,
-                                message: '',
-                                visible: false,
-                                ...args,
-                            })
-                        })
-                        return true
+                        const config: CustomMessage = {
+                            id: generateID(),
+                            emote: null,
+                            message: '',
+                            visible: false,
+                            ...args,
+                        }
+                        data.update(d => d.modules.customMessage.state.messages.push(config))
+                        return config
                     },
                     'custommessage/edit-message': args => {
                         let updated = false
@@ -1136,20 +1188,19 @@ async function run() {
                         return true
                     },
                     'counters/add-config': args => {
-                        data.update(d => {
-                            d.modules.counters.config.configs.push({
-                                id: generateID(),
-                                redeemID: '',
-                                redeemName: '',
-                                emote: null,
-                                message: 'redeemed',
-                                visibility: CounterVisibility.whenRedeemed,
-                                duration: 5,
-                                maximum: null,
-                                ...args,
-                            })
-                        })
-                        return true
+                        const config = {
+                            id: generateID(),
+                            redeemID: '',
+                            redeemName: '',
+                            emote: null,
+                            message: 'redeemed',
+                            visibility: CounterVisibility.whenRedeemed,
+                            duration: 5,
+                            maximum: null,
+                            ...args,
+                        }
+                        data.update(d => d.modules.counters.config.configs.push(config))
+                        return config
 
                     },
                     'counters/edit-config': args => {
@@ -1185,21 +1236,20 @@ async function run() {
                         return true
                     },
                     'sounds/add-config': args => {
-                        data.update(d => {
-                            d.modules.sounds.config.sounds.push({
-                                id: generateID(),
-                                redeemID: '',
-                                redeemName: '',
-                                emote: null,
-                                showUsername: true,
-                                displayName: '',
-                                volume: 1,
-                                fileName: '',
-                                type: 'one',
-                                ...args,
-                            })
-                        })
-                        return true
+                        const config: SoundConfig = {
+                            id: generateID(),
+                            redeemID: '',
+                            redeemName: '',
+                            emote: null,
+                            showUsername: true,
+                            displayName: '',
+                            volume: 1,
+                            fileName: '',
+                            type: 'one',
+                            ...args,
+                        }
+                        data.update(d => d.modules.sounds.config.sounds.push(config))
+                        return config
                     },
                     'sounds/edit-config': args => {
                         let updated = false
@@ -1257,9 +1307,9 @@ async function run() {
                         data.update(d => {
                             d.modules.sounds.state.sounds.push({
                                 id: generateID(),
-                                configID: args.configID,
+                                configID: args.id,
                                 userID: '',
-                                userName: args.username,
+                                userName: 'Anonymous',
                                 redeemTime: Date.now(),
                             })
                         })
@@ -1272,21 +1322,20 @@ async function run() {
                         return true
                     },
                     'vtstudio/add-model-swap': args => {
-                        data.update(d => {
-                            d.modules.vtubeStudio.config.swaps.push({
-                                id: generateID(),
-                                redeemID: '',
-                                redeemName: '',
-                                emote: null,
-                                showUsername: false,
-                                message: '',
-                                duration: 2,
-                                type: 'one',
-                                models: [],
-                                ...args,
-                            })
-                        })
-                        return true
+                        const config: ModelSwapConfig = {
+                            id: generateID(),
+                            redeemID: '',
+                            redeemName: '',
+                            emote: null,
+                            showUsername: false,
+                            message: '',
+                            duration: 2,
+                            type: 'one',
+                            models: [],
+                            ...args,
+                        }
+                        data.update(d => d.modules.vtubeStudio.config.swaps.push(config))
+                        return config
                     },
                     'vtstudio/edit-model-swap': args => {
                         let updated = false
@@ -1313,13 +1362,15 @@ async function run() {
                         return true
                     },
                     'vtstudio/mock-model-swap': args => {
+                        const { id: configID, ...rest } = args
                         data.update(d => {
                             d.modules.vtubeStudio.state.swaps.push({
                                 id: generateID(),
-                                configID: args.configID,
+                                configID,
                                 userID: '',
                                 userName: 'Anonymous',
                                 redeemTime: Date.now(),
+                                ...rest,
                             })
                         })
                         return true
@@ -1331,21 +1382,20 @@ async function run() {
                         return true
                     },
                     'vtstudio/add-hotkey-trigger': args => {
-                        data.update(d => {
-                            d.modules.vtubeStudio.config.triggers.push({
-                                id: generateID(),
-                                redeemID: '',
-                                redeemName: '',
-                                emote: null,
-                                showUsername: false,
-                                message: '',
-                                duration: 2,
-                                type: 'one',
-                                hotkeys: [],
-                                ...args,
-                            })
-                        })
-                        return true
+                        const config: TriggerHotkeyConfig = {
+                            id: generateID(),
+                            redeemID: '',
+                            redeemName: '',
+                            emote: null,
+                            showUsername: false,
+                            message: '',
+                            duration: 2,
+                            type: 'one',
+                            hotkeys: [],
+                            ...args,
+                        }
+                        data.update(d => d.modules.vtubeStudio.config.triggers.push(config))
+                        return config
                     },
                     'vtstudio/edit-hotkey-trigger': args => {
                         let updated = false
@@ -1372,13 +1422,15 @@ async function run() {
                         return true
                     },
                     'vtstudio/mock-hotkey-trigger': args => {
+                        const { id: configID, ...rest } = args
                         data.update(d => {
                             d.modules.vtubeStudio.state.triggers.push({
                                 id: generateID(),
-                                configID: args.configID,
+                                configID,
                                 userID: '',
                                 userName: 'Anonymous',
                                 redeemTime: Date.now(),
+                                ...rest,
                             })
                         })
                         return true
@@ -1390,23 +1442,22 @@ async function run() {
                         return true
                     },
                     'vtstudio/add-color-tint': args => {
-                        data.update(d => {
-                            d.modules.vtubeStudio.config.tints.push({
-                                id: generateID(),
-                                redeemID: '',
-                                redeemName: '',
-                                emote: null,
-                                showUsername: false,
-                                message: '',
-                                duration: 2,
-                                type: 'all',
-                                color: { r: 255, g: 255, b: 255, a: 255 },
-                                matches: [],
-                                rainbowSpeed: 1,
-                                ...args,
-                            })
-                        })
-                        return true
+                        const config: ColorTintConfig = {
+                            id: generateID(),
+                            redeemID: '',
+                            redeemName: '',
+                            emote: null,
+                            showUsername: false,
+                            message: '',
+                            duration: 2,
+                            type: 'all',
+                            color: { r: 255, g: 255, b: 255, a: 255 },
+                            matches: [],
+                            rainbowSpeed: 1,
+                            ...args,
+                        }
+                        data.update(d => d.modules.vtubeStudio.config.tints.push(config))
+                        return config
                     },
                     'vtstudio/edit-color-tint': args => {
                         let updated = false
@@ -1433,13 +1484,15 @@ async function run() {
                         return true
                     },
                     'vtstudio/mock-color-tint': args => {
+                        const { id: configID, ...rest } = args
                         data.update(d => {
                             d.modules.vtubeStudio.state.tints.push({
                                 id: generateID(),
-                                configID: args.configID,
+                                configID,
                                 userID: '',
                                 userName: 'Anonymous',
                                 redeemTime: Date.now(),
+                                ...rest,
                             })
                         })
                         return true
@@ -1469,6 +1522,7 @@ async function run() {
                                 d.modules.subathon.state.running = false
                                 d.modules.subathon.state.startTime = null
                                 d.modules.subathon.state.remainingTime = d.modules.subathon.config.duration
+                                d.modules.subathon.state.elapsedTime = 0
                                 d.modules.subathon.state.subCount = 0
                                 d.modules.subathon.state.bitCount = 0
                                 d.modules.subathon.state.pointCount = 0
@@ -1577,6 +1631,15 @@ async function run() {
                         })
                         return true
                     },
+                    'beatsaber/set-config': args => {
+                        data.update(d => {
+                            d.modules.beatsaber.config = {
+                                ...d.modules.beatsaber.config,
+                                ...args,
+                            }
+                        })
+                        return true
+                    },
                     'channelinfo/set-config': args => {
                         data.update(d => {
                             d.modules.channelInfo.config = {
@@ -1587,7 +1650,15 @@ async function run() {
                         return true
                     },
                     'channelinfo/get-icons': async args => {
-                        return await getAllIcons(client, id, args.forceReload)
+                        try {
+                            return await getAllIcons(client, id, args.forceReload)
+                        } catch (e) {
+                            if (String(e).includes('Invalid refresh token')) {
+                                data.update(d => d.tokenInvalid = true)
+                            }
+                            logError(name, 'channelinfo/get-icons', e)
+                            return {}
+                        }
                     },
                     'tts/speak': async args => {
                         try {
@@ -1600,8 +1671,16 @@ async function run() {
                         }
                     },
                     'twitch/rewards': async args => {
-                        const rewards = await client.helix.channelPoints.getCustomRewards(id, false)
-                        return rewards.map(r => ({ id: r.id, name: r.title }))
+                        try {
+                            const rewards = await client.helix.channelPoints.getCustomRewards(id, false)
+                            return rewards.map(r => ({ id: r.id, name: r.title }))
+                        } catch (e) {
+                            if (String(e).includes('Invalid refresh token')) {
+                                data.update(d => d.tokenInvalid = true)
+                            }
+                            logError(name, 'twitch/rewards', e)
+                            return []
+                        }
                     },
                     'debug/reload': args => {
                         refreshTime = Date.now()
@@ -1646,7 +1725,27 @@ async function run() {
                                 }
                         }
                         return false
-                    }
+                    },
+                    'admin/lock-channel': (args, msg) => {
+                        if (!isSuperUser(msg.username)) return false
+                        data.lock()
+                        return true
+                    },
+                    'admin/unlock-channel': (args, msg) => {
+                        if (!isSuperUser(msg.username)) return false
+                        data.unlock()
+                        return true
+                    },
+                    'admin/reload-channel': async (args, msg) => {
+                        if (!isSuperUser(msg.username)) return false
+                        const tokenPath = getTokenPath(AccountType.channel, name)
+                        const dataFromFile = await readJSON<ChannelData>(tokenPath)
+                        if (dataFromFile) {
+                            data.unlock()
+                            data.set(() => dataFromFile)
+                        }
+                        return true
+                    },
                 }
 
                 const views: ChannelViews = {
@@ -1673,11 +1772,13 @@ async function run() {
                         tokenScopes: actualScopes,
                         panels: MODULE_TYPES,
                         changelog,
+                        tokenInvalid: data.get(d => d.tokenInvalid ?? false),
                         ...args,
                     }),
                     'overlay-app': async (args, msg) => ({
                         ...getChannelViewData(msg),
                         modules: data.get(d => d.modules),
+                        tokenInvalid: data.get(d => d.tokenInvalid ?? false),
                         ...args,
                     }),
                 }
@@ -1711,10 +1812,12 @@ async function run() {
                 router.get('/', async (req, res) => {
                     if (!hasTwitchAuth(req)) return respondTwitchAuthRedirect(res)
                     if (!hasChannelAuth(req, name)) return respondChannelAuthMessage(req, res)
+                    data.update(d => d.accessTimes[req.session.twitchUserName ?? ''] = Date.now())
                     await renderChannelView(req, res, 'channel', {})
                 })
 
                 router.get('/overlay/', async (req, res) => {
+                    data.update(d => d.overlayAccessTime = Date.now())
                     await renderChannelView(req, res, 'overlay', {})
                 })
 
@@ -1953,6 +2056,17 @@ async function run() {
         'debug/send-logs': (args) => {
             for (const msg of args.logs) logMessage(msg)
             return true
+        },
+        'admin/heapdump': async (args, msg) => {
+            if (!isSuperUser(msg.username)) return false
+            try {
+                const v8 = require('v8')
+                await fs.writeFile(`${new Date().toJSON().replace(/[:]/g, '-').replace('T', ' ').replace('Z', '').replace('.', '_')}.heapsnapshot`, v8.getHeapSnapshot())
+                return true
+            } catch (e) {
+                logError('global', 'admin/heapdump', e)
+                return false
+            }
         },
     }
 

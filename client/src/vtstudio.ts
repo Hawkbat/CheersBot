@@ -44,8 +44,11 @@ export function useVTubeStudioConnection(props: { type: 'control-panel' | 'overl
         try {
             await cb()
         } catch (e) {
-            logError(CHANNEL_NAME, 'vts', 'Error excuting VTube Studio command', e)
-            setApiError(e)
+            // Swallow authentication errors, to prevent clogging up the global logs
+            if (!String(e).includes('Plugin could not authenticate')) {
+                logError(CHANNEL_NAME, 'vts', 'Error excuting VTube Studio command', e)
+                setApiError(e)
+            }
         }
     }, [])
 
@@ -59,7 +62,8 @@ export function useVTubeStudioProcessing(props: { enabled: boolean, connected: b
 
     const setStatus = useDebounce(React.useCallback(async () => {
         if (!props.enabled) return
-        await channelAction('vtstudio/set-status', { time: Date.now(), connected: props.connected, apiError: props.apiError ? JSON.stringify(props.apiError) : '', readyState: props.client.ws.readyState })
+        const clearError = !props.state.status.connected && props.connected
+        await channelAction('vtstudio/set-status', { time: Date.now(), connected: props.connected, apiError: props.apiError && !clearError ? JSON.stringify(props.apiError) : '', readyState: props.client.ws.readyState })
     }, [props.enabled, props.connected, props.apiError, props.client.ws.readyState]))
 
     useRepeatingEffect(setStatus, 25000, true)
@@ -108,6 +112,11 @@ export function useVTubeStudioProcessing(props: { enabled: boolean, connected: b
                                     })
                                 }
                             })()
+                        } else if (config.after === 'config' && config.afterConfig) {
+                            (async () => {
+                                await wait(Math.max((config.revertDelay ?? config.duration) * 1000, VTS_MODEL_SWAP_COOLDOWN) + 100)
+                                await channelAction('vtstudio/mock-model-swap', { id: config.afterConfig ?? '', userID: swap.userID, userName: swap.userName })
+                            })()
                         }
 
                         await (async () => {
@@ -148,6 +157,11 @@ export function useVTubeStudioProcessing(props: { enabled: boolean, connected: b
                                     await wait((config.retriggerDelay ?? config.duration) * 1000 + 100)
                                     await Promise.all(selectedHotkeys.map(h => h.trigger()))
                                 })()
+                            } else if (config.after === 'config' && config.afterConfig) {
+                                (async () => {
+                                    await wait((config.retriggerDelay ?? config.duration) * 1000 + 100)
+                                    await channelAction('vtstudio/mock-hotkey-trigger', { id: config.afterConfig ?? '', userID: trigger.userID, userName: trigger.userName })
+                                })()
                             }
                             await Promise.all(selectedHotkeys.map(h => h.trigger()))
                             await (async () => {
@@ -185,6 +199,11 @@ export function useVTubeStudioProcessing(props: { enabled: boolean, connected: b
                                 } else if (config.type === 'match') {
                                     await Promise.all(config.matches.map(m => currentModel.colorTint({ r: 255, g: 255, b: 255 }, { nameExact: m.names, tagExact: m.tags })))
                                 }
+                            })()
+                        } else if (config.after === 'config' && config.afterConfig) {
+                            (async () => {
+                                await wait((config.resetDelay ?? config.duration) * 1000 + 100)
+                                await channelAction('vtstudio/mock-color-tint', { id: config.afterConfig ?? '', userID: tint.userID, userName: tint.userName })
                             })()
                         }
                         await Promise.all([

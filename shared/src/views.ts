@@ -1,12 +1,13 @@
 import { AccessMap, IconMap, TwitchReward } from './data'
 import { Icon, AccountType, Access, Changelog } from './data'
 import { LogMessage } from './logging'
-import { ModuleType, ModeQueueModeConfig, VodQueueConfigData, CustomMessage, CounterConfig, Counter, ModuleDataType, SoundConfig, ChannelInfoConfigData, ModelSwapConfig, TriggerHotkeyConfig, VTubeStudioConfigData, WinLossConfigData, ColorTintConfig, VTubeStudioStateData, DebugConfigData, SubathonConfigData, SubathonTriggerConfig } from './modules'
+import { ModuleType, ModeQueueModeConfig, VodQueueConfigData, CustomMessage, CounterConfig, Counter, ModuleDataType, SoundConfig, ChannelInfoConfigData, ModelSwapConfig, TriggerHotkeyConfig, VTubeStudioConfigData, WinLossConfigData, ColorTintConfig, VTubeStudioStateData, DebugConfigData, SubathonConfigData, SubathonTriggerConfig, BeatsaberConfigData, ModelSwapState, HotkeyTriggerState, ColorTintState } from './modules'
 
 export interface BaseViewData {
     meta: MessageMeta
     refreshTime: number
     isGirlDm: boolean
+    isSuperUser: boolean
 }
 
 export interface GlobalBaseViewData extends BaseViewData {
@@ -57,10 +58,12 @@ export interface ControlPanelAppViewData extends ChannelBaseViewData {
     channels: string[]
     panels: ModuleType[]
     changelog: Changelog
+    tokenInvalid: boolean
 }
 
 export interface OverlayAppViewData extends ChannelBaseViewData {
     modules: { [key in ModuleType]: ModuleDataType<key> }
+    tokenInvalid: boolean
 }
 
 export interface LandingAppViewData extends GlobalBaseViewData {
@@ -104,11 +107,11 @@ export interface ChannelActions {
     'evildm/set-emote': (args: { emote: Icon | null }, msg: MessageMeta) => boolean
     'modequeue/start': (args: { id: string, duration: number }, msg: MessageMeta) => boolean
     'modequeue/clear': (args: { id: string }, msg: MessageMeta) => boolean
-    'modequeue/add-mode': (args: Partial<ModeQueueModeConfig>, msg: MessageMeta) => boolean
+    'modequeue/add-mode': (args: Partial<ModeQueueModeConfig>, msg: MessageMeta) => ModeQueueModeConfig
     'modequeue/edit-mode': (args: { id: string } & Partial<ModeQueueModeConfig>, msg: MessageMeta) => boolean
     'modequeue/delete-mode': (args: { id: string }, msg: MessageMeta) => boolean
     'modequeue/set-alarm-volume': (args: { volume: number }, msg: MessageMeta) => boolean
-    'modequeue/mock': (args: { configID: string, username: string }) => boolean
+    'modequeue/mock': (args: { id: string }) => boolean
     'winloss/set-displayed': (args: { display: boolean }, msg: MessageMeta) => boolean
     'winloss/adjust-wins': (args: { delta: number }, msg: MessageMeta) => boolean
     'winloss/adjust-losses': (args: { delta: number }, msg: MessageMeta) => boolean
@@ -121,35 +124,35 @@ export interface ChannelActions {
     'vodqueue/set-config': (args: Partial<VodQueueConfigData>, msg: MessageMeta) => boolean
     'vodqueue/delete-entry': (args: { id: string }, msg: MessageMeta) => boolean
     'vodqueue/mock': (args: {}, msg: MessageMeta) => boolean
-    'custommessage/add-message': (args: Partial<CustomMessage>, msg: MessageMeta) => boolean
+    'custommessage/add-message': (args: Partial<CustomMessage>, msg: MessageMeta) => CustomMessage
     'custommessage/edit-message': (args: { id: string } & Partial<CustomMessage>, msg: MessageMeta) => boolean
     'custommessage/delete-message': (args: { id: string }, msg: MessageMeta) => boolean
     'counters/set-count': (args: { id: string } & Counter, msg: MessageMeta) => boolean
-    'counters/add-config': (args: Partial<CounterConfig>, msg: MessageMeta) => boolean
+    'counters/add-config': (args: Partial<CounterConfig>, msg: MessageMeta) => CounterConfig
     'counters/edit-config': (args: { id: string } & Partial<CounterConfig>, msg: MessageMeta) => boolean
     'counters/delete-config': (args: { id: string }, msg: MessageMeta) => boolean
     'sounds/remove-redeem': (args: { id: string }, msg: MessageMeta) => boolean
-    'sounds/add-config': (args: Partial<SoundConfig>, msg: MessageMeta) => boolean
+    'sounds/add-config': (args: Partial<SoundConfig>, msg: MessageMeta) => SoundConfig
     'sounds/edit-config': (args: { id: string } & Partial<SoundConfig>, msg: MessageMeta) => boolean
     'sounds/delete-config': (args: { id: string }, msg: MessageMeta) => boolean
     'sounds/add-upload': (args: { fileName: string, data: string }, msg: MessageMeta) => Promise<boolean>
     'sounds/delete-upload': (args: { fileName: string }, msg: MessageMeta) => Promise<boolean>
-    'sounds/mock': (args: { configID: string, username: string }, msg: MessageMeta) => boolean
+    'sounds/mock': (args: { id: string }, msg: MessageMeta) => boolean
     'vtstudio/complete-model-swap': (args: { id: string }, msg: MessageMeta) => boolean
-    'vtstudio/add-model-swap': (args: Partial<ModelSwapConfig>, msg: MessageMeta) => boolean
+    'vtstudio/add-model-swap': (args: Partial<ModelSwapConfig>, msg: MessageMeta) => ModelSwapConfig
     'vtstudio/edit-model-swap': (args: { id: string } & Partial<ModelSwapConfig>, msg: MessageMeta) => boolean
     'vtstudio/delete-model-swap': (args: { id: string }, msg: MessageMeta) => boolean
-    'vtstudio/mock-model-swap': (args: { configID: string }, msg: MessageMeta) => boolean
+    'vtstudio/mock-model-swap': (args: { id: string } & Partial<ModelSwapState>, msg: MessageMeta) => boolean
     'vtstudio/complete-hotkey-trigger': (args: { id: string }, msg: MessageMeta) => boolean
-    'vtstudio/add-hotkey-trigger': (args: Partial<TriggerHotkeyConfig>, msg: MessageMeta) => boolean
+    'vtstudio/add-hotkey-trigger': (args: Partial<TriggerHotkeyConfig>, msg: MessageMeta) => TriggerHotkeyConfig
     'vtstudio/edit-hotkey-trigger': (args: { id: string } & Partial<TriggerHotkeyConfig>, msg: MessageMeta) => boolean
     'vtstudio/delete-hotkey-trigger': (args: { id: string }, msg: MessageMeta) => boolean
-    'vtstudio/mock-hotkey-trigger': (args: { configID: string }, msg: MessageMeta) => boolean
+    'vtstudio/mock-hotkey-trigger': (args: { id: string } & Partial<HotkeyTriggerState>, msg: MessageMeta) => boolean
     'vtstudio/complete-color-tint': (args: { id: string }, msg: MessageMeta) => boolean
-    'vtstudio/add-color-tint': (args: Partial<ColorTintConfig>, msg: MessageMeta) => boolean
+    'vtstudio/add-color-tint': (args: Partial<ColorTintConfig>, msg: MessageMeta) => ColorTintConfig
     'vtstudio/edit-color-tint': (args: { id: string } & Partial<ColorTintConfig>, msg: MessageMeta) => boolean
     'vtstudio/delete-color-tint': (args: { id: string }, msg: MessageMeta) => boolean
-    'vtstudio/mock-color-tint': (args: { configID: string }, msg: MessageMeta) => boolean
+    'vtstudio/mock-color-tint': (args: { id: string } & Partial<ColorTintState>, msg: MessageMeta) => boolean
     'vtstudio/edit-config': (args: Partial<VTubeStudioConfigData>, msg: MessageMeta) => boolean
     'vtstudio/set-status': (args: VTubeStudioStateData['status'], msg: MessageMeta) => boolean
     'subathon/set-active': (args: { active: boolean }, msg: MessageMeta) => boolean
@@ -163,6 +166,7 @@ export interface ChannelActions {
     'subathon/delete-trigger': (args: { id: string }, msg: MessageMeta) => boolean
     'subathon/set-config': (args: Partial<SubathonConfigData>, msg: MessageMeta) => boolean
     'subathon/mock': (args: { triggerID: string }, msg: MessageMeta) => boolean
+    'beatsaber/set-config': (args: Partial<BeatsaberConfigData>, msg: MessageMeta) => boolean
     'channelinfo/set-config': (args: Partial<ChannelInfoConfigData>, msg: MessageMeta) => boolean
     'channelinfo/get-icons': (args: { forceReload: boolean }, msg: MessageMeta) => Promise<IconMap>
     'tts/speak': (args: { voice: string, text: string, style: string, pitch: number }, msg: MessageMeta) => Promise<string>
@@ -172,6 +176,9 @@ export interface ChannelActions {
     'debug/set-config': (args: Partial<DebugConfigData>, msg: MessageMeta) => boolean
     'config/enable-module': (args: { type: ModuleType, enabled: boolean }, msg: MessageMeta) => boolean
     'access/set': (args: { userType: AccountType, targetType: AccountType, id: string, access: Access }, msg: MessageMeta) => boolean
+    'admin/lock-channel': (args: {}, msg: MessageMeta) => boolean
+    'admin/unlock-channel': (args: {}, msg: MessageMeta) => boolean
+    'admin/reload-channel': (args: {}, msg: MessageMeta) => Promise<boolean>
 }
 
 export interface ChannelViews {
@@ -195,6 +202,7 @@ export interface GlobalActions {
     'access/request': (args: { channel: string }, msg: MessageMeta) => boolean
     'access/set': (args: { userType: AccountType, targetType: AccountType, id: string, access: Access }, msg: MessageMeta) => boolean
     'debug/send-logs': (args: { logs: LogMessage[] }, msg: MessageMeta) => boolean
+    'admin/heapdump': (args: {}, msg: MessageMeta) => Promise<boolean>
 }
 
 export interface GlobalViews {

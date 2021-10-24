@@ -16,8 +16,8 @@ export function VTubeStudioIndicator(props: { type: 'overlay' | 'control-panel',
         </PanelField> : null}
         {!props.connected ? <PanelField>
             {props.type === 'control-panel' ?
-                <Alert type="warn" tooltip={`Connection status: ${['Connecting', 'Connected', 'Disconnecting', 'Disconnected'][props.readyState ?? 3]}`}>Not connected to VTube Studio. Redeems will not work and lists will not populate until the connection is reestablished.</Alert> :
-                <Alert type="warn">The overlay is not connected to VTube Studio. Redeems will not work until the connection is reestablished.</Alert>
+                <Alert type="warn" tooltip={`Connection status: ${['Connecting', 'Connected', 'Disconnecting', 'Disconnected'][props.readyState ?? 3]}`}>Not connected to VTube Studio. Model, hotkey, and artmesh lists will not populate until the connection is reestablished.</Alert> :
+                <Alert type="warn">The overlay is not connected to VTube Studio. Redeems will not work until the connection is reestablished. Make sure both OBS and VTube Studio are running and that the plugin API is enabled.</Alert>
             }
         </PanelField> : null}
         {props.apiError ? <PanelField>

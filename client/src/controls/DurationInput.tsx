@@ -2,6 +2,7 @@ import React from 'react'
 import { safeParseFloat } from 'shared'
 
 export function DurationInput(props: { value: number, readOnly?: boolean, disabled?: boolean, onChange?: (value: number) => void }) {
+
     const hours = Math.floor(props.value / (60 * 60 * 1000))
     const minutes = Math.floor((props.value - hours * 60 * 60 * 1000) / (60 * 1000))
     const seconds = (props.value - hours * 60 * 60 * 1000 - minutes * 60 * 1000) / 1000

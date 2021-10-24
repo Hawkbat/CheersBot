@@ -16,7 +16,7 @@ export interface AccessMap {
 }
 
 export interface Icon {
-    type: 'emote' | 'badge' | 'ffz' | 'bttv' | 'discord' | 'logo' | 'fa-brand'
+    type: 'emote' | 'badge' | 'ffz' | 'bttv' | 'discord' | 'logo' | 'fa-brand' | 'url'
     id: string
     name: string
 }

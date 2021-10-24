@@ -1,5 +1,6 @@
 import { ModuleVersion } from '../data'
 import { BackdropModule } from './backdrop'
+import { BeatsaberModule } from './beatsaber'
 import { ChannelInfoModule } from './channelinfo'
 import { CountersModule } from './counters'
 import { CustomMessageModule } from './custommessage'
@@ -8,6 +9,7 @@ import { EventQueueModule } from './eventqueue'
 import { EvilDmModule } from './evildm'
 import { HeadpatsModule } from './headpat'
 import { ModeQueueModule } from './modequeue'
+import { OBSModule } from './obs'
 import { SoundsModule } from './sounds'
 import { SubathonModule } from './subathon'
 import { UserQueueModule } from './userqueue'
@@ -50,6 +52,8 @@ export const MODULES = {
     sounds: SoundsModule,
     vtubeStudio: VTubeStudioModule,
     subathon: SubathonModule,
+    beatsaber: BeatsaberModule,
+    obs: OBSModule,
     eventQueue: EventQueueModule,
     channelInfo: ChannelInfoModule,
     debug: DebugModule,
@@ -66,3 +70,17 @@ export function getModule<T extends ModuleType>(type: T): typeof MODULES[T] {
 }
 
 export type ModuleMap = { [key in ModuleType]: ModuleDataType<key> }
+
+export interface BaseItemConfig {
+    id: string
+    archived?: boolean
+}
+
+export interface TriggerConfig extends BaseItemConfig {
+    triggerType?: 'reward' | 'sub' | 'bits'
+    triggerAmount?: number
+    redeemID: string
+    redeemName: string
+}
+
+export type TriggerEvent = ({ type: 'sub' } | { type: 'bits', amount: number } | { type: 'reward', rewardId: string, rewardName: string, cost: number }) & { userID: string, userName: string, message: string }

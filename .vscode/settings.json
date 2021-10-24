@@ -5,5 +5,10 @@
         "**/out/": true,
         "secrets.json": true,
         "**/package-lock.json": true,
+    },
+    "debug.javascript.terminalOptions": {
+        "skipFiles": [
+            "<node_internals>/**"
+        ]
     }
 }

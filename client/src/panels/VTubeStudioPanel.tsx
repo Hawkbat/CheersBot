@@ -4,11 +4,8 @@ import { PanelField } from '../controls/PanelField'
 import { channelAction, useRepeatingEffect } from '../utils'
 import { Dropdown, DropdownOption } from '../controls/Dropdown'
 import { Button } from '../controls/Button'
-import { TwitchRewardDropdown } from '../controls/TwitchRewardDropdown'
 import { useVTubeStudioConnection, useVTubeStudioProcessing } from '../vtstudio'
-import { Expander } from '../controls/Expander'
 import { ExternalIconPicker } from '../controls/ExternalIconPicker'
-import { Fold } from '../controls/Fold'
 import { TagList } from '../controls/TagList'
 import { Toggle } from '../controls/Toggle'
 import { QueuedSwap } from '../controls/QueuedSwap'
@@ -16,27 +13,13 @@ import { QueuedTrigger } from '../controls/QueuedTrigger'
 import { QueuedTint } from '../controls/QueuedTint'
 import { ColorPicker } from '../controls/ColorPicker'
 import { VTubeStudioIndicator } from '../controls/VTubeStudioIndicator'
+import { ConfigList } from 'src/controls/ConfigList'
 
 export function VTubeStudioPanel(props: ControlPanelAppViewData & ModuleDataType<'vtubeStudio'> & PanelViewDataProps) {
-    const [tested, setTested] = React.useState('')
     const [models, setModels] = React.useState<{ id: string, name: string }[]>([])
     const [hotkeys, setHotkeys] = React.useState<{ id: string, name: string }[]>([])
     const [artMeshNames, setArtMeshNames] = React.useState<string[]>([])
     const [artMeshTags, setArtMeshTags] = React.useState<string[]>([])
-
-    const mockEvent = async (configID: string, type: 'model-swap' | 'hotkey-trigger' | 'color-tint') => {
-        try {
-            if (type === 'model-swap')
-                await channelAction('vtstudio/mock-model-swap', { configID })
-            else if (type === 'hotkey-trigger')
-                await channelAction('vtstudio/mock-hotkey-trigger', { configID })
-            else if (type === 'color-tint')
-                await channelAction('vtstudio/mock-color-tint', { configID })
-            setTested(configID)
-        } catch (e) {
-            logError(CHANNEL_NAME, 'vts', e)
-        }
-    }
 
     const vts = useVTubeStudioConnection({ ...props, type: 'control-panel' })
     useVTubeStudioProcessing({ ...props, enabled: !props.config.useOverlay, ...vts })
@@ -71,7 +54,7 @@ export function VTubeStudioPanel(props: ControlPanelAppViewData & ModuleDataType
     }
 
     const modelOptions: DropdownOption[] = [
-        ...models.map(m => ({ value: m.id, text: m.name })),
+        ...models.map(m => ({ value: m.id, text: m.name ? m.name : '(Unnamed)' })),
         ...props.config.swaps
             .flatMap(c => c.models)
             .filter(m => !models.some(o => o.id === m.id || o.name === m.name))
@@ -79,7 +62,7 @@ export function VTubeStudioPanel(props: ControlPanelAppViewData & ModuleDataType
     ].sort((a, b) => a.text.localeCompare(b.text))
 
     const hotkeyOptions: DropdownOption[] = [
-        ...hotkeys.map(h => ({ value: h.id, text: h.name })),
+        ...hotkeys.map(h => ({ value: h.id, text: h.name ? h.name : '(Unnamed)' })),
         ...props.config.triggers
             .flatMap(c => c.hotkeys)
             .filter(h => !hotkeys.some(o => o.id === h.id || o.name === h.name))
@@ -114,6 +97,7 @@ export function VTubeStudioPanel(props: ControlPanelAppViewData & ModuleDataType
 
     const modelAfterLabels: Record<Exclude<ModelSwapConfig['after'], undefined>, string> = {
         nothing: 'Keep New Model',
+        config: 'Another Model Swap',
         revert: 'Revert to Previous Model',
     }
 
@@ -130,6 +114,7 @@ export function VTubeStudioPanel(props: ControlPanelAppViewData & ModuleDataType
 
     const hotkeyAfterLabels: Record<Exclude<TriggerHotkeyConfig['after'], undefined>, string> = {
         nothing: 'Do Nothing',
+        config: 'Another Hotkey Trigger',
         retrigger: 'Retrigger Hotkeys',
     }
 
@@ -145,6 +130,7 @@ export function VTubeStudioPanel(props: ControlPanelAppViewData & ModuleDataType
 
     const tintAfterLabels: Record<Exclude<ColorTintConfig['after'], undefined>, string> = {
         nothing: 'Keep New Colors',
+        config: 'Another Color Tint',
         reset: 'Reset Colors',
     }
 
@@ -187,217 +173,185 @@ export function VTubeStudioPanel(props: ControlPanelAppViewData & ModuleDataType
                 <hr />
                 <VTubeStudioIndicator type="control-panel" processing={!props.config.useOverlay} connected={vts.connected} apiError={String(vts.apiError ?? '')} readyState={vts.client.ws.readyState} />
                 <hr />
-                <PanelField label="Model Swaps"><div></div></PanelField>
                 <PanelField>
-                    <div className="QueuedItemList">
-                        {props.config.swaps.map(c => <div key={c.id} className="QueuedItem">
-                            <PanelField label="Reward" help="This is the channel point reward in Twitch that will trigger this model swap.">
-                                <TwitchRewardDropdown nullable selectedID={c.redeemID} selectedName={c.redeemName} onSelect={(id, name) => channelAction('vtstudio/edit-model-swap', { id: c.id, redeemID: id, redeemName: name })} />
-                            </PanelField>
-                            {(props.panel.items?.[c.id] ?? true) ? <>
-                                <PanelField label="Emote" help="This emote is shown in the overlay when the model swap is redeemed.">
-                                    <ExternalIconPicker selected={c.emote} onSelect={v => channelAction('vtstudio/edit-model-swap', { id: c.id, emote: v })} />
-                                </PanelField>
-                                <PanelField label="Show Username" help="Whether the username of the person who redeemed the model swap should be displayed in the overlay before the rest of the text.">
-                                    <Toggle value={c.showUsername} onToggle={v => channelAction('vtstudio/edit-model-swap', { id: c.id, showUsername: v })} />
-                                </PanelField>
-                                <PanelField label="Message" help="The text displayed when the model swap is redeemed.">
-                                    <input type="text" defaultValue={c.message} onChange={e => channelAction('vtstudio/edit-model-swap', { id: c.id, message: e.target.value })} />
-                                </PanelField>
-                                <PanelField label="Duration" help="The number of seconds that the message will remain on screen for after the model loads; also affects delay until next model change can occur.">
-                                    <input type="number" step="any" defaultValue={c.duration} onChange={e => channelAction('vtstudio/edit-model-swap', { id: c.id, duration: safeParseFloat(e.target.value) ?? c.duration })} />&nbsp;seconds
-                                </PanelField>
-                                <PanelField label="Type" help="How the model being swapped in will be determined.">
-                                    <Dropdown selected={c.type} options={modelTypeOptions} onSelect={v => channelAction('vtstudio/edit-model-swap', { id: c.id, type: v as ModelSwapConfig['type'] })} />
-                                </PanelField>
-                                {c.type === 'one' ? <>
-                                    <PanelField label="Model" help="The model that will be swapped in.">
-                                        <Dropdown selected={c.models[0]?.id ?? ''} options={modelOptions} onSelect={v => channelAction('vtstudio/edit-model-swap', { id: c.id, models: v ? [{ id: v, name: models.find(m => m.id === v)?.name ?? '' }] : [] })} nullable />
-                                    </PanelField>
-                                    {c.models[0] ? <PanelField label="Position" help="The position on screen to place the model at, if set.">
-                                        <Button primary onClick={async () => channelAction('vtstudio/edit-model-swap', { id: c.id, models: [{ ...c.models[0], position: await getModelPosition() ?? c.models[0].position }] })}>Save Current</Button>
-                                        &nbsp;
-                                        {!!c.models[0]?.position ? <Button onClick={() => channelAction('vtstudio/edit-model-swap', { id: c.id, models: [{ ...c.models[0], position: null }] })}>Clear</Button> : null}
-                                    </PanelField> : null}
-                                </> : c.type === 'weighted-any' ? <PanelField>
-                                    <div className="QueuedItemList">
-                                        {c.models.map((m, i) => <div key={m.id} className="QueuedItem">
-                                            <PanelField label="Model" help="The model that will be swapped in, and its chance of being picked relative to other models (higher means more likely).">
-                                                <Dropdown selected={m.id} nullable nullText="(Remove)" options={modelOptions} onSelect={(v, n) => channelAction('vtstudio/edit-model-swap', { id: c.id, models: v ? [...c.models.slice(0, i), { id: v, name: n, weight: m.weight }, ...c.models.slice(i + 1)] : [...c.models.slice(0, i), ...c.models.slice(i + 1)] })} />
-                                                &nbsp;
-                                                <input type="number" step="any" defaultValue={m.weight ?? 1} onChange={e => channelAction('vtstudio/edit-model-swap', { id: c.id, models: [...c.models.slice(0, i), { ...m, weight: safeParseFloat(e.target.value) ?? m.weight }, ...c.models.slice(i + 1)] })} />
-                                                &nbsp;chances
-                                            </PanelField>
-                                            {c.models[i] ? <PanelField label="Position" help="The position on screen to place the model at, if set.">
-                                                <Button primary onClick={async () => channelAction('vtstudio/edit-model-swap', { id: c.id, models: [...c.models.slice(0, i), { ...c.models[i], position: await getModelPosition() ?? c.models[i].position }, ...c.models.slice(i + 1)] })}>Save Current</Button>
-                                                &nbsp;
-                                                {!!c.models[i]?.position ? <Button onClick={() => channelAction('vtstudio/edit-model-swap', { id: c.id, models: [...c.models.slice(0, i), { ...c.models[i], position: null }, ...c.models.slice(i + 1)] })}>Clear</Button> : null}
-                                            </PanelField> : null}
-                                        </div>)}
-                                        Add Model:&nbsp;<Dropdown selected='' nullable options={modelOptions.filter(o => !c.models.some(e => e.id === o.value))} onSelect={(v, n) => channelAction('vtstudio/edit-model-swap', { id: c.id, models: [...c.models, { id: v, name: n, weight: 1 }] })} />
-                                    </div>
-                                </PanelField> : <PanelField label="Models" help="The list of models that the swapped in model will be selected from.">
-                                    <TagList selected={c.models.map(m => m.id)} options={modelOptions} onSelect={v => channelAction('vtstudio/edit-model-swap', { id: c.id, models: [...c.models, { id: v, name: models.find(m => m.id === v)?.name ?? '' }] })} onDeselect={v => channelAction('vtstudio/edit-model-swap', { id: c.id, models: c.models.filter(m => m.id !== v) })} />
-                                </PanelField>}
-                                <PanelField label="After" help="The action to take after the model swap has completed.">
-                                    <Dropdown selected={c.after ?? 'nothing'} options={modelAfterOptions} onSelect={v => channelAction('vtstudio/edit-model-swap', { id: c.id, after: v as ModelSwapConfig['after'] })} />
-                                </PanelField>
-                                {c.after === 'revert' ? <PanelField label="Revert Delay" help="How long to wait before reverting to the previous model. If blank, defaults to the Duration.">
-                                    <input type="number" step="any" defaultValue={c.revertDelay ?? undefined} onChange={e => channelAction('vtstudio/edit-model-swap', { id: c.id, revertDelay: safeParseFloat(e.target.value) })} />&nbsp;seconds
-                                </PanelField> : null}
-                                <PanelField>
-                                    <Button onClick={() => mockEvent(c.id, 'model-swap')}>Test model swap</Button>
-                                    {c.id === tested ? <>&nbsp;<span>Success! Check the main tab!</span></> : <></>}
-                                </PanelField>
-                                <PanelField>
-                                    <Button onClick={() => channelAction('vtstudio/delete-model-swap', { id: c.id })}>Delete model swap</Button>
-                                </PanelField>
-                            </> : <Fold />}
-                            <Expander open={props.panel.items?.[c.id] ?? true} onToggle={open => props.onToggleItem(c.id, open)} />
-                        </div>)}
-                    </div>
+                    <span>Don't want to color artmeshes individually? Try tagging them with my <a href="http://jtho.me/VTubeStudioTagger/">userdata tagging</a> tool. I also have a handy <a href="http://jtho.me/VTubeStudioParameterView/">Live2D parameter viewer</a> for seeing all of your model's parameters in real-time.</span>
                 </PanelField>
-                {modelOptions.some(o => o.text?.endsWith('*')) ? <PanelField>
+                <hr />
+                <ConfigList configs={props.config.swaps} label="Model Swaps" configType="model swap" panelData={props} addAction="vtstudio/add-model-swap" editAction="vtstudio/edit-model-swap" deleteAction="vtstudio/delete-model-swap" mockAction="vtstudio/mock-model-swap">
+                    {c => <>
+                        <PanelField label="Emote" help="This emote is shown in the overlay when the model swap is redeemed.">
+                            <ExternalIconPicker selected={c.emote} onSelect={v => channelAction('vtstudio/edit-model-swap', { id: c.id, emote: v })} />
+                        </PanelField>
+                        <PanelField label="Show Username" help="Whether the username of the person who redeemed the model swap should be displayed in the overlay before the rest of the text.">
+                            <Toggle value={c.showUsername} onToggle={v => channelAction('vtstudio/edit-model-swap', { id: c.id, showUsername: v })} />
+                        </PanelField>
+                        <PanelField label="Message" help="The text displayed when the model swap is redeemed.">
+                            <input type="text" defaultValue={c.message} onChange={e => channelAction('vtstudio/edit-model-swap', { id: c.id, message: e.target.value })} />
+                        </PanelField>
+                        <PanelField label="Duration" help="The number of seconds that the message will remain on screen for after the model loads; also affects delay until next model change can occur.">
+                            <input type="number" step="any" defaultValue={c.duration} onChange={e => channelAction('vtstudio/edit-model-swap', { id: c.id, duration: safeParseFloat(e.target.value) ?? c.duration })} />&nbsp;seconds
+                        </PanelField>
+                        <PanelField label="Type" help="How the model being swapped in will be determined.">
+                            <Dropdown selected={c.type} options={modelTypeOptions} onSelect={v => channelAction('vtstudio/edit-model-swap', { id: c.id, type: v })} />
+                        </PanelField>
+                        {c.type === 'one' ? <>
+                            <PanelField label="Model" help="The model that will be swapped in.">
+                                <Dropdown selected={c.models[0]?.id ?? ''} options={modelOptions} onSelect={v => channelAction('vtstudio/edit-model-swap', { id: c.id, models: v ? [{ id: v, name: models.find(m => m.id === v)?.name ?? '' }] : [] })} nullable />
+                            </PanelField>
+                            {c.models[0] ? <PanelField label="Position" help="The position on screen to place the model at, if set.">
+                                <Button primary onClick={async () => channelAction('vtstudio/edit-model-swap', { id: c.id, models: [{ ...c.models[0], position: await getModelPosition() ?? c.models[0].position }] })}>Save Current</Button>
+                                &nbsp;
+                                {!!c.models[0]?.position ? <Button onClick={() => channelAction('vtstudio/edit-model-swap', { id: c.id, models: [{ ...c.models[0], position: null }] })}>Clear</Button> : null}
+                            </PanelField> : null}
+                        </> : c.type === 'weighted-any' ? <PanelField>
+                            <div className="QueuedItemList">
+                                {c.models.map((m, i) => <div key={m.id} className="QueuedItem">
+                                    <PanelField label="Model" help="The model that will be swapped in, and its chance of being picked relative to other models (higher means more likely).">
+                                        <Dropdown selected={m.id} nullable nullText="(Remove)" options={modelOptions} onSelect={v => channelAction('vtstudio/edit-model-swap', { id: c.id, models: v ? [...c.models.slice(0, i), { id: v, name: models.find(m => m.id === v)?.name ?? '', weight: m.weight }, ...c.models.slice(i + 1)] : [...c.models.slice(0, i), ...c.models.slice(i + 1)] })} />
+                                        &nbsp;
+                                        <input type="number" step="any" defaultValue={m.weight ?? 1} onChange={e => channelAction('vtstudio/edit-model-swap', { id: c.id, models: [...c.models.slice(0, i), { ...m, weight: safeParseFloat(e.target.value) ?? m.weight }, ...c.models.slice(i + 1)] })} />
+                                        &nbsp;chances
+                                    </PanelField>
+                                    {c.models[i] ? <PanelField label="Position" help="The position on screen to place the model at, if set.">
+                                        <Button primary onClick={async () => channelAction('vtstudio/edit-model-swap', { id: c.id, models: [...c.models.slice(0, i), { ...c.models[i], position: await getModelPosition() ?? c.models[i].position }, ...c.models.slice(i + 1)] })}>Save Current</Button>
+                                        &nbsp;
+                                        {!!c.models[i]?.position ? <Button onClick={() => channelAction('vtstudio/edit-model-swap', { id: c.id, models: [...c.models.slice(0, i), { ...c.models[i], position: null }, ...c.models.slice(i + 1)] })}>Clear</Button> : null}
+                                    </PanelField> : null}
+                                </div>)}
+                                Add Model:&nbsp;<Dropdown selected='' nullable options={modelOptions.filter(o => !c.models.some(e => e.id === o.value))} onSelect={v => channelAction('vtstudio/edit-model-swap', { id: c.id, models: [...c.models, { id: v, name: models.find(m => m.id === v)?.name ?? '', weight: 1 }] })} />
+                            </div>
+                        </PanelField> : <PanelField label="Models" help="The list of models that the swapped in model will be selected from.">
+                            <TagList selected={c.models.map(m => m.id)} options={modelOptions} onSelect={v => channelAction('vtstudio/edit-model-swap', { id: c.id, models: [...c.models, { id: v, name: models.find(m => m.id === v)?.name ?? '' }] })} onDeselect={v => channelAction('vtstudio/edit-model-swap', { id: c.id, models: c.models.filter(m => m.id !== v) })} />
+                        </PanelField>}
+                        <PanelField label="After" help="The action to take after the model swap has completed.">
+                            <Dropdown selected={c.after ?? 'nothing'} options={modelAfterOptions} onSelect={v => channelAction('vtstudio/edit-model-swap', { id: c.id, after: v })} />
+                        </PanelField>
+                        {c.after === 'revert' ? <PanelField label="Revert Delay" help="How long to wait before reverting to the previous model. If blank, defaults to the Duration.">
+                            <input type="number" step="any" defaultValue={c.revertDelay ?? undefined} onChange={e => channelAction('vtstudio/edit-model-swap', { id: c.id, revertDelay: safeParseFloat(e.target.value) })} />&nbsp;seconds
+                        </PanelField> : null}
+                        {c.after === 'config' ? <PanelField label="Other Swap" help="The other model swap to activate afterwards. Must be set up as a model swap, although it may have a blank trigger." >
+                            <Dropdown nullable selected={c.afterConfig ?? ''} options={props.config.swaps.map(o => ({ value: o.id, text: o.redeemName ? o.redeemName : o.message ? o.message : o.models.length ? o.models.map(m => m.name).join(', ') : '(Blank)' }))} onSelect={v => channelAction('vtstudio/edit-model-swap', { id: c.id, afterConfig: v })} />
+                        </PanelField> : null}
+                        {c.after === 'config' ? <PanelField label="Swap Delay" help="How long to wait before activating the other model swap. If blank, defaults to the Duration.">
+                            <input type="number" step="any" defaultValue={c.revertDelay ?? undefined} onChange={e => channelAction('vtstudio/edit-model-swap', { id: c.id, revertDelay: safeParseFloat(e.target.value) })} />&nbsp;seconds
+                        </PanelField> : null}
+                    </>}
+                </ConfigList>
+                {modelOptions.some(o => o.invalid) ? <PanelField>
                     <i>* Model is not currently loaded or VTube Studio is not connected</i>
                 </PanelField> : null}
-                <PanelField>
-                    <Button primary onClick={() => channelAction('vtstudio/add-model-swap', {})}>Add new model swap</Button>
-                </PanelField>
-                <PanelField label="Hotkey Triggers"><div></div></PanelField>
-                <PanelField>
-                    <div className="QueuedItemList">
-                        {props.config.triggers.map(c => <div key={c.id} className="QueuedItem">
-                            <PanelField label="Reward" help="This is the channel point reward in Twitch that will trigger this hotkey trigger.">
-                                <TwitchRewardDropdown nullable selectedID={c.redeemID} selectedName={c.redeemName} onSelect={(id, name) => channelAction('vtstudio/edit-hotkey-trigger', { id: c.id, redeemID: id, redeemName: name })} />
-                            </PanelField>
-                            {(props.panel.items?.[c.id] ?? true) ? <>
-                                <PanelField label="Emote" help="This emote is shown in the overlay when the hotkey trigger is redeemed.">
-                                    <ExternalIconPicker selected={c.emote} onSelect={v => channelAction('vtstudio/edit-hotkey-trigger', { id: c.id, emote: v })} />
-                                </PanelField>
-                                <PanelField label="Show Username" help="Whether the username of the person who redeemed the hotkey trigger should be displayed in the overlay before the rest of the text.">
-                                    <Toggle value={c.showUsername} onToggle={v => channelAction('vtstudio/edit-hotkey-trigger', { id: c.id, showUsername: v })} />
-                                </PanelField>
-                                <PanelField label="Message" help="The text displayed when the hotkey trigger is redeemed.">
-                                    <input type="text" defaultValue={c.message} onChange={e => channelAction('vtstudio/edit-hotkey-trigger', { id: c.id, message: e.target.value })} />
-                                </PanelField>
-                                <PanelField label="Duration" help="The number of seconds that the message will remain on screen for after the hotkey triggers; also affects delay until next hotkey trigger can occur.">
-                                    <input type="number" step="any" defaultValue={c.duration} onChange={e => channelAction('vtstudio/edit-hotkey-trigger', { id: c.id, duration: safeParseFloat(e.target.value) ?? c.duration })} />&nbsp;seconds
-                                </PanelField>
-                                <PanelField label="Type" help="How the hotkey being triggered will be determined.">
-                                    <Dropdown selected={c.type} options={hotkeyTypeOptions} onSelect={v => channelAction('vtstudio/edit-hotkey-trigger', { id: c.id, type: v as TriggerHotkeyConfig['type'] })} />
-                                </PanelField>
-                                {c.type === 'one' ? <PanelField label="Hotkey" help="The hotkey that will be triggered.">
-                                    <Dropdown selected={c.hotkeys[0]?.id ?? ''} options={hotkeyOptions} onSelect={v => channelAction('vtstudio/edit-hotkey-trigger', { id: c.id, hotkeys: v ? [{ id: v, name: hotkeys.find(h => h.id === v)?.name ?? '' }] : [] })} nullable />
-                                </PanelField> : c.type === 'weighted-any' ? <PanelField>
-                                    <div className="QueuedItemList">
-                                        {c.hotkeys.map((h, i) => <div key={h.id} className="QueuedItem">
-                                            <PanelField label="Hotkey" help="The hotkey that will be triggered, and its chance of being picked relative to other hotkeys (higher means more likely).">
-                                                <Dropdown selected={h.id} nullable nullText="(Remove)" options={hotkeyOptions} onSelect={(v, n) => channelAction('vtstudio/edit-hotkey-trigger', { id: c.id, hotkeys: v ? [...c.hotkeys.slice(0, i), { id: v, name: n, weight: h.weight }, ...c.hotkeys.slice(i + 1)] : [...c.hotkeys.slice(0, i), ...c.hotkeys.slice(i + 1)] })} />
-                                                &nbsp;
-                                                <input type="number" step="any" defaultValue={h.weight ?? 1} onChange={e => channelAction('vtstudio/edit-hotkey-trigger', { id: c.id, hotkeys: [...c.hotkeys.slice(0, i), { ...h, weight: safeParseFloat(e.target.value) ?? h.weight }, ...c.hotkeys.slice(i + 1)] })} />
-                                                &nbsp;chances
-                                            </PanelField>
-                                        </div>)}
-                                        Add Hotkey:&nbsp;<Dropdown selected='' nullable options={hotkeyOptions.filter(o => !c.hotkeys.some(e => e.id === o.value))} onSelect={(v, n) => channelAction('vtstudio/edit-hotkey-trigger', { id: c.id, hotkeys: [...c.hotkeys, { id: v, name: n, weight: 1 }] })} />
-                                    </div>
-                                </PanelField> : <PanelField label="Hotkeys" help="The list of hotkeys that the triggered hotkey will be selected from.">
-                                    <TagList selected={c.hotkeys.map(h => h.id)} options={hotkeyOptions} onSelect={v => channelAction('vtstudio/edit-hotkey-trigger', { id: c.id, hotkeys: [...c.hotkeys, { id: v, name: hotkeys.find(h => h.id === v)?.name ?? '' }] })} onDeselect={v => channelAction('vtstudio/edit-hotkey-trigger', { id: c.id, hotkeys: c.hotkeys.filter(h => h.id !== v) })} />
-                                </PanelField>}
-                                <PanelField label="After" help="The action to take after the hotkey trigger has completed.">
-                                    <Dropdown selected={c.after ?? 'nothing'} options={hotkeyAfterOptions} onSelect={v => channelAction('vtstudio/edit-hotkey-trigger', { id: c.id, after: v as TriggerHotkeyConfig['after'] })} />
-                                </PanelField>
-                                {c.after === 'retrigger' ? <PanelField label="Retrigger Delay" help="How long to wait before triggering the hotkey again. If blank, defaults to the Duration.">
-                                    <input type="number" step="any" defaultValue={c.retriggerDelay ?? undefined} onChange={e => channelAction('vtstudio/edit-hotkey-trigger', { id: c.id, retriggerDelay: safeParseFloat(e.target.value) })} />&nbsp;seconds
-                                </PanelField> : null}
-                                <PanelField>
-                                    <Button onClick={() => mockEvent(c.id, 'hotkey-trigger')}>Test hotkey trigger</Button>
-                                    {c.id === tested ? <>&nbsp;<span>Success! Check the main tab!</span></> : <></>}
-                                </PanelField>
-                                <PanelField>
-                                    <Button onClick={() => channelAction('vtstudio/delete-hotkey-trigger', { id: c.id })}>Delete hotkey trigger</Button>
-                                </PanelField>
-                            </> : <Fold />}
-                            <Expander open={props.panel.items?.[c.id] ?? true} onToggle={open => props.onToggleItem(c.id, open)} />
-                        </div>)}
-                    </div>
-                </PanelField>
-                {hotkeyOptions.some(o => o.text?.endsWith('*')) ? <PanelField>
+                <ConfigList configs={props.config.triggers} label="Hotkey Triggers" configType="hotkey trigger" panelData={props} addAction="vtstudio/add-hotkey-trigger" editAction="vtstudio/edit-hotkey-trigger" deleteAction="vtstudio/delete-hotkey-trigger" mockAction="vtstudio/mock-hotkey-trigger">
+                    {c => <>
+                        <PanelField label="Emote" help="This emote is shown in the overlay when the hotkey trigger is redeemed.">
+                            <ExternalIconPicker selected={c.emote} onSelect={v => channelAction('vtstudio/edit-hotkey-trigger', { id: c.id, emote: v })} />
+                        </PanelField>
+                        <PanelField label="Show Username" help="Whether the username of the person who redeemed the hotkey trigger should be displayed in the overlay before the rest of the text.">
+                            <Toggle value={c.showUsername} onToggle={v => channelAction('vtstudio/edit-hotkey-trigger', { id: c.id, showUsername: v })} />
+                        </PanelField>
+                        <PanelField label="Message" help="The text displayed when the hotkey trigger is redeemed.">
+                            <input type="text" defaultValue={c.message} onChange={e => channelAction('vtstudio/edit-hotkey-trigger', { id: c.id, message: e.target.value })} />
+                        </PanelField>
+                        <PanelField label="Duration" help="The number of seconds that the message will remain on screen for after the hotkey triggers; also affects delay until next hotkey trigger can occur.">
+                            <input type="number" step="any" defaultValue={c.duration} onChange={e => channelAction('vtstudio/edit-hotkey-trigger', { id: c.id, duration: safeParseFloat(e.target.value) ?? c.duration })} />&nbsp;seconds
+                        </PanelField>
+                        <PanelField label="Type" help="How the hotkey being triggered will be determined.">
+                            <Dropdown selected={c.type} options={hotkeyTypeOptions} onSelect={v => channelAction('vtstudio/edit-hotkey-trigger', { id: c.id, type: v })} />
+                        </PanelField>
+                        {c.type === 'one' ? <PanelField label="Hotkey" help="The hotkey that will be triggered.">
+                            <Dropdown selected={c.hotkeys[0]?.id ?? ''} options={hotkeyOptions} onSelect={v => channelAction('vtstudio/edit-hotkey-trigger', { id: c.id, hotkeys: v ? [{ id: v, name: hotkeys.find(h => h.id === v)?.name ?? '' }] : [] })} nullable />
+                        </PanelField> : c.type === 'weighted-any' ? <PanelField>
+                            <div className="QueuedItemList">
+                                {c.hotkeys.map((h, i) => <div key={h.id} className="QueuedItem">
+                                    <PanelField label="Hotkey" help="The hotkey that will be triggered, and its chance of being picked relative to other hotkeys (higher means more likely).">
+                                        <Dropdown selected={h.id} nullable nullText="(Remove)" options={hotkeyOptions} onSelect={v => channelAction('vtstudio/edit-hotkey-trigger', { id: c.id, hotkeys: v ? [...c.hotkeys.slice(0, i), { id: v, name: hotkeys.find(h => h.id === v)?.name ?? '', weight: h.weight }, ...c.hotkeys.slice(i + 1)] : [...c.hotkeys.slice(0, i), ...c.hotkeys.slice(i + 1)] })} />
+                                        &nbsp;
+                                        <input type="number" step="any" defaultValue={h.weight ?? 1} onChange={e => channelAction('vtstudio/edit-hotkey-trigger', { id: c.id, hotkeys: [...c.hotkeys.slice(0, i), { ...h, weight: safeParseFloat(e.target.value) ?? h.weight }, ...c.hotkeys.slice(i + 1)] })} />
+                                        &nbsp;chances
+                                    </PanelField>
+                                </div>)}
+                                Add Hotkey:&nbsp;<Dropdown selected='' nullable options={hotkeyOptions.filter(o => !c.hotkeys.some(e => e.id === o.value))} onSelect={v => channelAction('vtstudio/edit-hotkey-trigger', { id: c.id, hotkeys: [...c.hotkeys, { id: v, name: hotkeys.find(h => h.id === v)?.name ?? '', weight: 1 }] })} />
+                            </div>
+                        </PanelField> : <PanelField label="Hotkeys" help="The list of hotkeys that the triggered hotkey will be selected from.">
+                            <TagList selected={c.hotkeys.map(h => h.id)} options={hotkeyOptions} onSelect={v => channelAction('vtstudio/edit-hotkey-trigger', { id: c.id, hotkeys: [...c.hotkeys, { id: v, name: hotkeys.find(h => h.id === v)?.name ?? '' }] })} onDeselect={v => channelAction('vtstudio/edit-hotkey-trigger', { id: c.id, hotkeys: c.hotkeys.filter(h => h.id !== v) })} />
+                        </PanelField>}
+                        <PanelField label="After" help="The action to take after the hotkey trigger has completed.">
+                            <Dropdown selected={c.after ?? 'nothing'} options={hotkeyAfterOptions} onSelect={v => channelAction('vtstudio/edit-hotkey-trigger', { id: c.id, after: v })} />
+                        </PanelField>
+                        {c.after === 'retrigger' ? <PanelField label="Retrigger Delay" help="How long to wait before triggering the hotkey again. If blank, defaults to the Duration.">
+                            <input type="number" step="any" defaultValue={c.retriggerDelay ?? undefined} onChange={e => channelAction('vtstudio/edit-hotkey-trigger', { id: c.id, retriggerDelay: safeParseFloat(e.target.value) })} />&nbsp;seconds
+                        </PanelField> : null}
+                        {c.after === 'config' ? <PanelField label="Other Hotkey" help="The other hotkey trigger to activate afterwards. Must be set up as a hotkey trigger, although it may have a blank trigger." >
+                            <Dropdown nullable selected={c.afterConfig ?? ''} options={props.config.triggers.map(o => ({ value: o.id, text: o.redeemName ? o.redeemName : o.message ? o.message : o.hotkeys.length ? o.hotkeys.map(h => h.name).join(', ') : '(Blank)' }))} onSelect={v => channelAction('vtstudio/edit-hotkey-trigger', { id: c.id, afterConfig: v })} />
+                        </PanelField> : null}
+                        {c.after === 'config' ? <PanelField label="Trigger Delay" help="How long to wait before activating the other hotkey trigger. If blank, defaults to the Duration.">
+                            <input type="number" step="any" defaultValue={c.retriggerDelay ?? undefined} onChange={e => channelAction('vtstudio/edit-hotkey-trigger', { id: c.id, retriggerDelay: safeParseFloat(e.target.value) })} />&nbsp;seconds
+                        </PanelField> : null}
+                    </>}
+                </ConfigList>
+                {hotkeyOptions.some(o => o.invalid) ? <PanelField>
                     <i>* Hotkey does not exist on the currently loaded model or VTube Studio is not connected</i>
                 </PanelField> : null}
-                <PanelField>
-                    <Button primary onClick={() => channelAction('vtstudio/add-hotkey-trigger', {})}>Add new hotkey trigger</Button>
-                </PanelField>
-                <PanelField label="Color Tints"><div></div></PanelField>
-                <PanelField>
-                    <div className="QueuedItemList">
-                        {props.config.tints.map(c => <div key={c.id} className="QueuedItem">
-                            <PanelField label="Reward" help="This is the channel point reward in Twitch that will apply this color tint.">
-                                <TwitchRewardDropdown nullable selectedID={c.redeemID} selectedName={c.redeemName} onSelect={(id, name) => channelAction('vtstudio/edit-color-tint', { id: c.id, redeemID: id, redeemName: name })} />
+                <ConfigList configs={props.config.tints} label="Color Tints" configType="color tint" panelData={props} addAction="vtstudio/add-color-tint" editAction="vtstudio/edit-color-tint" deleteAction="vtstudio/delete-color-tint" mockAction="vtstudio/mock-color-tint">
+                    {c => <>
+                        <PanelField label="Emote" help="This emote is shown in the overlay when the color tint is redeemed.">
+                            <ExternalIconPicker selected={c.emote} onSelect={v => channelAction('vtstudio/edit-color-tint', { id: c.id, emote: v })} />
+                        </PanelField>
+                        <PanelField label="Show Username" help="Whether the username of the person who redeemed the color tint should be displayed in the overlay before the rest of the text.">
+                            <Toggle value={c.showUsername} onToggle={v => channelAction('vtstudio/edit-color-tint', { id: c.id, showUsername: v })} />
+                        </PanelField>
+                        <PanelField label="Message" help="The text displayed when the color tint is redeemed.">
+                            <input type="text" defaultValue={c.message} onChange={e => channelAction('vtstudio/edit-color-tint', { id: c.id, message: e.target.value })} />
+                        </PanelField>
+                        <PanelField label="Duration" help="The number of seconds that the message will remain on screen for after the color tints; also affects delay until next color tint can occur.">
+                            <input type="number" step="any" defaultValue={c.duration} onChange={e => channelAction('vtstudio/edit-color-tint', { id: c.id, duration: safeParseFloat(e.target.value) ?? c.duration })} />&nbsp;seconds
+                        </PanelField>
+                        <PanelField label="Type" help="How the color tint will be applied.">
+                            <Dropdown selected={c.type} options={tintTypeOptions} onSelect={v => channelAction('vtstudio/edit-color-tint', { id: c.id, type: v })} />
+                        </PanelField>
+                        {c.type === 'all' ? <PanelField label="Color" help="The color to tint the model with">
+                            <ColorPicker value={c.color} onChange={v => channelAction('vtstudio/edit-color-tint', { id: c.id, color: v })} />
+                        </PanelField> : c.type === 'match' ? <>
+                            <PanelField>
+                                <div className="QueuedItemList">
+                                    {c.matches.map((m, i) => <div key={i} className="QueuedItem">
+                                        <PanelField label="Color" help="The color to tint matching ArtMeshes">
+                                            <ColorPicker value={m.color} onChange={v => channelAction('vtstudio/edit-color-tint', { id: c.id, matches: [...c.matches.slice(0, i), { ...m, color: v }, ...c.matches.slice(i + 1)] })} />
+                                            &nbsp;
+                                            <div className="spacer" />
+                                            <Button onClick={() => channelAction('vtstudio/edit-color-tint', { id: c.id, matches: [...c.matches.slice(0, i), ...c.matches.slice(i + 1)] })}>X</Button>
+                                        </PanelField>
+                                        <PanelField label="ArtMesh Names">
+                                            <TagList selected={m.names} options={artMeshNameOptions} onSelect={v => channelAction('vtstudio/edit-color-tint', { id: c.id, matches: [...c.matches.slice(0, i), { ...m, names: [...m.names, v] }, ...c.matches.slice(i + 1)] })} onDeselect={v => channelAction('vtstudio/edit-color-tint', { id: c.id, matches: [...c.matches.slice(0, i), { ...m, names: m.names.filter(o => o !== v) }, ...c.matches.slice(i + 1)] })} />
+                                        </PanelField>
+                                        <PanelField label="ArtMesh Tags">
+                                            <TagList selected={m.tags} options={artMeshTagOptions} onSelect={v => channelAction('vtstudio/edit-color-tint', { id: c.id, matches: [...c.matches.slice(0, i), { ...m, tags: [...m.tags, v] }, ...c.matches.slice(i + 1)] })} onDeselect={v => channelAction('vtstudio/edit-color-tint', { id: c.id, matches: [...c.matches.slice(0, i), { ...m, tags: m.tags.filter(o => o !== v) }, ...c.matches.slice(i + 1)] })} />
+                                        </PanelField>
+                                    </div>)}
+                                </div>
                             </PanelField>
-                            {(props.panel.items?.[c.id] ?? true) ? <>
-                                <PanelField label="Emote" help="This emote is shown in the overlay when the color tint is redeemed.">
-                                    <ExternalIconPicker selected={c.emote} onSelect={v => channelAction('vtstudio/edit-color-tint', { id: c.id, emote: v })} />
-                                </PanelField>
-                                <PanelField label="Show Username" help="Whether the username of the person who redeemed the color tint should be displayed in the overlay before the rest of the text.">
-                                    <Toggle value={c.showUsername} onToggle={v => channelAction('vtstudio/edit-color-tint', { id: c.id, showUsername: v })} />
-                                </PanelField>
-                                <PanelField label="Message" help="The text displayed when the color tint is redeemed.">
-                                    <input type="text" defaultValue={c.message} onChange={e => channelAction('vtstudio/edit-color-tint', { id: c.id, message: e.target.value })} />
-                                </PanelField>
-                                <PanelField label="Duration" help="The number of seconds that the message will remain on screen for after the color tints; also affects delay until next color tint can occur.">
-                                    <input type="number" step="any" defaultValue={c.duration} onChange={e => channelAction('vtstudio/edit-color-tint', { id: c.id, duration: safeParseFloat(e.target.value) ?? c.duration })} />&nbsp;seconds
-                                </PanelField>
-                                <PanelField label="Type" help="How the color tint will be applied.">
-                                    <Dropdown selected={c.type} options={tintTypeOptions} onSelect={v => channelAction('vtstudio/edit-color-tint', { id: c.id, type: v as ColorTintConfig['type'] })} />
-                                </PanelField>
-                                {c.type === 'all' ? <PanelField label="Color" help="The color to tint the model with">
-                                    <ColorPicker value={c.color} onChange={v => channelAction('vtstudio/edit-color-tint', { id: c.id, color: v })} />
-                                </PanelField> : c.type === 'match' ? <>
-                                    <PanelField>
-                                        <div className="QueuedItemList">
-                                            {c.matches.map((m, i) => <div key={i} className="QueuedItem">
-                                                <PanelField label="Color" help="The color to tint matching ArtMeshes">
-                                                    <ColorPicker value={m.color} onChange={v => channelAction('vtstudio/edit-color-tint', { id: c.id, matches: [...c.matches.slice(0, i), { ...m, color: v }, ...c.matches.slice(i + 1)] })} />
-                                                    &nbsp;
-                                                    <div className="spacer" />
-                                                    <Button onClick={() => channelAction('vtstudio/edit-color-tint', { id: c.id, matches: [...c.matches.slice(0, i), ...c.matches.slice(i + 1)] })}>X</Button>
-                                                </PanelField>
-                                                <PanelField label="ArtMesh Names">
-                                                    <TagList selected={m.names} options={artMeshNameOptions} onSelect={v => channelAction('vtstudio/edit-color-tint', { id: c.id, matches: [...c.matches.slice(0, i), { ...m, names: [...m.names, v] }, ...c.matches.slice(i + 1)] })} onDeselect={v => channelAction('vtstudio/edit-color-tint', { id: c.id, matches: [...c.matches.slice(0, i), { ...m, names: m.names.filter(o => o !== v) }, ...c.matches.slice(i + 1)] })} />
-                                                </PanelField>
-                                                <PanelField label="ArtMesh Tags">
-                                                    <TagList selected={m.tags} options={artMeshTagOptions} onSelect={v => channelAction('vtstudio/edit-color-tint', { id: c.id, matches: [...c.matches.slice(0, i), { ...m, tags: [...m.tags, v] }, ...c.matches.slice(i + 1)] })} onDeselect={v => channelAction('vtstudio/edit-color-tint', { id: c.id, matches: [...c.matches.slice(0, i), { ...m, tags: m.tags.filter(o => o !== v) }, ...c.matches.slice(i + 1)] })} />
-                                                </PanelField>
-                                            </div>)}
-                                        </div>
-                                    </PanelField>
-                                    <PanelField>
-                                        <Button onClick={() => channelAction('vtstudio/edit-color-tint', { id: c.id, matches: [...c.matches, { color: { r: 255, g: 255, b: 255, a: 255 }, names: [], tags: [], }] })}>Add ArtMesh Match</Button>
-                                    </PanelField>
-                                </> : c.type === 'rainbow' ? <PanelField label="Rainbow Speed" help="How fast to cycle through colors, in full cycles of the rainbow per second">
-                                    <input type="number" step="any" defaultValue={c.rainbowSpeed} onChange={e => channelAction('vtstudio/edit-color-tint', { id: c.id, rainbowSpeed: safeParseFloat(e.target.value) ?? c.rainbowSpeed })} />&nbsp;cycles per second
-                                </PanelField> : null}
-                                <PanelField label="After" help="The action to take after the color tint has completed.">
-                                    <Dropdown selected={c.after ?? 'nothing'} options={tintAfterOptions} onSelect={v => channelAction('vtstudio/edit-color-tint', { id: c.id, after: v as ColorTintConfig['after'] })} />
-                                </PanelField>
-                                {c.after === 'reset' ? <PanelField label="Reset Delay" help="How long to wait before resetting the color tint. If blank, defaults to the Duration.">
-                                    <input type="number" step="any" defaultValue={c.resetDelay ?? undefined} onChange={e => channelAction('vtstudio/edit-color-tint', { id: c.id, resetDelay: safeParseFloat(e.target.value) })} />&nbsp;seconds
-                                </PanelField> : null}
-                                <PanelField>
-                                    <Button onClick={() => mockEvent(c.id, 'color-tint')}>Test color tint</Button>
-                                    {c.id === tested ? <>&nbsp;<span>Success! Check the main tab!</span></> : <></>}
-                                </PanelField>
-                                <PanelField>
-                                    <Button onClick={() => channelAction('vtstudio/delete-color-tint', { id: c.id })}>Delete color tint</Button>
-                                </PanelField>
-                            </> : <Fold />}
-                            <Expander open={props.panel.items?.[c.id] ?? true} onToggle={open => props.onToggleItem(c.id, open)} />
-                        </div>)}
-                    </div>
-                </PanelField>
-                <PanelField>
-                    <Button primary onClick={() => channelAction('vtstudio/add-color-tint', {})}>Add new color tint</Button>
-                </PanelField>
+                            <PanelField>
+                                <Button onClick={() => channelAction('vtstudio/edit-color-tint', { id: c.id, matches: [...c.matches, { color: { r: 255, g: 255, b: 255, a: 255 }, names: [], tags: [], }] })}>Add ArtMesh Match</Button>
+                            </PanelField>
+                        </> : c.type === 'rainbow' ? <PanelField label="Rainbow Speed" help="How fast to cycle through colors, in full cycles of the rainbow per second">
+                            <input type="number" step="any" defaultValue={c.rainbowSpeed} onChange={e => channelAction('vtstudio/edit-color-tint', { id: c.id, rainbowSpeed: safeParseFloat(e.target.value) ?? c.rainbowSpeed })} />&nbsp;cycles per second
+                        </PanelField> : null}
+                        <PanelField label="After" help="The action to take after the color tint has completed.">
+                            <Dropdown selected={c.after ?? 'nothing'} options={tintAfterOptions} onSelect={v => channelAction('vtstudio/edit-color-tint', { id: c.id, after: v })} />
+                        </PanelField>
+                        {c.after === 'reset' ? <PanelField label="Reset Delay" help="How long to wait before resetting the color tint. If blank, defaults to the Duration.">
+                            <input type="number" step="any" defaultValue={c.resetDelay ?? undefined} onChange={e => channelAction('vtstudio/edit-color-tint', { id: c.id, resetDelay: safeParseFloat(e.target.value) })} />&nbsp;seconds
+                        </PanelField> : null}
+                        {c.after === 'config' ? <PanelField label="Other Tint" help="The other color tint to activate afterwards. Must be set up as a color tint, although it may have a blank trigger." >
+                            <Dropdown nullable selected={c.afterConfig ?? ''} options={props.config.tints.map(o => ({ value: o.id, text: o.redeemName ? o.redeemName : o.message ? o.message : '(Blank)' }))} onSelect={v => channelAction('vtstudio/edit-color-tint', { id: c.id, afterConfig: v })} />
+                        </PanelField> : null}
+                        {c.after === 'config' ? <PanelField label="Tint Delay" help="How long to wait before activating the other color tint. If blank, defaults to the Duration.">
+                            <input type="number" step="any" defaultValue={c.resetDelay ?? undefined} onChange={e => channelAction('vtstudio/edit-color-tint', { id: c.id, resetDelay: safeParseFloat(e.target.value) })} />&nbsp;seconds
+                        </PanelField> : null}
+                    </>}
+                </ConfigList>
+                {artMeshNameOptions.some(o => o.invalid) || artMeshTagOptions.some(o => o.invalid) ? <PanelField>
+                    <i>* Art mesh or tag does not exist on currently loaded model or VTube Studio is not connected</i>
+                </PanelField> : null}
                 <hr />
                 <PanelField label="Use Overlay" help="Whether to use the browser source overlay to process VTube Studio redeems. Otherwise, the control panel will be used.">
                     <Toggle value={props.config.useOverlay} onToggle={v => channelAction('vtstudio/edit-config', { useOverlay: v })} />

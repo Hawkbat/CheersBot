@@ -74,6 +74,9 @@ export interface ChannelData extends AccountData {
     bots: AccessMap
     users: AccessMap
     modules: ModuleMap
+    accessTimes: { [key: string]: number }
+    overlayAccessTime: number
+    tokenInvalid?: boolean
 }
 
 export interface UserData extends AccountData {

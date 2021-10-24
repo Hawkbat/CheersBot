@@ -1,10 +1,7 @@
 import { Icon, ModuleVersion } from '../data'
-import { ModuleStateData, ModuleConfigData, Module, ModuleMap } from './common'
+import { ModuleStateData, ModuleConfigData, Module, ModuleMap, TriggerConfig } from './common'
 
-export interface CounterConfig {
-    id: string
-    redeemID: string
-    redeemName: string
+export interface CounterConfig extends TriggerConfig {
     emote: Icon | null
     message: string
     visibility: CounterVisibility

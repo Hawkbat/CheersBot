@@ -1,5 +1,5 @@
 import { Icon, ModuleVersion } from '../data'
-import { ModuleStateData, ModuleConfigData, Module, ModuleMap } from './common'
+import { ModuleStateData, ModuleConfigData, Module, ModuleMap, TriggerConfig } from './common'
 
 export interface SoundRedeem {
     id: string
@@ -9,10 +9,7 @@ export interface SoundRedeem {
     redeemTime: number
 }
 
-export interface SoundConfig {
-    id: string
-    redeemID: string
-    redeemName: string
+export interface SoundConfig extends TriggerConfig {
     emote: Icon | null
     showUsername: boolean
     displayName: string
@@ -20,6 +17,7 @@ export interface SoundConfig {
     type: 'one' | 'any' | 'weighted-any'
     fileName: string | null
     sounds?: { fileName: string | null, weight?: number }[]
+    blocking?: boolean
 }
 
 export interface SoundsStateData extends ModuleStateData {

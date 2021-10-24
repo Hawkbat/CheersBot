@@ -2,11 +2,12 @@ import { OverlayAppViewData, Icon, Counter, CounterVisibility, RedeemModeDisplay
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
 import { Bubble } from '../controls/Bubble'
-import { channelAction, channelView, getChannelCSS, useRepeatingEffect } from '../utils'
+import { channelAction, channelView, formatTime, getChannelCSS, useRepeatingEffect } from '../utils'
 import { Sound } from '../controls/Sound'
 import { CSSTransition, TransitionGroup } from 'react-transition-group'
 import { useVTubeStudioConnection, useVTubeStudioProcessing } from '../vtstudio'
 import { VTubeStudioBubble } from 'src/controls/VTubeStudioBubble'
+import { useBeatsaberConnection } from 'src/beatsaber'
 
 let cachedData: OverlayAppViewData | undefined
 let pendingViewPromise: Promise<OverlayAppViewData | undefined> | undefined
@@ -41,6 +42,7 @@ export function OverlayApp(props: OverlayAppViewData) {
     const sounds = props.modules.sounds
     const vTubeStudio = props.modules.vtubeStudio
     const subathon = props.modules.subathon
+    const beatsaber = props.modules.beatsaber
     const debug = props.modules.debug
 
     const displayModes: RedeemModeDisplay[] = modeQueue.state.modes.map(mode => {
@@ -74,10 +76,7 @@ export function OverlayApp(props: OverlayAppViewData) {
     const getSubathonTimer = () => {
         const timeInCurrentPeriod = Date.now() - (subathon.state.startTime ?? Date.now())
         const actualTimeRemaining = Math.max(0, subathon.state.remainingTime - timeInCurrentPeriod)
-        const hours = Math.floor(actualTimeRemaining / (60 * 60 * 1000))
-        const minutes = Math.floor((actualTimeRemaining - hours * 60 * 60 * 1000) / (60 * 1000))
-        const seconds = (actualTimeRemaining - hours * 60 * 60 * 1000 - minutes * 60 * 1000) / 1000
-        return `${hours > 0 ? `${hours.toString().padStart(2, '0')}:` : ''}${minutes.toString().padStart(hours > 0 ? 2 : 1, '0')}:${Math.floor(seconds).toString().padStart(2, '0')}`
+        return formatTime(actualTimeRemaining)
     }
 
     const getSubathonMsg = () => {
@@ -110,11 +109,16 @@ export function OverlayApp(props: OverlayAppViewData) {
         await channelAction('debug/send-logs', { logs: popLogBuffer() })
     }, []), 60 * 1000, false)
 
+    const bs = useBeatsaberConnection(beatsaber)
+
     const vts = useVTubeStudioConnection({ ...vTubeStudio, type: 'overlay' })
     useVTubeStudioProcessing({ ...vTubeStudio, ...vts, enabled: vTubeStudio.config.useOverlay })
 
     return <div className="Overlay" style={{ ...getChannelCSS(props.modules.channelInfo.config), alignItems, justifyContent }}>
         <TransitionGroup component={null}>
+            {props.tokenInvalid ? <CSSTransition key="badtoken" {...transitionProps}>
+                <Bubble icon={defaultEmote} msg="Twitch connection has expired. Reconnect your channel account." />
+            </CSSTransition> : null}
             {customMessage.config.enabled ? customMessage.state.messages.filter(m => m.visible && m.message).map(m => <CSSTransition key={m.id} {...transitionProps}>
                 <Bubble icon={m.emote ?? defaultEmote} msg={m.message} />
             </CSSTransition>) : null}
@@ -123,6 +127,15 @@ export function OverlayApp(props: OverlayAppViewData) {
             </CSSTransition> : null}
             {evilDm.config.enabled && evilDm.state.count > 0 && (evilDm.state.time + 10000) > Date.now() ? <CSSTransition key='evil_dm_' {...transitionProps}>
                 <Bubble icon={evilDm.config.emote ?? defaultEmote} username={'evil_dm_'} msg={`has confessed to her crimes ${evilDm.state.count} time${evilDm.state.count === 1 ? '' : 's'}!`} />
+            </CSSTransition> : null}
+            {beatsaber.config.enabled && bs.mapConnected && bs.mapData !== null && bs.mapData.InLevel ? <CSSTransition key='beatsabermap' {...transitionProps}>
+                <Bubble icon={{ type: 'url', id: bs.mapData.coverImage, name: bs.mapData.SongName }} username={bs.mapData.SongName} msg={`${bs.mapData.SongSubName} - ${bs.mapData.SongAuthor} [${bs.mapData.MapType}][${bs.mapData.CustomDifficultyLabel ? bs.mapData.CustomDifficultyLabel : bs.mapData.Difficulty}]`} />
+            </CSSTransition> : null}
+            {beatsaber.config.enabled && bs.liveConnected && bs.mapData !== null && bs.liveData !== null ? <CSSTransition key='beatsaberlive' {...transitionProps}>
+                <Bubble icon={{ type: 'url', id: bs.mapData.coverImage, name: bs.mapData.SongName }} username={bs.liveData.Rank} msg={`${bs.liveData.Combo} / ${bs.liveData.FullCombo} ${Math.round(bs.liveData.Accuracy * 100)}% ${formatTime(bs.liveData.TimeElapsed * 1000)} / ${formatTime(bs.mapData.Length * 1000)}`} />
+            </CSSTransition> : null}
+            {beatsaber.config.enabled && beatsaber.config.debugOverlay ? <CSSTransition key='beatsaberdebug' {...transitionProps}>
+                <Bubble icon={defaultEmote} username='Beat Saber' msg={`Map Data: ${bs.mapConnected ? '' : 'dis'}connected; Live Data: ${bs.liveConnected ? '' : 'dis'}connected`} />
             </CSSTransition> : null}
             {winLoss.config.enabled && winLoss.state.display && (winLoss.state.wins !== 0 || winLoss.state.draws !== 0 || winLoss.state.losses !== 0) ? <CSSTransition key='winloss' {...transitionProps}>
                 <Bubble icon={winLoss.state.losses > winLoss.state.wins ? winLoss.config.losingEmote ?? defaultEmote : winLoss.state.losses < winLoss.state.wins ? winLoss.config.winningEmote ?? defaultEmote : winLoss.config.tiedEmote ?? defaultEmote} username={''} msg={`<b>${winLoss.state.wins}</b> W - <b>${winLoss.state.losses}</b> L` + (winLoss.state.draws !== 0 ? ` - <b>${winLoss.state.draws}</b> D` : '')} />
@@ -169,7 +182,8 @@ export function OverlayApp(props: OverlayAppViewData) {
             }) : null}
             {sounds.config.enabled ? sounds.state.sounds.map(s => {
                 const config = sounds.config.sounds.find(c => c.id === s.configID)
-                return config ? <Sound key={s.id} baseUrl={`/${CHANNEL_NAME}/uploads/`} config={config} onEnd={() => channelAction('sounds/remove-redeem', { id: s.id })} /> : null
+                const blocked = config?.blocking && s !== sounds.state.sounds.find(o => sounds.config.sounds.find(c => c.id === o.configID)?.blocking)
+                return config && !blocked ? <Sound key={s.id} baseUrl={`/${CHANNEL_NAME}/uploads/`} config={config} onEnd={() => channelAction('sounds/remove-redeem', { id: s.id })} /> : null
             }) : null}
             {modeQueue.config.enabled ? displayModes.filter(m => m.visible && m.msg).map(m => <CSSTransition key={m.id} {...transitionProps}>
                 <Bubble icon={m.icon} username={m.showName ? m.userName : ''} msg={m.msg} />

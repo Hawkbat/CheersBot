@@ -143,6 +143,7 @@ export class Store<T> {
     private setCallbacks: ((data: T) => T | Promise<T>)[] = []
     private getToken: WaitToken = {}
     private setToken: WaitToken = {}
+    private locked: boolean = false
 
     constructor(private data: T) { }
 
@@ -173,17 +174,28 @@ export class Store<T> {
     }
 
     set(setter: (data: T) => T): void {
+        if (this.locked) return
         this.data = setter(this.data)
         this.doWrite()
     }
 
     update(updater: (data: T) => void): void {
+        if (this.locked) return
         updater(this.data)
         this.doWrite()
     }
 
     touch(): void {
+        if (this.locked) return
         this.doWrite()
+    }
+
+    lock(): void {
+        this.locked = true
+    }
+
+    unlock(): void {
+        this.locked = false
     }
 
     private async doRead() {
@@ -196,3 +208,5 @@ export class Store<T> {
         for (const cb of this.setCallbacks) this.data = await cb(this.data)
     }
 }
+
+export type Props<T extends (props: any, ...args: any) => any> = Parameters<T>[0]

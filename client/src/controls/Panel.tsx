@@ -20,6 +20,7 @@ import { SoundsPanel } from '../panels/SoundsPanel'
 import { VTubeStudioPanel } from '../panels/VTubeStudioPanel'
 import { SubathonPanel } from '../panels/SubathonPanel'
 import { Alert } from './Alert'
+import { BeatsaberPanel } from 'src/panels/BeatsaberPanel'
 
 export function Panel(props: { page: ControlPanelPage, panel: PanelViewData, data: ControlPanelAppViewData, onToggle: (open: boolean) => void, onToggleItem: (id: string, open: boolean) => void }) {
     const module = getModule(props.panel.type)
@@ -58,6 +59,8 @@ export function Panel(props: { page: ControlPanelPage, panel: PanelViewData, dat
                     return <VTubeStudioPanel {...panelProps} {...props.data} {...getModule(props.panel.type).getData(props.data.modules)} />
                 case 'subathon':
                     return <SubathonPanel {...panelProps} {...props.data} {...getModule(props.panel.type).getData(props.data.modules)} />
+                case 'beatsaber':
+                    return <BeatsaberPanel {...panelProps} {...props.data} {...getModule(props.panel.type).getData(props.data.modules)} />
                 case 'channelInfo':
                     return <ChannelInfoPanel {...panelProps} {...props.data} {...getModule(props.panel.type).getData(props.data.modules)} />
                 case 'debug':

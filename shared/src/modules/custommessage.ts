@@ -1,7 +1,7 @@
 import { Icon, ModuleVersion } from '../data'
-import { ModuleStateData, ModuleConfigData, Module, ModuleMap } from './common'
+import { ModuleStateData, ModuleConfigData, Module, ModuleMap, BaseItemConfig } from './common'
 
-export interface CustomMessage {
+export interface CustomMessage extends BaseItemConfig {
     id: string
     emote: Icon | null
     message: string

@@ -1,38 +1,31 @@
 import { Icon, ModuleVersion } from '../data'
-import { ModuleStateData, ModuleConfigData, Module, ModuleMap } from './common'
+import { ModuleStateData, ModuleConfigData, Module, ModuleMap, TriggerConfig } from './common'
 
-export interface ModelSwapConfig {
-    id: string
-    redeemID: string
-    redeemName: string
+export interface ModelSwapConfig extends TriggerConfig {
     emote: Icon | null
     showUsername: boolean
     message: string
     duration: number
     type: 'one' | 'any' | 'weighted-any'
     models: { id: string, name: string, weight?: number, position?: { positionX: number, positionY: number, rotation: number, size: number } | null }[]
-    after?: 'revert' | 'nothing'
+    after?: 'revert' | 'config' | 'nothing'
+    afterConfig?: string
     revertDelay?: number | null
 }
 
-export interface TriggerHotkeyConfig {
-    id: string
-    redeemID: string
-    redeemName: string
+export interface TriggerHotkeyConfig extends TriggerConfig {
     emote: Icon | null
     showUsername: boolean
     message: string
     duration: number
     type: 'one' | 'any' | 'weighted-any' | 'all'
     hotkeys: { id: string, name: string, weight?: number }[]
-    after?: 'retrigger' | 'nothing'
+    after?: 'retrigger' | 'config' | 'nothing'
+    afterConfig?: string
     retriggerDelay?: number | null
 }
 
-export interface ColorTintConfig {
-    id: string
-    redeemID: string
-    redeemName: string
+export interface ColorTintConfig extends TriggerConfig {
     emote: Icon | null
     showUsername: boolean
     message: string
@@ -45,7 +38,8 @@ export interface ColorTintConfig {
         tags: string[]
     }[]
     rainbowSpeed: number
-    after?: 'reset' | 'nothing'
+    after?: 'reset' | 'config' | 'nothing'
+    afterConfig?: string
     resetDelay?: number | null
 }
 

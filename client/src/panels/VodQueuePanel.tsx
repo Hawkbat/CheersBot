@@ -42,7 +42,7 @@ export function VodQueuePanel(props: ControlPanelAppViewData & ModuleDataType<'v
                     <TwitchRewardDropdown nullable selectedID={props.config.redeemID} selectedName={props.config.redeemName} onSelect={(id, name) => channelAction('vodqueue/set-config', { redeemID: id, redeemName: name })} />
                 </PanelField>
                 <PanelField label="Game" help="The game this queue is configured for; provides additional functionality.">
-                    <Dropdown options={Object.values(VodQueueGame).map(e => ({ value: e }))} selected={props.config.game} onSelect={v => channelAction('vodqueue/set-config', { game: v as VodQueueGame })} />
+                    <Dropdown options={Object.values(VodQueueGame).map(e => ({ value: e }))} selected={props.config.game} onSelect={v => channelAction('vodqueue/set-config', { game: v })} />
                 </PanelField>
                 <PanelField>
                     <Button onClick={() => mockVod()}>Test VOD</Button>
