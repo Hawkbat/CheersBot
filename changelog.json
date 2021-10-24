@@ -113,6 +113,26 @@
                 "Fixed existing sound configurations loading incorrectly",
                 "Applied minor fixes and improvements"
             ]
+        },
+        {
+            "version": "1.6.0",
+            "released": "2021-10-24",
+            "changes": [
+                "Added alerts and popups when channel Twitch account connections break",
+                "Added queue option for sound alerts to prevent stacking sounds",
+                "Added config item archiving feature, to avoid accidental deletions",
+                "Added warning popups to archive and delete buttons",
+                "Added new trigger options for subs and bits, in addition to channel points",
+                "Added 'Need Help?' button and popup",
+                "Added placeholder labels for unnamed models and hotkeys",
+                "Added option to trigger another model swap/hotkey/color tint after finishing",
+                "Added links to external artmesh tagging and parameter viewer tools",
+                "Added alpha Beat Saber module to display current song info",
+                "Changed trigger handling to consistently allow multiple items to trigger from the same channel point reward",
+                "Fixed model swap position buttons causing data loss",
+                "Fixed VTube Studio connecting getting 'stuck' frequently",
+                "Applied minor fixes and improvements"
+            ]
         }
     ]
 }
