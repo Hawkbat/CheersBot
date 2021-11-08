@@ -174,7 +174,7 @@ export function VTubeStudioPanel(props: ControlPanelAppViewData & ModuleDataType
                 <VTubeStudioIndicator type="control-panel" processing={!props.config.useOverlay} connected={vts.connected} apiError={String(vts.apiError ?? '')} readyState={vts.client.ws.readyState} />
                 <hr />
                 <PanelField>
-                    <span>Don't want to color artmeshes individually? Try tagging them with my <a href="http://jtho.me/VTubeStudioTagger/">userdata tagging</a> tool. I also have a handy <a href="http://jtho.me/VTubeStudioParameterView/">Live2D parameter viewer</a> for seeing all of your model's parameters in real-time.</span>
+                    <span>Don't want to color artmeshes individually? Try tagging them with my <a href="http://hawk.bar/VTubeStudioTagger/">userdata tagging</a> tool. I also have a handy <a href="http://hawk.bar/VTubeStudioParameterView/">Live2D parameter viewer</a> for seeing all of your model's parameters in real-time.</span>
                 </PanelField>
                 <hr />
                 <ConfigList configs={props.config.swaps} label="Model Swaps" configType="model swap" panelData={props} addAction="vtstudio/add-model-swap" editAction="vtstudio/edit-model-swap" deleteAction="vtstudio/delete-model-swap" mockAction="vtstudio/mock-model-swap">
