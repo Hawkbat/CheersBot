@@ -20,7 +20,7 @@
     "express-ws": "^4.0.0",
     "libsodium-wrappers": "^0.7.9",
     "microsoft-cognitiveservices-speech-sdk": "^1.17.0",
-    "node-fetch": "^2.6.1",
+    "node-fetch": "^2.6.7",
     "pug": "^3.0.2",
     "shared": "file:../shared",
     "stylus": "^0.54.8",
