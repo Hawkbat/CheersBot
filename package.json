@@ -4,7 +4,7 @@
   "description": "Heccin cheers bot!",
   "main": "index.js",
   "dependencies": {
-    "open-cli": "^6.0.1",
+    "open-cli": "^7.1.0",
     "rimraf": "^3.0.2"
   },
   "devDependencies": {},
