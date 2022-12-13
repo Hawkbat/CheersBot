@@ -15,7 +15,7 @@
     "bufferutil": "^4.0.3",
     "cheerio": "^1.0.0-rc.9",
     "discord.js": "^12.5.3",
-    "express": "^4.17.1",
+    "express": "^4.17.3",
     "express-session": "^1.17.2",
     "express-ws": "^4.0.0",
     "libsodium-wrappers": "^0.7.9",
